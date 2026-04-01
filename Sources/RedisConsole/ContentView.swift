@@ -506,6 +506,13 @@ struct ConnectionDetailView: View {
     @State private var testResult: String?
     @State private var isTesting = false
 
+    @State private var sshEnabled = false
+    @State private var sshHost = ""
+    @State private var sshPort: UInt16 = 22
+    @State private var sshUsername = ""
+    @State private var sshPassword = ""
+    @State private var sshPrivateKeyPath = ""
+
     private var editingConfig: RedisConnectionConfig? {
         if case .editConnection(let c) = conn.rightPanel { return c }
         return nil
@@ -516,33 +523,57 @@ struct ConnectionDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Form {
-                Section(isNew ? "New Connection" : "Connection") {
-                    TextField("Name", text: $name)
-                    TextField("Host", text: $host)
-                    HStack {
-                        Text("Port")
-                        Spacer()
-                        TextField("", text: Binding(
-                            get: { "\(port)" },
-                            set: { if let v = UInt16($0) { port = v } }
-                        ))
-                        .frame(width: 80)
-                    }
-                    SecureField("Password", text: $password)
-                    HStack {
-                        Text("Database")
-                        Spacer()
-                        Picker("", selection: $database) {
-                            ForEach(0..<16) { i in
-                                Text("DB \(i)").tag(i)
-                            }
+            ScrollView {
+                Form {
+                    Section(isNew ? "New Connection" : "Connection") {
+                        TextField("Name", text: $name)
+                        TextField("Host", text: $host)
+                        HStack {
+                            Text("Port")
+                            Spacer()
+                            TextField("", text: Binding(
+                                get: { "\(port)" },
+                                set: { if let v = UInt16($0) { port = v } }
+                            ))
+                            .frame(width: 80)
                         }
-                        .frame(width: 100)
+                        SecureField("Password", text: $password)
+                        HStack {
+                            Text("Database")
+                            Spacer()
+                            Picker("", selection: $database) {
+                                ForEach(0..<16) { i in
+                                    Text("DB \(i)").tag(i)
+                                }
+                            }
+                            .frame(width: 100)
+                        }
+                    }
+
+                    Section("SSH Tunnel") {
+                        Toggle("Enable SSH Tunnel", isOn: $sshEnabled)
+                        if sshEnabled {
+                            TextField("SSH Host", text: $sshHost)
+                            HStack {
+                                Text("SSH Port")
+                                Spacer()
+                                TextField("", text: Binding(
+                                    get: { "\(sshPort)" },
+                                    set: { if let v = UInt16($0) { sshPort = v } }
+                                ))
+                                .frame(width: 80)
+                            }
+                            TextField("SSH Username", text: $sshUsername)
+                            SecureField("SSH Password (optional)", text: $sshPassword)
+                            TextField("Private Key Path (optional)", text: $sshPrivateKeyPath)
+                            Text("Provide SSH password or a private key file path")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
+                .formStyle(.grouped)
             }
-            .formStyle(.grouped)
             .onChange(of: conn.rightPanel) { _, newValue in
                 loadConfig(from: newValue)
             }
@@ -574,6 +605,12 @@ struct ConnectionDetailView: View {
                             database: database
                         )
                         config.password = password
+                        config.sshEnabled = sshEnabled
+                        config.sshHost = sshHost
+                        config.sshPort = sshPort
+                        config.sshUsername = sshUsername
+                        config.sshPassword = sshPassword
+                        config.sshPrivateKeyPath = sshPrivateKeyPath
                         store.addConnection(config)
                         conn.selectedConnection = config
                         conn.rightPanel = .editConnection(config)
@@ -584,7 +621,7 @@ struct ConnectionDetailView: View {
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
-                    .disabled(host.isEmpty || isTesting)
+                    .disabled(host.isEmpty || isTesting || (sshEnabled && (sshHost.isEmpty || sshUsername.isEmpty)))
 
                     Spacer()
 
@@ -596,11 +633,17 @@ struct ConnectionDetailView: View {
                             database: database
                         )
                         config.password = password
+                        config.sshEnabled = sshEnabled
+                        config.sshHost = sshHost
+                        config.sshPort = sshPort
+                        config.sshUsername = sshUsername
+                        config.sshPassword = sshPassword
+                        config.sshPrivateKeyPath = sshPrivateKeyPath
                         store.addConnection(config)
                         Task { await conn.connect(to: config) }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(host.isEmpty)
+                    .disabled(host.isEmpty || (sshEnabled && (sshHost.isEmpty || sshUsername.isEmpty)))
                 } else if let config = editingConfig {
                     Button("Delete", role: .destructive) {
                         store.deleteConnection(config)
@@ -611,7 +654,7 @@ struct ConnectionDetailView: View {
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
-                    .disabled(host.isEmpty || isTesting)
+                    .disabled(host.isEmpty || isTesting || (sshEnabled && (sshHost.isEmpty || sshUsername.isEmpty)))
 
                     Spacer()
 
@@ -622,6 +665,12 @@ struct ConnectionDetailView: View {
                         updated.port = port
                         updated.password = password
                         updated.database = database
+                        updated.sshEnabled = sshEnabled
+                        updated.sshHost = sshHost
+                        updated.sshPort = sshPort
+                        updated.sshUsername = sshUsername
+                        updated.sshPassword = sshPassword
+                        updated.sshPrivateKeyPath = sshPrivateKeyPath
                         store.updateConnection(updated)
                         conn.selectedConnection = updated
                     }
@@ -634,11 +683,17 @@ struct ConnectionDetailView: View {
                         updated.port = port
                         updated.password = password
                         updated.database = database
+                        updated.sshEnabled = sshEnabled
+                        updated.sshHost = sshHost
+                        updated.sshPort = sshPort
+                        updated.sshUsername = sshUsername
+                        updated.sshPassword = sshPassword
+                        updated.sshPrivateKeyPath = sshPrivateKeyPath
                         store.updateConnection(updated)
                         Task { await conn.connect(to: updated) }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(host.isEmpty)
+                    .disabled(host.isEmpty || (sshEnabled && (sshHost.isEmpty || sshUsername.isEmpty)))
                 }
             }
             .padding()
@@ -649,37 +704,113 @@ struct ConnectionDetailView: View {
         testResult = nil
         switch panel {
         case .editConnection(let c):
-            name = c.name
-            host = c.host
-            port = c.port
-            password = c.password
-            database = c.database
+            let resolved = store.connectionWithSecrets(id: c.id) ?? c
+            name = resolved.name
+            host = resolved.host
+            port = resolved.port
+            password = resolved.password
+            database = resolved.database
+            sshEnabled = resolved.sshEnabled
+            sshHost = resolved.sshHost
+            sshPort = resolved.sshPort
+            sshUsername = resolved.sshUsername
+            sshPassword = resolved.sshPassword
+            sshPrivateKeyPath = resolved.sshPrivateKeyPath
         case .newConnection:
             name = ""
             host = ""
             port = 6379
             password = ""
             database = 0
+            sshEnabled = false
+            sshHost = ""
+            sshPort = 22
+            sshUsername = ""
+            sshPassword = ""
+            sshPrivateKeyPath = ""
         default: break
         }
     }
 
     private func testConnection() async {
+        AppLogger.info(
+            "test connection requested redis=\(host):\(port) sshEnabled=\(sshEnabled) ssh=\(sshHost):\(sshPort) user=\(sshUsername)",
+            category: "ConnectionTest"
+        )
         isTesting = true
         testResult = nil
-        let client = RedisClient(host: host, port: port, password: password.isEmpty ? nil : password)
-        do {
-            try await client.connect()
-            if database != 0 {
-                let _ = try? await client.send("SELECT", "\(database)")
+        var client: RedisClient?
+        var tunnel: SSHTunnel?
+        defer {
+            client?.disconnect()
+            tunnel?.stop()
+            isTesting = false
+        }
+
+        var connectHost = host
+        var connectPort = port
+
+        if sshEnabled {
+            let trimmedSSHHost = sshHost.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedSSHUsername = sshUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedSSHHost.isEmpty else {
+                testResult = "Failed — SSH host is required"
+                AppLogger.error("test failed: empty ssh host", category: "ConnectionTest")
+                return
             }
-            let pong = try await client.send("PING")
-            client.disconnect()
+            guard !trimmedSSHUsername.isEmpty else {
+                testResult = "Failed — SSH username is required"
+                AppLogger.error("test failed: empty ssh username", category: "ConnectionTest")
+                return
+            }
+
+            let createdTunnel = SSHTunnel()
+            tunnel = createdTunnel
+            do {
+                try await withTimeout(12, context: "SSH tunnel setup") {
+                    try await createdTunnel.start(
+                    sshHost: trimmedSSHHost,
+                    sshPort: sshPort,
+                    sshUsername: trimmedSSHUsername,
+                    sshPassword: sshPassword.isEmpty ? nil : sshPassword,
+                    privateKeyPath: sshPrivateKeyPath.isEmpty ? nil : sshPrivateKeyPath,
+                    remoteHost: host,
+                    remotePort: port
+                )
+                }
+                connectHost = "127.0.0.1"
+                connectPort = createdTunnel.localPort
+                AppLogger.info(
+                    "test ssh tunnel ready mode=\(createdTunnel.mode.rawValue) local=127.0.0.1:\(connectPort)",
+                    category: "ConnectionTest"
+                )
+            } catch {
+                testResult = "Failed — SSH tunnel: \(error.localizedDescription)"
+                AppLogger.error("test ssh tunnel failed error=\(error)", category: "ConnectionTest")
+                return
+            }
+        }
+
+        let createdClient = RedisClient(host: connectHost, port: connectPort, password: password.isEmpty ? nil : password)
+        client = createdClient
+        do {
+            try await withTimeout(10, context: "Redis connection") {
+                try await createdClient.connect()
+            }
+            if database != 0 {
+                let _ = try? await withTimeout(5, context: "Redis SELECT") {
+                    try await createdClient.send("SELECT", "\(database)")
+                }
+            }
+            let pong = try await withTimeout(5, context: "Redis PING") {
+                try await createdClient.send("PING")
+            }
             testResult = "OK — \(pong.string ?? "PONG")"
+            AppLogger.info("test succeeded result=\(pong.string ?? "PONG")", category: "ConnectionTest")
         } catch {
             testResult = "Failed — \(error.localizedDescription)"
+            AppLogger.error("test redis failed error=\(error)", category: "ConnectionTest")
         }
-        isTesting = false
     }
 }
 

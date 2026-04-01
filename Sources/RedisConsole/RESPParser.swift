@@ -3,7 +3,7 @@ import Network
 
 // MARK: - RESP2 Protocol Parser
 
-enum RESPValue: CustomStringConvertible {
+enum RESPValue: CustomStringConvertible, Sendable {
     case simpleString(String)
     case error(String)
     case integer(Int)
