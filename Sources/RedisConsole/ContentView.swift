@@ -1,0 +1,707 @@
+import SwiftUI
+import AppKit
+
+// MARK: - Tab Manager
+
+@MainActor
+class TabManager: ObservableObject {
+    @Published var tabStates: [ConnectionState] = []
+
+    func createTab() -> ConnectionState {
+        let state = ConnectionState()
+        tabStates.append(state)
+        return state
+    }
+
+    func closeTab(_ state: ConnectionState) {
+        state.disconnect()
+        tabStates.removeAll { $0.id == state.id }
+    }
+
+    func tabIndex(for state: ConnectionState) -> Int? {
+        tabStates.firstIndex(where: { $0.id == state.id })
+    }
+}
+
+// MARK: - AppDelegate
+
+@MainActor
+class AppDelegate: NSObject, NSApplicationDelegate {
+    let tabManager = TabManager()
+    private var stateToWindow: [UUID: NSWindow] = [:]
+    private let tabShortcutLimit = 9
+    private var tabRefreshScheduled = false
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
+        buildMenuBar()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleApplicationDidUpdate(_:)),
+            name: NSApplication.didUpdateNotification,
+            object: nil
+        )
+        openNewTab()
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
+    }
+
+    @objc func openNewTab() {
+        let state = tabManager.createTab()
+        createWindow(for: state)
+    }
+
+    @objc func toggleFullScreen() {
+        NSApp.keyWindow?.toggleFullScreen(nil)
+    }
+
+    @objc func newWindowForTab(_ sender: Any?) {
+        openNewTab()
+    }
+
+    @objc func selectNextTab() {
+        guard let tabGroup = NSApp.keyWindow?.tabGroup,
+              let current = NSApp.keyWindow,
+              let index = tabGroup.windows.firstIndex(of: current) else { return }
+        let next = tabGroup.windows[(index + 1) % tabGroup.windows.count]
+        next.makeKeyAndOrderFront(nil)
+    }
+
+    @objc func selectPreviousTab() {
+        guard let tabGroup = NSApp.keyWindow?.tabGroup,
+              let current = NSApp.keyWindow,
+              let index = tabGroup.windows.firstIndex(of: current) else { return }
+        let prev = tabGroup.windows[(index - 1 + tabGroup.windows.count) % tabGroup.windows.count]
+        prev.makeKeyAndOrderFront(nil)
+    }
+
+    @objc func selectTabByNumber(_ sender: NSMenuItem) {
+        selectTab(at: sender.tag - 1)
+    }
+
+    private func createWindow(for state: ConnectionState) {
+        let contentView = TabContentView()
+            .environmentObject(state)
+            .environmentObject(AppStore.shared)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 640),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.center()
+        window.title = "Redis Console"
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: contentView)
+        window.collectionBehavior.insert(NSWindow.CollectionBehavior.fullScreenPrimary)
+        window.tabbingMode = .preferred
+        window.tabbingIdentifier = "RedisConsole"
+
+        // Add as tab to existing window, or show as new window
+        if let existingWindow = NSApp.keyWindow {
+            existingWindow.addTabbedWindow(window, ordered: .above)
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            window.makeKeyAndOrderFront(nil)
+        }
+
+        stateToWindow[state.id] = window
+        requestTabChromeRefresh()
+
+        // Clean up when window closes
+        let delegate = WindowDelegate { [weak self] in
+            Task { @MainActor in
+                self?.tabManager.closeTab(state)
+                self?.stateToWindow.removeValue(forKey: state.id)
+                self?.requestTabChromeRefresh()
+            }
+        }
+        window.delegate = delegate
+
+        // Store delegate to prevent deallocation
+        objc_setAssociatedObject(window, "windowDelegate", delegate, .OBJC_ASSOCIATION_RETAIN)
+    }
+
+    private func buildMenuBar() {
+        let mainMenu = NSMenu()
+
+        // App menu
+        let appMenuItem = NSMenuItem()
+        mainMenu.addItem(appMenuItem)
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About Redis Console",
+                        action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+                        keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit Redis Console",
+                        action: #selector(NSApplication.terminate(_:)),
+                        keyEquivalent: "q")
+        appMenuItem.submenu = appMenu
+
+        // File menu
+        let fileMenuItem = NSMenuItem()
+        mainMenu.addItem(fileMenuItem)
+        let fileMenu = NSMenu(title: "File")
+        let newTabItem = NSMenuItem(title: "New Tab", action: #selector(openNewTab), keyEquivalent: "t")
+        newTabItem.keyEquivalentModifierMask = [.command]
+        fileMenu.addItem(newTabItem)
+        let closeTabItem = NSMenuItem(title: "Close Tab", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        closeTabItem.keyEquivalentModifierMask = [.command]
+        fileMenu.addItem(closeTabItem)
+        fileMenuItem.submenu = fileMenu
+
+        // Window menu
+        let windowMenuItem = NSMenuItem()
+        mainMenu.addItem(windowMenuItem)
+        let windowMenu = NSMenu(title: "Window")
+        let nextTabItem = NSMenuItem(title: "Show Next Tab", action: #selector(selectNextTab), keyEquivalent: "→")
+        nextTabItem.keyEquivalentModifierMask = [.command]
+        windowMenu.addItem(nextTabItem)
+        let prevTabItem = NSMenuItem(title: "Show Previous Tab", action: #selector(selectPreviousTab), keyEquivalent: "←")
+        prevTabItem.keyEquivalentModifierMask = [.command]
+        windowMenu.addItem(prevTabItem)
+        windowMenu.addItem(.separator())
+        for index in 1...tabShortcutLimit {
+            let item = NSMenuItem(
+                title: "Select Tab \(index)",
+                action: #selector(selectTabByNumber(_:)),
+                keyEquivalent: "\(index)"
+            )
+            item.tag = index
+            item.keyEquivalentModifierMask = [.command]
+            windowMenu.addItem(item)
+        }
+        windowMenuItem.submenu = windowMenu
+        NSApp.windowsMenu = windowMenu
+
+        // Edit menu
+        let editMenuItem = NSMenuItem()
+        mainMenu.addItem(editMenuItem)
+        let editMenu = NSMenu(title: "Edit")
+        editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        editMenu.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        editMenuItem.submenu = editMenu
+
+        // View menu
+        let viewMenuItem = NSMenuItem()
+        mainMenu.addItem(viewMenuItem)
+        let viewMenu = NSMenu(title: "View")
+        let fsItem = NSMenuItem(title: "Enter Full Screen", action: #selector(toggleFullScreen), keyEquivalent: "f")
+        fsItem.keyEquivalentModifierMask = [.command, .control]
+        viewMenu.addItem(fsItem)
+        viewMenuItem.submenu = viewMenu
+
+        NSApp.mainMenu = mainMenu
+    }
+
+    @objc private func handleApplicationDidUpdate(_ notification: Notification) {
+        requestTabChromeRefresh()
+    }
+
+    private func requestTabChromeRefresh() {
+        guard !tabRefreshScheduled else { return }
+        tabRefreshScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.tabRefreshScheduled = false
+            self.refreshTabChrome()
+        }
+    }
+
+    private func refreshTabChrome() {
+        var refreshedGroups = Set<ObjectIdentifier>()
+
+        for window in stateToWindow.values {
+            if let tabGroup = window.tabGroup {
+                let groupID = ObjectIdentifier(tabGroup)
+                guard refreshedGroups.insert(groupID).inserted else { continue }
+                syncTabAccessories(in: tabGroup.windows)
+            } else {
+                syncTabAccessories(in: [window])
+            }
+        }
+    }
+
+    private func selectTab(at index: Int) {
+        guard index >= 0 else { return }
+
+        let targetWindow = NSApp.keyWindow ?? NSApp.mainWindow
+        if let tabGroup = targetWindow?.tabGroup, index < tabGroup.windows.count {
+            tabGroup.windows[index].makeKeyAndOrderFront(nil)
+        } else if index == 0 {
+            targetWindow?.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    private func syncTabAccessories(in windows: [NSWindow]) {
+        for (index, window) in windows.enumerated() {
+            if windows.count > 1, index < tabShortcutLimit {
+                window.tab.accessoryView = makeTabAccessoryView(text: "⌘\(index + 1)")
+            } else {
+                window.tab.accessoryView = nil
+            }
+        }
+    }
+
+    private func makeTabAccessoryView(text: String) -> NSView {
+        let label = NSTextField(labelWithString: text)
+        label.alignment = .center
+        label.font = .monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        label.drawsBackground = false
+        label.isBezeled = false
+        label.lineBreakMode = .byClipping
+        label.maximumNumberOfLines = 1
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            label.topAnchor.constraint(equalTo: container.topAnchor),
+            label.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            label.heightAnchor.constraint(equalToConstant: 16),
+            label.widthAnchor.constraint(greaterThanOrEqualToConstant: 34)
+        ])
+
+        return container
+    }
+}
+
+// MARK: - Window Delegate
+
+class WindowDelegate: NSObject, NSWindowDelegate {
+    let onClose: () -> Void
+
+    init(onClose: @escaping () -> Void) {
+        self.onClose = onClose
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        onClose()
+    }
+}
+
+// MARK: - App Entry Point
+
+@main
+struct RedisConsoleApp {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.run()
+    }
+}
+
+// MARK: - Tab Content View (per-tab)
+
+struct TabContentView: View {
+    @EnvironmentObject var conn: ConnectionState
+    @EnvironmentObject var store: AppStore
+
+    var body: some View {
+        HSplitView {
+            TabSidebarView()
+                .frame(minWidth: 220, maxWidth: 280)
+
+            if conn.activeClient?.isConnected == true {
+                switch conn.currentView {
+                case .browser: BrowserView()
+                case .cli: CLIView()
+                case .slowlog: SlowLogView()
+                case .serverInfo: ServerInfoView()
+                }
+            } else if conn.isConnecting {
+                ConnectingView()
+            } else {
+                switch conn.rightPanel {
+                case .editConnection, .newConnection:
+                    ConnectionDetailView()
+                        .frame(minWidth: 400)
+                case .welcome:
+                    WelcomeView()
+                }
+            }
+        }
+        .background(WindowTitleUpdater().environmentObject(conn))
+    }
+}
+
+// MARK: - Window Title Updater
+
+struct WindowTitleUpdater: NSViewRepresentable {
+    @EnvironmentObject var conn: ConnectionState
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard let window = nsView.window else { return }
+        conn.window = window
+        if let c = conn.selectedConnection {
+            window.title = "\(c.name) — \(c.address)"
+        } else {
+            window.title = "Redis Console"
+        }
+    }
+}
+
+// MARK: - Tab Sidebar
+
+struct TabSidebarView: View {
+    @EnvironmentObject var conn: ConnectionState
+    @EnvironmentObject var store: AppStore
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if conn.activeClient?.isConnected == true {
+                // Connected — compact header + tool navigation
+                HStack {
+                    Image(systemName: "circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.system(size: 8))
+                    VStack(alignment: .leading, spacing: 1) {
+                        if let c = conn.selectedConnection {
+                            Text(c.name)
+                                .font(.headline)
+                                .lineLimit(1)
+                            Text(c.address)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    Button(action: { conn.disconnect() }) {
+                        Image(systemName: "xmark.circle")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Disconnect")
+                }
+                .padding()
+
+                Divider()
+
+                List(selection: $conn.currentView) {
+                    Section("Tools") {
+                        ForEach(AppView.allCases, id: \.self) { view in
+                            Label(view.rawValue, systemImage: view.icon)
+                                .tag(view)
+                        }
+                    }
+                }
+                .listStyle(.sidebar)
+            } else {
+                // Disconnected — connection list
+                HStack {
+                    Text("Connections")
+                        .font(.headline)
+                    Spacer()
+                    Button(action: { conn.rightPanel = .newConnection }) {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.borderless)
+                }
+                .padding()
+
+                List(selection: Binding(
+                    get: { conn.selectedConnection },
+                    set: { conn.selectedConnection = $0; if let c = $0 { conn.rightPanel = .editConnection(c) } }
+                )) {
+                    ForEach(store.connections) { config in
+                        ConnectionRow(config: config, isConnected: false)
+                            .tag(config)
+                            .simultaneousGesture(
+                                TapGesture(count: 2).onEnded {
+                                    Task { await conn.connect(to: config) }
+                                }
+                            )
+                    }
+                }
+                .listStyle(.sidebar)
+            }
+        }
+    }
+}
+
+// MARK: - Connecting View
+
+struct ConnectingView: View {
+    @EnvironmentObject var conn: ConnectionState
+    @State private var isPulsing = false
+
+    var body: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .stroke(Color.accentColor.opacity(0.2), lineWidth: 4)
+                    .frame(width: 60, height: 60)
+                Circle()
+                    .trim(from: 0, to: 0.3)
+                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .frame(width: 60, height: 60)
+                    .rotationEffect(.degrees(isPulsing ? 360 : 0))
+                    .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: isPulsing)
+            }
+            .onAppear { isPulsing = true }
+
+            if let pending = conn.pendingConnection {
+                Text("Connecting to \(pending.name)")
+                    .font(.title3)
+                    .bold()
+                Text(pending.host + ":" + String(pending.port))
+                    .foregroundStyle(.secondary)
+                    .font(.system(.body, design: .monospaced))
+            }
+            Button("Cancel") { conn.cancelConnection() }
+                .buttonStyle(.bordered)
+                .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Welcome View
+
+struct WelcomeView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "server.rack")
+                .font(.system(size: 64))
+                .foregroundStyle(.secondary)
+            Text("Redis Console")
+                .font(.title)
+            Text("Select a connection or click + to add one")
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Connection Detail View
+
+struct ConnectionDetailView: View {
+    @EnvironmentObject var conn: ConnectionState
+    @EnvironmentObject var store: AppStore
+
+    @State private var name = ""
+    @State private var host = ""
+    @State private var port: UInt16 = 6379
+    @State private var password = ""
+    @State private var database = 0
+    @State private var testResult: String?
+    @State private var isTesting = false
+
+    private var editingConfig: RedisConnectionConfig? {
+        if case .editConnection(let c) = conn.rightPanel { return c }
+        return nil
+    }
+    private var isNew: Bool {
+        conn.rightPanel == .newConnection
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Form {
+                Section(isNew ? "New Connection" : "Connection") {
+                    TextField("Name", text: $name)
+                    TextField("Host", text: $host)
+                    HStack {
+                        Text("Port")
+                        Spacer()
+                        TextField("", text: Binding(
+                            get: { "\(port)" },
+                            set: { if let v = UInt16($0) { port = v } }
+                        ))
+                        .frame(width: 80)
+                    }
+                    SecureField("Password", text: $password)
+                    HStack {
+                        Text("Database")
+                        Spacer()
+                        Picker("", selection: $database) {
+                            ForEach(0..<16) { i in
+                                Text("DB \(i)").tag(i)
+                            }
+                        }
+                        .frame(width: 100)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            .onChange(of: conn.rightPanel) { _, newValue in
+                loadConfig(from: newValue)
+            }
+            .onAppear {
+                loadConfig(from: conn.rightPanel)
+            }
+
+            Divider()
+
+            if let result = testResult {
+                HStack {
+                    Image(systemName: result.hasPrefix("OK") ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundStyle(result.hasPrefix("OK") ? .green : .red)
+                    Text(result)
+                        .font(.caption)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+            }
+
+            HStack {
+                if isNew {
+                    Button("Save") {
+                        var config = RedisConnectionConfig(
+                            name: name.isEmpty ? host : name,
+                            host: host,
+                            port: port,
+                            database: database
+                        )
+                        config.password = password
+                        store.addConnection(config)
+                        conn.selectedConnection = config
+                        conn.rightPanel = .editConnection(config)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(host.isEmpty)
+
+                    Button("Test Connection") {
+                        Task { await testConnection() }
+                    }
+                    .disabled(host.isEmpty || isTesting)
+
+                    Spacer()
+
+                    Button("Connect") {
+                        var config = RedisConnectionConfig(
+                            name: name.isEmpty ? host : name,
+                            host: host,
+                            port: port,
+                            database: database
+                        )
+                        config.password = password
+                        store.addConnection(config)
+                        Task { await conn.connect(to: config) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(host.isEmpty)
+                } else if let config = editingConfig {
+                    Button("Delete", role: .destructive) {
+                        store.deleteConnection(config)
+                        conn.rightPanel = .welcome
+                    }
+                    .buttonStyle(.borderless)
+
+                    Button("Test Connection") {
+                        Task { await testConnection() }
+                    }
+                    .disabled(host.isEmpty || isTesting)
+
+                    Spacer()
+
+                    Button("Save") {
+                        var updated = config
+                        updated.name = name
+                        updated.host = host
+                        updated.port = port
+                        updated.password = password
+                        updated.database = database
+                        store.updateConnection(updated)
+                        conn.selectedConnection = updated
+                    }
+                    .disabled(host.isEmpty)
+
+                    Button("Connect") {
+                        var updated = config
+                        updated.name = name
+                        updated.host = host
+                        updated.port = port
+                        updated.password = password
+                        updated.database = database
+                        store.updateConnection(updated)
+                        Task { await conn.connect(to: updated) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(host.isEmpty)
+                }
+            }
+            .padding()
+        }
+    }
+
+    private func loadConfig(from panel: RightPanel) {
+        testResult = nil
+        switch panel {
+        case .editConnection(let c):
+            name = c.name
+            host = c.host
+            port = c.port
+            password = c.password
+            database = c.database
+        case .newConnection:
+            name = ""
+            host = ""
+            port = 6379
+            password = ""
+            database = 0
+        default: break
+        }
+    }
+
+    private func testConnection() async {
+        isTesting = true
+        testResult = nil
+        let client = RedisClient(host: host, port: port, password: password.isEmpty ? nil : password)
+        do {
+            try await client.connect()
+            if database != 0 {
+                let _ = try? await client.send("SELECT", "\(database)")
+            }
+            let pong = try await client.send("PING")
+            client.disconnect()
+            testResult = "OK — \(pong.string ?? "PONG")"
+        } catch {
+            testResult = "Failed — \(error.localizedDescription)"
+        }
+        isTesting = false
+    }
+}
+
+// MARK: - Connection Row
+
+struct ConnectionRow: View {
+    let config: RedisConnectionConfig
+    let isConnected: Bool
+
+    var body: some View {
+        HStack {
+            Image(systemName: isConnected ? "circle.fill" : "circle")
+                .foregroundStyle(isConnected ? .green : .secondary)
+                .font(.system(size: 8))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(config.name)
+                    .font(.body)
+                Text(config.address)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
