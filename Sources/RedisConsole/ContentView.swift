@@ -315,6 +315,7 @@ struct RedisConsoleApp {
 struct TabContentView: View {
     @EnvironmentObject var conn: ConnectionState
     @EnvironmentObject var store: AppStore
+    @State private var cachedRightPanel: RightPanel = .welcome
 
     var body: some View {
         HSplitView {
@@ -331,7 +332,7 @@ struct TabContentView: View {
             } else if conn.isConnecting {
                 ConnectingView()
             } else {
-                switch conn.rightPanel {
+                switch cachedRightPanel {
                 case .editConnection, .newConnection:
                     ConnectionDetailView()
                         .frame(minWidth: 400)
@@ -341,6 +342,12 @@ struct TabContentView: View {
             }
         }
         .background(WindowTitleUpdater().environmentObject(conn))
+        .onChange(of: conn.rightPanel) { _, newValue in
+            cachedRightPanel = newValue
+        }
+        .onAppear {
+            cachedRightPanel = conn.rightPanel
+        }
     }
 }
 
@@ -440,8 +447,10 @@ struct TabSidebarView: View {
                     ForEach(store.connections) { config in
                         ConnectionRow(config: config, isConnected: false)
                             .tag(config)
-                            .simultaneousGesture(
-                                TapGesture(count: 2).onEnded {
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                            .overlay(
+                                DoubleClickHandler {
                                     Task { await conn.connect(to: config) }
                                 }
                             )
@@ -527,13 +536,14 @@ struct ConnectionDetailView: View {
     @State private var sshUsername = ""
     @State private var sshPassword = ""
     @State private var sshPrivateKeyPath = ""
+    @State private var isCreatingNew = false
+    @State private var cachedConfig: RedisConnectionConfig?
 
     private var editingConfig: RedisConnectionConfig? {
-        if case .editConnection(let config) = conn.rightPanel { return config }
-        return nil
+        cachedConfig
     }
     private var isNew: Bool {
-        conn.rightPanel == .newConnection
+        isCreatingNew
     }
 
     var body: some View {
@@ -627,19 +637,7 @@ struct ConnectionDetailView: View {
             HStack {
                 if isNew {
                     Button("Save") {
-                        var config = RedisConnectionConfig(
-                            name: name.isEmpty ? host : name,
-                            host: host,
-                            port: port,
-                            database: database
-                        )
-                        config.password = password
-                        config.sshEnabled = sshEnabled
-                        config.sshHost = sshHost
-                        config.sshPort = sshPort
-                        config.sshUsername = sshUsername
-                        config.sshPassword = sshPassword
-                        config.sshPrivateKeyPath = sshPrivateKeyPath
+                        let config = createConfig()
                         store.addConnection(config)
                         conn.selectedConnection = config
                         conn.rightPanel = .editConnection(config)
@@ -651,28 +649,6 @@ struct ConnectionDetailView: View {
                         Task { await testConnection() }
                     }
                     .disabled(host.isEmpty || isTesting || (sshEnabled && sshHost.isEmpty))
-
-                    Spacer()
-
-                    Button("Connect") {
-                        var config = RedisConnectionConfig(
-                            name: name.isEmpty ? host : name,
-                            host: host,
-                            port: port,
-                            database: database
-                        )
-                        config.password = password
-                        config.sshEnabled = sshEnabled
-                        config.sshHost = sshHost
-                        config.sshPort = sshPort
-                        config.sshUsername = sshUsername
-                        config.sshPassword = sshPassword
-                        config.sshPrivateKeyPath = sshPrivateKeyPath
-                        store.addConnection(config)
-                        Task { await conn.connect(to: config) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(host.isEmpty || (sshEnabled && sshHost.isEmpty))
                 } else if let config = editingConfig {
                     Button("Delete", role: .destructive) {
                         store.deleteConnection(config)
@@ -684,8 +660,6 @@ struct ConnectionDetailView: View {
                         Task { await testConnection() }
                     }
                     .disabled(host.isEmpty || isTesting || (sshEnabled && sshHost.isEmpty))
-
-                    Spacer()
 
                     Button("Save") {
                         var updated = config
@@ -704,8 +678,12 @@ struct ConnectionDetailView: View {
                         conn.selectedConnection = updated
                     }
                     .disabled(host.isEmpty)
+                }
 
-                    Button("Connect") {
+                Spacer()
+
+                Button("Connect") {
+                    if let config = editingConfig {
                         var updated = config
                         updated.name = name
                         updated.host = host
@@ -720,19 +698,42 @@ struct ConnectionDetailView: View {
                         updated.sshPrivateKeyPath = sshPrivateKeyPath
                         store.updateConnection(updated)
                         Task { await conn.connect(to: updated) }
+                    } else {
+                        let config = createConfig()
+                        store.addConnection(config)
+                        Task { await conn.connect(to: config) }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(host.isEmpty || (sshEnabled && sshHost.isEmpty))
                 }
+                .buttonStyle(.borderedProminent)
+                .disabled(host.isEmpty || (sshEnabled && sshHost.isEmpty))
             }
             .padding()
         }
+    }
+
+    private func createConfig() -> RedisConnectionConfig {
+        var config = RedisConnectionConfig(
+            name: name.isEmpty ? host : name,
+            host: host,
+            port: port,
+            database: database
+        )
+        config.password = password
+        config.sshEnabled = sshEnabled
+        config.sshHost = sshHost
+        config.sshPort = sshPort
+        config.sshUsername = sshUsername
+        config.sshPassword = sshPassword
+        config.sshPrivateKeyPath = sshPrivateKeyPath
+        return config
     }
 
     private func loadConfig(from panel: RightPanel) {
         testResult = nil
         switch panel {
         case .editConnection(let config):
+            isCreatingNew = false
+            cachedConfig = config
             name = config.name
             host = config.host
             port = config.port
@@ -745,6 +746,8 @@ struct ConnectionDetailView: View {
             sshPassword = config.sshPassword
             sshPrivateKeyPath = config.sshPrivateKeyPath
         case .newConnection:
+            isCreatingNew = true
+            cachedConfig = nil
             name = ""
             host = ""
             port = 6379
@@ -845,18 +848,41 @@ struct ConnectionRow: View {
     let isConnected: Bool
 
     var body: some View {
-        HStack {
-            Image(systemName: isConnected ? "circle.fill" : "circle")
-                .foregroundStyle(isConnected ? .green : .secondary)
-                .font(.system(size: 8))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(config.name)
-                    .font(.body)
-                Text(config.address)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 2) {
+            Text(config.name)
+                .font(.body)
+            Text(config.address)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Double Click Handler
+
+struct DoubleClickHandler: NSViewRepresentable {
+    let onDoubleClick: () -> Void
+
+    func makeNSView(context: Context) -> DoubleClickView {
+        let view = DoubleClickView()
+        view.onDoubleClick = onDoubleClick
+        return view
+    }
+
+    func updateNSView(_ nsView: DoubleClickView, context: Context) {
+        nsView.onDoubleClick = onDoubleClick
+    }
+}
+
+class DoubleClickView: NSView {
+    var onDoubleClick: (() -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
+        if event.clickCount == 2 {
+            onDoubleClick?()
+        }
     }
 }

@@ -1,12 +1,6 @@
 build_dir := ".build/release"
 app_bundle := build_dir / "Redis Console.app"
 
-build:
-    swift build
-
-run:
-    swift run
-
 lint:
     swiftlint lint Sources
 
