@@ -733,18 +733,17 @@ struct ConnectionDetailView: View {
         testResult = nil
         switch panel {
         case .editConnection(let config):
-            let resolved = store.connectionWithSecrets(id: config.id) ?? config
-            name = resolved.name
-            host = resolved.host
-            port = resolved.port
-            password = resolved.password
-            database = resolved.database
-            sshEnabled = resolved.sshEnabled
-            sshHost = resolved.sshHost
-            sshPort = resolved.sshPort
-            sshUsername = resolved.sshUsername
-            sshPassword = resolved.sshPassword
-            sshPrivateKeyPath = resolved.sshPrivateKeyPath
+            name = config.name
+            host = config.host
+            port = config.port
+            password = config.password
+            database = config.database
+            sshEnabled = config.sshEnabled
+            sshHost = config.sshHost
+            sshPort = config.sshPort
+            sshUsername = config.sshUsername
+            sshPassword = config.sshPassword
+            sshPrivateKeyPath = config.sshPrivateKeyPath
         case .newConnection:
             name = ""
             host = ""

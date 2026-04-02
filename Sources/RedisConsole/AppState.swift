@@ -1,89 +1,5 @@
 import Foundation
-import Security
 import SwiftUI
-
-// MARK: - Keychain Helper
-
-enum KeychainHelper {
-    private static let service = "redis.console"
-
-    static func set(_ password: String, for id: UUID) {
-        let account = id.uuidString
-        guard let data = password.data(using: .utf8) else { return }
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
-        SecItemDelete(query as CFDictionary)
-        var addQuery = query
-        addQuery[kSecValueData as String] = data
-        SecItemAdd(addQuery as CFDictionary, nil)
-    }
-
-    static func get(for id: UUID) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var result: AnyObject?
-        SecItemCopyMatching(query as CFDictionary, &result)
-        guard let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
-
-    static func delete(for id: UUID) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString,
-        ]
-        SecItemDelete(query as CFDictionary)
-    }
-
-    static func setSSHCredentials(password: String, passphrase: String, for id: UUID) {
-        guard let sshPassword = (password + "\n" + passphrase).data(using: .utf8) else { return }
-        let account = "ssh_\(id.uuidString)"
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
-        SecItemDelete(query as CFDictionary)
-        var addQuery = query
-        addQuery[kSecValueData as String] = sshPassword
-        SecItemAdd(addQuery as CFDictionary, nil)
-    }
-
-    static func getSSHCredentials(for id: UUID) -> (password: String, passphrase: String)? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: "ssh_\(id.uuidString)",
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var result: AnyObject?
-        SecItemCopyMatching(query as CFDictionary, &result)
-        guard let data = result as? Data,
-            let str = String(data: data, encoding: .utf8)
-        else { return nil }
-        let parts = str.components(separatedBy: "\n")
-        return (password: parts.first ?? "", passphrase: parts.count > 1 ? parts[1] : "")
-    }
-
-    static func deleteSSH(for id: UUID) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: "ssh_\(id.uuidString)",
-        ]
-        SecItemDelete(query as CFDictionary)
-    }
-}
 
 // MARK: - Connection Config
 
@@ -103,11 +19,6 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var sshPassword: String = ""
     var sshPrivateKeyPath: String = ""
     var sshPrivateKeyPassphrase: String = ""
-
-    enum CodingKeys: String, CodingKey {
-        case id, name, host, port, database
-        case sshEnabled, sshHost, sshPort, sshUsername, sshPrivateKeyPath
-    }
 
     static let `default` = RedisConnectionConfig(name: "localhost", host: "127.0.0.1")
 
@@ -224,72 +135,26 @@ class AppStore: ObservableObject {
     }
 
     func saveConnections() {
-        var toSave = connections
-        for index in toSave.indices {
-            toSave[index].password = ""
-            toSave[index].sshPassword = ""
-            toSave[index].sshPrivateKeyPassphrase = ""
-        }
-        if let data = try? JSONEncoder().encode(toSave) {
+        if let data = try? JSONEncoder().encode(connections) {
             try? data.write(to: storeURL, options: .atomic)
         }
     }
 
     func addConnection(_ config: RedisConnectionConfig) {
         connections.append(config)
-        persistSecrets(for: config)
         saveConnections()
     }
 
     func updateConnection(_ config: RedisConnectionConfig) {
         if let idx = connections.firstIndex(where: { $0.id == config.id }) {
             connections[idx] = config
-            persistSecrets(for: config)
             saveConnections()
         }
     }
 
     func deleteConnection(_ config: RedisConnectionConfig) {
         connections.removeAll { $0.id == config.id }
-        KeychainHelper.delete(for: config.id)
-        KeychainHelper.deleteSSH(for: config.id)
         saveConnections()
-    }
-
-    func connectionWithSecrets(id: UUID) -> RedisConnectionConfig? {
-        guard let base = connections.first(where: { $0.id == id }) else { return nil }
-        return hydrateSecrets(base)
-    }
-
-    private func hydrateSecrets(_ config: RedisConnectionConfig) -> RedisConnectionConfig {
-        var resolved = config
-        resolved.password = KeychainHelper.get(for: resolved.id) ?? ""
-        if let sshCreds = KeychainHelper.getSSHCredentials(for: resolved.id) {
-            resolved.sshPassword = sshCreds.password
-            resolved.sshPrivateKeyPassphrase = sshCreds.passphrase
-        } else {
-            resolved.sshPassword = ""
-            resolved.sshPrivateKeyPassphrase = ""
-        }
-        return resolved
-    }
-
-    private func persistSecrets(for config: RedisConnectionConfig) {
-        if config.password.isEmpty {
-            KeychainHelper.delete(for: config.id)
-        } else {
-            KeychainHelper.set(config.password, for: config.id)
-        }
-
-        if config.sshEnabled {
-            KeychainHelper.setSSHCredentials(
-                password: config.sshPassword,
-                passphrase: config.sshPrivateKeyPassphrase,
-                for: config.id
-            )
-        } else {
-            KeychainHelper.deleteSSH(for: config.id)
-        }
     }
 }
 
@@ -373,7 +238,7 @@ class ConnectionState: ObservableObject {
     // MARK: - Connect / Disconnect
 
     func connect(to config: RedisConnectionConfig) async {
-        let resolvedConfig = AppStore.shared.connectionWithSecrets(id: config.id) ?? config
+        let resolvedConfig = config
         AppLogger.info(
             "connect requested name=\(resolvedConfig.name) "
                 + "redis=\(resolvedConfig.host):\(resolvedConfig.port) sshEnabled=\(resolvedConfig.sshEnabled)",
