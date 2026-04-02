@@ -1,6 +1,6 @@
+import Combine
 import Foundation
 import Network
-import Combine
 
 @available(macOS 14.0, *)
 class RedisClient: ObservableObject, @unchecked Sendable {
@@ -23,7 +23,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     func connect() async throws {
-        return try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { continuation in
             let params = NWParameters.tcp
             params.allowLocalEndpointReuse = true
 
@@ -106,7 +106,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     func send(_ args: String...) async throws -> RESPValue {
-        return try await send(args)
+        try await send(args)
     }
 
     func send(_ args: [String]) async throws -> RESPValue {
@@ -127,16 +127,18 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                     }
                 }
 
-                connection.send(content: data, completion: .contentProcessed { error in
-                    if let error = error {
-                        self.queue.async {
-                            if !self.pendingCompletions.isEmpty {
-                                self.pendingCompletions.removeFirst()
+                connection.send(
+                    content: data,
+                    completion: .contentProcessed { error in
+                        if let error = error {
+                            self.queue.async {
+                                if !self.pendingCompletions.isEmpty {
+                                    self.pendingCompletions.removeFirst()
+                                }
                             }
+                            continuation.resume(throwing: error)
                         }
-                        continuation.resume(throwing: error)
-                    }
-                })
+                    })
             }
         }
     }

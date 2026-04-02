@@ -1,6 +1,6 @@
 import Foundation
-import SwiftUI
 import Security
+import SwiftUI
 
 // MARK: - Keychain Helper
 
@@ -13,7 +13,7 @@ enum KeychainHelper {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account
+            kSecAttrAccount as String: account,
         ]
         SecItemDelete(query as CFDictionary)
         var addQuery = query
@@ -27,7 +27,7 @@ enum KeychainHelper {
             kSecAttrService as String: service,
             kSecAttrAccount as String: id.uuidString,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         var result: AnyObject?
         SecItemCopyMatching(query as CFDictionary, &result)
@@ -39,7 +39,7 @@ enum KeychainHelper {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: id.uuidString
+            kSecAttrAccount as String: id.uuidString,
         ]
         SecItemDelete(query as CFDictionary)
     }
@@ -50,7 +50,7 @@ enum KeychainHelper {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account
+            kSecAttrAccount as String: account,
         ]
         SecItemDelete(query as CFDictionary)
         var addQuery = query
@@ -64,12 +64,13 @@ enum KeychainHelper {
             kSecAttrService as String: service,
             kSecAttrAccount as String: "ssh_\(id.uuidString)",
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         var result: AnyObject?
         SecItemCopyMatching(query as CFDictionary, &result)
         guard let data = result as? Data,
-              let str = String(data: data, encoding: .utf8) else { return nil }
+            let str = String(data: data, encoding: .utf8)
+        else { return nil }
         let parts = str.components(separatedBy: "\n")
         return (password: parts.first ?? "", passphrase: parts.count > 1 ? parts[1] : "")
     }
@@ -78,7 +79,7 @@ enum KeychainHelper {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: "ssh_\(id.uuidString)"
+            kSecAttrAccount as String: "ssh_\(id.uuidString)",
         ]
         SecItemDelete(query as CFDictionary)
     }
@@ -208,7 +209,8 @@ class AppStore: ObservableObject {
 
     func loadConnections() {
         if let data = try? Data(contentsOf: storeURL),
-           let decoded = try? JSONDecoder().decode([RedisConnectionConfig].self, from: data) {
+            let decoded = try? JSONDecoder().decode([RedisConnectionConfig].self, from: data)
+        {
             connections = decoded
         }
         if connections.isEmpty {
@@ -554,7 +556,8 @@ class ConnectionState: ObservableObject {
                 for entry in toLoad {
                     group.addTask {
                         if let type = try? await client.send("TYPE", entry.key),
-                           let typeName = type.string {
+                            let typeName = type.string
+                        {
                             await MainActor.run {
                                 entry.type = typeName
                             }
@@ -743,13 +746,14 @@ class ConnectionState: ObservableObject {
                 let duration = arr[2]?.intValue ?? 0
                 let cmd = arr[3]?.arrayValues.compactMap { $0?.string } ?? []
                 let clientAddr = arr[5]?.string ?? ""
-                entries.append(SlowLogEntry(
-                    index: index,
-                    timestamp: Date(timeIntervalSince1970: Double(ts)),
-                    durationMicroseconds: duration,
-                    command: cmd,
-                    clientAddress: clientAddr
-                ))
+                entries.append(
+                    SlowLogEntry(
+                        index: index,
+                        timestamp: Date(timeIntervalSince1970: Double(ts)),
+                        durationMicroseconds: duration,
+                        command: cmd,
+                        clientAddress: clientAddr
+                    ))
             }
             slowLogEntries = entries
         } catch {}
@@ -783,7 +787,7 @@ class ConnectionState: ObservableObject {
             "ZCOUNT", "ZINCRBY", "ZINTERSTORE", "ZLEXCOUNT", "ZPOPMAX", "ZPOPMIN",
             "ZRANGE", "ZRANGEBYLEX", "ZRANGEBYSCORE", "ZRANK", "ZREM", "ZREMRANGEBYLEX",
             "ZREMRANGEBYRANK", "ZREMRANGEBYSCORE", "ZREVRANGE", "ZREVRANGEBYLEX",
-            "ZREVRANGEBYSCORE", "ZREVRANK", "ZSCAN", "ZSCORE", "ZUNIONSTORE"
+            "ZREVRANGEBYSCORE", "ZREVRANK", "ZSCAN", "ZSCORE", "ZUNIONSTORE",
         ]
         let upper = prefix.uppercased()
         return commands.filter { $0.hasPrefix(upper) }

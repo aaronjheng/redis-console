@@ -85,15 +85,15 @@ class RESPParser {
         guard let firstByte = buffer.first else { return nil }
 
         switch firstByte {
-        case 0x2B: // '+'
+        case 0x2B:  // '+'
             return parseSimpleString()
-        case 0x2D: // '-'
+        case 0x2D:  // '-'
             return parseError()
-        case 0x3A: // ':'
+        case 0x3A:  // ':'
             return parseInteger()
-        case 0x24: // '$'
+        case 0x24:  // '$'
             return parseBulkString()
-        case 0x2A: // '*'
+        case 0x2A:  // '*'
             return parseArray()
         default:
             return nil
@@ -110,25 +110,25 @@ class RESPParser {
     }
 
     private func parseSimpleString() -> RESPValue? {
-        buffer.removeFirst() // remove '+'
+        buffer.removeFirst()  // remove '+'
         guard let line = readLine() else { return nil }
         return .simpleString(line)
     }
 
     private func parseError() -> RESPValue? {
-        buffer.removeFirst() // remove '-'
+        buffer.removeFirst()  // remove '-'
         guard let line = readLine() else { return nil }
         return .error(line)
     }
 
     private func parseInteger() -> RESPValue? {
-        buffer.removeFirst() // remove ':'
+        buffer.removeFirst()  // remove ':'
         guard let line = readLine(), let val = Int(line) else { return nil }
         return .integer(val)
     }
 
     private func parseBulkString() -> RESPValue? {
-        buffer.removeFirst() // remove '$'
+        buffer.removeFirst()  // remove '$'
         guard let line = readLine(), let len = Int(line) else { return nil }
         if len == -1 { return .bulkString(nil) }
         guard buffer.count >= len + 2 else { return nil }
@@ -139,7 +139,7 @@ class RESPParser {
     }
 
     private func parseArray() -> RESPValue? {
-        buffer.removeFirst() // remove '*'
+        buffer.removeFirst()  // remove '*'
         guard let line = readLine(), let count = Int(line) else { return nil }
         if count == -1 { return .array([]) }
         if count == 0 { return .array([]) }

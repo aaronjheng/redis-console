@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 // MARK: - Tab Manager
 
@@ -46,7 +46,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return true
+        true
     }
 
     @objc func openNewTab() {
@@ -64,16 +64,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func selectNextTab() {
         guard let tabGroup = NSApp.keyWindow?.tabGroup,
-              let current = NSApp.keyWindow,
-              let index = tabGroup.windows.firstIndex(of: current) else { return }
+            let current = NSApp.keyWindow,
+            let index = tabGroup.windows.firstIndex(of: current)
+        else { return }
         let next = tabGroup.windows[(index + 1) % tabGroup.windows.count]
         next.makeKeyAndOrderFront(nil)
     }
 
     @objc func selectPreviousTab() {
         guard let tabGroup = NSApp.keyWindow?.tabGroup,
-              let current = NSApp.keyWindow,
-              let index = tabGroup.windows.firstIndex(of: current) else { return }
+            let current = NSApp.keyWindow,
+            let index = tabGroup.windows.firstIndex(of: current)
+        else { return }
         let prev = tabGroup.windows[(index - 1 + tabGroup.windows.count) % tabGroup.windows.count]
         prev.makeKeyAndOrderFront(nil)
     }
@@ -133,13 +135,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let appMenuItem = NSMenuItem()
         mainMenu.addItem(appMenuItem)
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About Redis Console",
-                        action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
-                        keyEquivalent: "")
+        appMenu.addItem(
+            withTitle: "About Redis Console",
+            action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+            keyEquivalent: "")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit Redis Console",
-                        action: #selector(NSApplication.terminate(_:)),
-                        keyEquivalent: "q")
+        appMenu.addItem(
+            withTitle: "Quit Redis Console",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q")
         appMenuItem.submenu = appMenu
 
         // File menu
@@ -273,7 +277,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             label.topAnchor.constraint(equalTo: container.topAnchor),
             label.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             label.heightAnchor.constraint(equalToConstant: 16),
-            label.widthAnchor.constraint(greaterThanOrEqualToConstant: 34)
+            label.widthAnchor.constraint(greaterThanOrEqualToConstant: 34),
         ])
 
         return container
@@ -386,7 +390,9 @@ struct TabSidebarView: View {
                         }
                     }
                     Spacer()
-                    Button(action: { conn.disconnect() }) {
+                    Button {
+                        conn.disconnect()
+                    } label: {
                         Image(systemName: "xmark.circle")
                     }
                     .buttonStyle(.borderless)
@@ -411,17 +417,24 @@ struct TabSidebarView: View {
                     Text("Connections")
                         .font(.headline)
                     Spacer()
-                    Button(action: { conn.rightPanel = .newConnection }) {
+                    Button {
+                        conn.rightPanel = .newConnection
+                    } label: {
                         Image(systemName: "plus")
                     }
                     .buttonStyle(.borderless)
                 }
                 .padding()
 
-                List(selection: Binding(
-                    get: { conn.selectedConnection },
-                    set: { conn.selectedConnection = $0; if let c = $0 { conn.rightPanel = .editConnection(c) } }
-                )) {
+                List(
+                    selection: Binding(
+                        get: { conn.selectedConnection },
+                        set: {
+                            conn.selectedConnection = $0
+                            if let c = $0 { conn.rightPanel = .editConnection(c) }
+                        }
+                    )
+                ) {
                     ForEach(store.connections) { config in
                         ConnectionRow(config: config, isConnected: false)
                             .tag(config)
@@ -531,10 +544,13 @@ struct ConnectionDetailView: View {
                         HStack {
                             Text("Port")
                             Spacer()
-                            TextField("", text: Binding(
-                                get: { "\(port)" },
-                                set: { if let v = UInt16($0) { port = v } }
-                            ))
+                            TextField(
+                                "",
+                                text: Binding(
+                                    get: { "\(port)" },
+                                    set: { if let v = UInt16($0) { port = v } }
+                                )
+                            )
                             .frame(width: 80)
                         }
                         SecureField("Password", text: $password)
@@ -557,10 +573,13 @@ struct ConnectionDetailView: View {
                             HStack {
                                 Text("SSH Port")
                                 Spacer()
-                                TextField("", text: Binding(
-                                    get: { "\(sshPort)" },
-                                    set: { if let v = UInt16($0) { sshPort = v } }
-                                ))
+                                TextField(
+                                    "",
+                                    text: Binding(
+                                        get: { "\(sshPort)" },
+                                        set: { if let v = UInt16($0) { sshPort = v } }
+                                    )
+                                )
                                 .frame(width: 80)
                             }
                             TextField("SSH Username", text: $sshUsername)
@@ -769,14 +788,14 @@ struct ConnectionDetailView: View {
             do {
                 try await withTimeout(12, context: "SSH tunnel setup") {
                     try await createdTunnel.start(
-                    sshHost: trimmedSSHHost,
-                    sshPort: sshPort,
-                    sshUsername: trimmedSSHUsername,
-                    sshPassword: sshPassword.isEmpty ? nil : sshPassword,
-                    privateKeyPath: sshPrivateKeyPath.isEmpty ? nil : sshPrivateKeyPath,
-                    remoteHost: host,
-                    remotePort: port
-                )
+                        sshHost: trimmedSSHHost,
+                        sshPort: sshPort,
+                        sshUsername: trimmedSSHUsername,
+                        sshPassword: sshPassword.isEmpty ? nil : sshPassword,
+                        privateKeyPath: sshPrivateKeyPath.isEmpty ? nil : sshPrivateKeyPath,
+                        remoteHost: host,
+                        remotePort: port
+                    )
                 }
                 connectHost = "127.0.0.1"
                 connectPort = createdTunnel.localPort

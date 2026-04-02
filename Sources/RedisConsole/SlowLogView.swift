@@ -9,9 +9,9 @@ struct SlowLogView: View {
                 Text("Slow Log")
                     .font(.headline)
                 Spacer()
-                Button(action: {
+                Button {
                     Task { await app.loadSlowLog() }
-                }) {
+                } label: {
                     Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.borderless)

@@ -13,9 +13,9 @@ struct ServerInfoView: View {
                 Text("Server Info")
                     .font(.headline)
                 Spacer()
-                Button(action: {
+                Button {
                     Task { await app.loadServerInfo() }
-                }) {
+                } label: {
                     Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.borderless)

@@ -13,105 +13,107 @@ struct BrowserView: View {
             HSplitView {
                 // Key List
                 VStack(spacing: 0) {
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Pattern (e.g. user:* or *)", text: $searchText)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit {
-                            app.keyFilter = searchText.isEmpty ? "*" : searchText
-                            Task { await app.scanKeys(reset: true) }
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                        TextField("Pattern (e.g. user:* or *)", text: $searchText)
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit {
+                                app.keyFilter = searchText.isEmpty ? "*" : searchText
+                                Task { await app.scanKeys(reset: true) }
+                            }
+                        if !searchText.isEmpty {
+                            Button {
+                                searchText = ""
+                                app.keyFilter = "*"
+                                Task { await app.scanKeys(reset: true) }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                            }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.secondary)
                         }
-                    if !searchText.isEmpty {
-                        Button(action: {
-                            searchText = ""
-                            app.keyFilter = "*"
+                        Button {
                             Task { await app.scanKeys(reset: true) }
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
                         }
                         .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                    }
-                    Button(action: {
-                        Task { await app.scanKeys(reset: true) }
-                    }) {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(app.isLoadingKeys)
-                    .help("Refresh")
-                }
-                .padding(8)
-
-                Divider()
-
-                if app.isLoadingKeys && app.keys.isEmpty {
-                    Spacer()
-                    ProgressView("Scanning keys...")
-                    Spacer()
-                } else if app.keys.isEmpty {
-                    Spacer()
-                    VStack(spacing: 8) {
-                        Image(systemName: "key.slash")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                        Text(searchText.isEmpty ? "No keys found" : "No matching keys")
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                } else {
-                    List(app.keys, selection: $app.selectedKey) { entry in
-                        KeyRow(entry: entry)
-                            .contextMenu {
-                                Button("View") {
-                                    Task { await app.selectKey(entry) }
-                                }
-                                Button("Delete", role: .destructive) {
-                                    Task { await app.deleteKey(entry) }
-                                }
-                            }
-                            .tag(entry)
-                    }
-                    .listStyle(.plain)
-                    .onChange(of: app.selectedKey) { _, newValue in
-                        if let key = newValue {
-                            Task { await app.selectKey(key) }
-                        }
-                    }
-
-                    if app.hasMoreKeys {
-                        Button("Load more") {
-                            Task { await app.scanKeys() }
-                        }
-                        .padding(8)
                         .disabled(app.isLoadingKeys)
+                        .help("Refresh")
                     }
-                }
+                    .padding(8)
 
-                Divider()
+                    Divider()
 
-                HStack {
-                    Button(action: { showingAddKey = true }) {
-                        Image(systemName: "plus")
+                    if app.isLoadingKeys && app.keys.isEmpty {
+                        Spacer()
+                        ProgressView("Scanning keys...")
+                        Spacer()
+                    } else if app.keys.isEmpty {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            Image(systemName: "key.slash")
+                                .font(.largeTitle)
+                                .foregroundStyle(.secondary)
+                            Text(searchText.isEmpty ? "No keys found" : "No matching keys")
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    } else {
+                        List(app.keys, selection: $app.selectedKey) { entry in
+                            KeyRow(entry: entry)
+                                .contextMenu {
+                                    Button("View") {
+                                        Task { await app.selectKey(entry) }
+                                    }
+                                    Button("Delete", role: .destructive) {
+                                        Task { await app.deleteKey(entry) }
+                                    }
+                                }
+                                .tag(entry)
+                        }
+                        .listStyle(.plain)
+                        .onChange(of: app.selectedKey) { _, newValue in
+                            if let key = newValue {
+                                Task { await app.selectKey(key) }
+                            }
+                        }
+
+                        if app.hasMoreKeys {
+                            Button("Load more") {
+                                Task { await app.scanKeys() }
+                            }
+                            .padding(8)
+                            .disabled(app.isLoadingKeys)
+                        }
                     }
-                    .buttonStyle(.borderless)
-                    .help("Add key")
 
-                    Spacer()
+                    Divider()
 
-                    Text("\(app.keys.count)/\(app.keys.count) keys")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack {
+                        Button {
+                            showingAddKey = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Add key")
+
+                        Spacer()
+
+                        Text("\(app.keys.count)/\(app.keys.count) keys")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(8)
                 }
-                .padding(8)
+                .frame(minWidth: 250, idealWidth: geo.size.width / 2)
+
+                // Key Detail
+                KeyDetailView()
+                    .frame(minWidth: 250)
             }
-            .frame(minWidth: 250, idealWidth: geo.size.width / 2)
-
-            // Key Detail
-            KeyDetailView()
-                .frame(minWidth: 250)
-        }
         }
         .sheet(isPresented: $showingAddKey) {
             AddKeySheet(
@@ -221,12 +223,12 @@ struct KeyDetailView: View {
                         .font(.caption)
                     }
                     Spacer()
-                    Button(action: {
+                    Button {
                         Task {
                             let _ = try? await app.activeClient?.send("EXPIRE", key.key, "3600")
                             await app.selectKey(key)
                         }
-                    }) {
+                    } label: {
                         Image(systemName: "clock.badge.plus")
                     }
                     .buttonStyle(.borderless)

@@ -1,9 +1,9 @@
+import Crypto
 import Foundation
-import NIOSSH
 import NIO
 import NIOCore
 import NIOPosix
-import Crypto
+import NIOSSH
 
 class SSHTunnel: @unchecked Sendable {
     enum TunnelMode: String {
@@ -140,7 +140,7 @@ class SSHTunnel: @unchecked Sendable {
             "-o", "ServerAliveInterval=15",
             "-o", "ServerAliveCountMax=1",
             "-p", "\(sshPort)",
-            "-L", "127.0.0.1:\(localPort):\(remoteHost):\(remotePort)"
+            "-L", "127.0.0.1:\(localPort):\(remoteHost):\(remotePort)",
         ]
         if let keyPath = privateKeyPath, !keyPath.isEmpty {
             let expandedPath = (keyPath as NSString).expandingTildeInPath
@@ -165,7 +165,8 @@ class SSHTunnel: @unchecked Sendable {
 
         if !process.isRunning {
             let data = stderr.fileHandleForReading.readDataToEndOfFile()
-            let message = String(data: data, encoding: .utf8)?
+            let message =
+                String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let detail = message.isEmpty ? "ssh exited before tunnel was ready" : message
             throw SSHTunnelError.connectionFailed(detail)
@@ -187,10 +188,11 @@ class SSHTunnel: @unchecked Sendable {
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
                 let sshHandler = NIOSSHHandler(
-                    role: .client(.init(
-                        userAuthDelegate: authDelegate,
-                        serverAuthDelegate: serverHostKeyDelegate
-                    )),
+                    role: .client(
+                        .init(
+                            userAuthDelegate: authDelegate,
+                            serverAuthDelegate: serverHostKeyDelegate
+                        )),
                     allocator: channel.allocator,
                     inboundChildChannelInitializer: nil
                 )
@@ -229,9 +231,9 @@ class SSHTunnel: @unchecked Sendable {
 
         if sshError.type == .keyExchangeNegotiationFailure {
             return SSHTunnelError.connectionFailed(
-                "SSH algorithm negotiation failed. Server needs modern algorithms: " +
-                "KEX curve25519/ecdh, host key ssh-ed25519 or ecdsa-sha2-*, " +
-                "cipher aes128-gcm@openssh.com or aes256-gcm@openssh.com."
+                "SSH algorithm negotiation failed. Server needs modern algorithms: "
+                    + "KEX curve25519/ecdh, host key ssh-ed25519 or ecdsa-sha2-*, "
+                    + "cipher aes128-gcm@openssh.com or aes256-gcm@openssh.com."
             )
         }
 
@@ -297,7 +299,7 @@ class SSHTunnel: @unchecked Sendable {
 
             sshHandler.createChannel(promise, channelType: channelType) { childChannel, _ in
                 childChannel.pipeline.addHandlers([
-                    ErrorHandler(),
+                    ErrorHandler()
                 ])
             }
         } catch {
