@@ -9,6 +9,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var host: String
     var port: UInt16 = 6379
 
+    var username: String = ""
     var password: String = ""
 
     var sshEnabled: Bool = false
@@ -22,6 +23,34 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     static let `default` = RedisConnectionConfig(name: "localhost", host: "127.0.0.1")
 
     var address: String { "\(host):\(port)" }
+
+    static func parseURI(_ uri: String) -> RedisConnectionConfig? {
+        guard let components = URLComponents(string: uri),
+              let scheme = components.scheme,
+              scheme == "redis" || scheme == "rediss"
+        else { return nil }
+
+        let host = components.host ?? "127.0.0.1"
+        let port = UInt16(components.port ?? 6379)
+
+        var username = ""
+        var password = ""
+
+        if let pwd = components.password {
+            username = components.user ?? ""
+            password = pwd
+        } else if let user = components.user {
+            password = user
+        }
+
+        return RedisConnectionConfig(
+            name: host,
+            host: host,
+            port: port,
+            username: username,
+            password: password
+        )
+    }
 }
 
 // MARK: - Redis Key Entry

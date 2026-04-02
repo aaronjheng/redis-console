@@ -525,6 +525,7 @@ struct ConnectionDetailView: View {
     @State private var name = ""
     @State private var host = ""
     @State private var port: UInt16 = 6379
+    @State private var username = ""
     @State private var password = ""
     @State private var testResult: String?
     @State private var isTesting = false
@@ -535,6 +536,7 @@ struct ConnectionDetailView: View {
     @State private var sshUsername = ""
     @State private var sshPassword = ""
     @State private var sshPrivateKeyPath = ""
+    @State private var uriInput = ""
     @State private var isCreatingNew = false
     @State private var cachedConfig: RedisConnectionConfig?
 
@@ -549,6 +551,23 @@ struct ConnectionDetailView: View {
         VStack(spacing: 0) {
             ScrollView {
                 Form {
+                    Section("Import from URI") {
+                        HStack {
+                            TextField("URI", text: $uriInput)
+                            Button("Import") {
+                                if let config = RedisConnectionConfig.parseURI(uriInput) {
+                                    name = config.name
+                                    host = config.host
+                                    port = config.port
+                                    username = config.username
+                                    password = config.password
+                                    uriInput = ""
+                                }
+                            }
+                            .disabled(uriInput.isEmpty)
+                        }
+                    }
+
                     Section(isNew ? "New Connection" : "Connection") {
                         TextField("Name", text: $name)
                         TextField("Host", text: $host)
@@ -568,6 +587,7 @@ struct ConnectionDetailView: View {
                             )
                             .frame(width: 80)
                         }
+                        TextField("Username", text: $username)
                         SecureField("Password", text: $password)
                     }
 
@@ -655,6 +675,7 @@ struct ConnectionDetailView: View {
                         updated.name = name
                         updated.host = host
                         updated.port = port
+                        updated.username = username
                         updated.password = password
                         updated.sshEnabled = sshEnabled
                         updated.sshHost = sshHost
@@ -671,22 +692,12 @@ struct ConnectionDetailView: View {
                 Spacer()
 
                 Button("Connect") {
-                    if let config = editingConfig {
-                        var updated = config
-                        updated.name = name
-                        updated.host = host
-                        updated.port = port
-                        updated.password = password
-                        updated.sshEnabled = sshEnabled
-                        updated.sshHost = sshHost
-                        updated.sshPort = sshPort
-                        updated.sshUsername = sshUsername
-                        updated.sshPassword = sshPassword
-                        updated.sshPrivateKeyPath = sshPrivateKeyPath
-                        store.updateConnection(updated)
-                        Task { await conn.connect(to: updated) }
+                    let config = createConfig()
+                    if let existing = editingConfig {
+                        var temp = config
+                        temp.id = existing.id
+                        Task { await conn.connect(to: temp) }
                     } else {
-                        let config = createConfig()
                         store.addConnection(config)
                         Task { await conn.connect(to: config) }
                     }
@@ -702,7 +713,8 @@ struct ConnectionDetailView: View {
         var config = RedisConnectionConfig(
             name: name.isEmpty ? host : name,
             host: host,
-            port: port
+            port: port,
+            username: username
         )
         config.password = password
         config.sshEnabled = sshEnabled
@@ -723,6 +735,7 @@ struct ConnectionDetailView: View {
             name = config.name
             host = config.host
             port = config.port
+            username = config.username
             password = config.password
             sshEnabled = config.sshEnabled
             sshHost = config.sshHost
@@ -736,6 +749,7 @@ struct ConnectionDetailView: View {
             name = ""
             host = ""
             port = 6379
+            username = ""
             password = ""
             sshEnabled = false
             sshHost = ""
