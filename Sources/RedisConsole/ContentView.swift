@@ -526,7 +526,6 @@ struct ConnectionDetailView: View {
     @State private var host = ""
     @State private var port: UInt16 = 6379
     @State private var password = ""
-    @State private var database = 0
     @State private var testResult: String?
     @State private var isTesting = false
 
@@ -570,16 +569,6 @@ struct ConnectionDetailView: View {
                             .frame(width: 80)
                         }
                         SecureField("Password", text: $password)
-                        HStack {
-                            Text("Database")
-                            Spacer()
-                            Picker("", selection: $database) {
-                                ForEach(0..<16) { databaseIndex in
-                                    Text("DB \(databaseIndex)").tag(databaseIndex)
-                                }
-                            }
-                            .frame(width: 100)
-                        }
                     }
 
                     Section("SSH Tunnel") {
@@ -667,7 +656,6 @@ struct ConnectionDetailView: View {
                         updated.host = host
                         updated.port = port
                         updated.password = password
-                        updated.database = database
                         updated.sshEnabled = sshEnabled
                         updated.sshHost = sshHost
                         updated.sshPort = sshPort
@@ -689,7 +677,6 @@ struct ConnectionDetailView: View {
                         updated.host = host
                         updated.port = port
                         updated.password = password
-                        updated.database = database
                         updated.sshEnabled = sshEnabled
                         updated.sshHost = sshHost
                         updated.sshPort = sshPort
@@ -715,8 +702,7 @@ struct ConnectionDetailView: View {
         var config = RedisConnectionConfig(
             name: name.isEmpty ? host : name,
             host: host,
-            port: port,
-            database: database
+            port: port
         )
         config.password = password
         config.sshEnabled = sshEnabled
@@ -738,7 +724,6 @@ struct ConnectionDetailView: View {
             host = config.host
             port = config.port
             password = config.password
-            database = config.database
             sshEnabled = config.sshEnabled
             sshHost = config.sshHost
             sshPort = config.sshPort
@@ -752,7 +737,6 @@ struct ConnectionDetailView: View {
             host = ""
             port = 6379
             password = ""
-            database = 0
             sshEnabled = false
             sshHost = ""
             sshPort = 22
@@ -823,11 +807,6 @@ struct ConnectionDetailView: View {
         do {
             try await withTimeout(10, context: "Redis connection") {
                 try await createdClient.connect()
-            }
-            if database != 0 {
-                _ = try? await withTimeout(5, context: "Redis SELECT") {
-                    try await createdClient.send("SELECT", "\(database)")
-                }
             }
             let pong = try await withTimeout(5, context: "Redis PING") {
                 try await createdClient.send("PING")

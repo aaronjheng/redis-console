@@ -8,7 +8,6 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var name: String
     var host: String
     var port: UInt16 = 6379
-    var database: Int = 0
 
     var password: String = ""
 
@@ -308,12 +307,6 @@ class ConnectionState: ObservableObject {
                 AppLogger.info("redis connected \(connectHost):\(connectPort)", category: "Connection")
 
                 try Task.checkCancellation()
-
-                if resolvedConfig.database != 0 {
-                    _ = try? await withTimeout(5, context: "Redis SELECT") {
-                        try await redis.send("SELECT", "\(resolvedConfig.database)")
-                    }
-                }
 
                 activeClient = redis
                 selectedConnection = resolvedConfig
