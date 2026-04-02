@@ -592,7 +592,7 @@ struct ConnectionDetailView: View {
                                 )
                                 .frame(width: 80)
                             }
-                            TextField("SSH Username", text: $sshUsername)
+                            TextField("SSH Username (optional)", text: $sshUsername)
                             SecureField("SSH Password (optional)", text: $sshPassword)
                             TextField("Private Key Path (optional)", text: $sshPrivateKeyPath)
                             Text("Provide SSH password or a private key file path")
@@ -650,7 +650,7 @@ struct ConnectionDetailView: View {
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
-                    .disabled(host.isEmpty || isTesting || (sshEnabled && (sshHost.isEmpty || sshUsername.isEmpty)))
+                    .disabled(host.isEmpty || isTesting || (sshEnabled && sshHost.isEmpty))
 
                     Spacer()
 
@@ -672,7 +672,7 @@ struct ConnectionDetailView: View {
                         Task { await conn.connect(to: config) }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(host.isEmpty || (sshEnabled && (sshHost.isEmpty || sshUsername.isEmpty)))
+                    .disabled(host.isEmpty || (sshEnabled && sshHost.isEmpty))
                 } else if let config = editingConfig {
                     Button("Delete", role: .destructive) {
                         store.deleteConnection(config)
@@ -683,7 +683,7 @@ struct ConnectionDetailView: View {
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
-                    .disabled(host.isEmpty || isTesting || (sshEnabled && (sshHost.isEmpty || sshUsername.isEmpty)))
+                    .disabled(host.isEmpty || isTesting || (sshEnabled && sshHost.isEmpty))
 
                     Spacer()
 
@@ -722,7 +722,7 @@ struct ConnectionDetailView: View {
                         Task { await conn.connect(to: updated) }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(host.isEmpty || (sshEnabled && (sshHost.isEmpty || sshUsername.isEmpty)))
+                    .disabled(host.isEmpty || (sshEnabled && sshHost.isEmpty))
                 }
             }
             .padding()
@@ -781,14 +781,10 @@ struct ConnectionDetailView: View {
         if sshEnabled {
             let trimmedSSHHost = sshHost.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedSSHUsername = sshUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+            let effectiveSSHUsername = trimmedSSHUsername.isEmpty ? NSUserName() : trimmedSSHUsername
             guard !trimmedSSHHost.isEmpty else {
                 testResult = "Failed — SSH host is required"
                 AppLogger.error("test failed: empty ssh host", category: "ConnectionTest")
-                return
-            }
-            guard !trimmedSSHUsername.isEmpty else {
-                testResult = "Failed — SSH username is required"
-                AppLogger.error("test failed: empty ssh username", category: "ConnectionTest")
                 return
             }
 
@@ -799,7 +795,7 @@ struct ConnectionDetailView: View {
                     try await createdTunnel.start(
                         sshHost: trimmedSSHHost,
                         sshPort: sshPort,
-                        sshUsername: trimmedSSHUsername,
+                        sshUsername: effectiveSSHUsername,
                         sshPassword: sshPassword.isEmpty ? nil : sshPassword,
                         privateKeyPath: sshPrivateKeyPath.isEmpty ? nil : sshPrivateKeyPath,
                         remoteHost: host,

@@ -262,25 +262,23 @@ class ConnectionState: ObservableObject {
                 if resolvedConfig.sshEnabled {
                     let sshHost = resolvedConfig.sshHost.trimmingCharacters(in: .whitespacesAndNewlines)
                     let sshUsername = resolvedConfig.sshUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let effectiveSSHUsername = sshUsername.isEmpty ? NSUserName() : sshUsername
                     guard !sshHost.isEmpty else {
                         throw SSHTunnelError.connectionFailed("SSH host is required")
-                    }
-                    guard !sshUsername.isEmpty else {
-                        throw SSHTunnelError.connectionFailed("SSH username is required")
                     }
 
                     let tunnel = SSHTunnel()
                     sshTunnel = tunnel
                     AppLogger.info(
                         "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.sshPort) "
-                            + "user=\(sshUsername) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
+                            + "user=\(effectiveSSHUsername) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
                         category: "Connection"
                     )
                     try await withTimeout(12, context: "SSH tunnel setup") {
                         try await tunnel.start(
                             sshHost: sshHost,
                             sshPort: resolvedConfig.sshPort,
-                            sshUsername: sshUsername,
+                            sshUsername: effectiveSSHUsername,
                             sshPassword: resolvedConfig.sshPassword.isEmpty ? nil : resolvedConfig.sshPassword,
                             privateKeyPath: resolvedConfig.sshPrivateKeyPath.isEmpty ? nil : resolvedConfig.sshPrivateKeyPath,
                             remoteHost: resolvedConfig.host,

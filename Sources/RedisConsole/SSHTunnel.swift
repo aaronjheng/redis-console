@@ -8,14 +8,11 @@ import NIOPosix
 class SSHTunnel: @unchecked Sendable {
     enum TunnelMode: String {
         case nioSSH
-        case systemSSH
     }
 
     private var group: MultiThreadedEventLoopGroup?
     private var channel: Channel?
     private var localServer: Channel?
-    private var sshProcess: Process?
-    private var sshProcessStderr: Pipe?
     private(set) var localPort: UInt16 = 0
     private(set) var isRunning = false
     private(set) var mode: TunnelMode = .nioSSH
@@ -30,6 +27,14 @@ class SSHTunnel: @unchecked Sendable {
     private var remoteHost: String = ""
     private var remotePort: UInt16 = 6379
 
+    private var effectiveSSHUsername: String {
+        let trimmedUsername = sshUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedUsername.isEmpty {
+            return trimmedUsername
+        }
+        return NSUserName()
+    }
+
     // swiftlint:disable:next function_parameter_count
     func start(
         sshHost: String,
@@ -40,8 +45,9 @@ class SSHTunnel: @unchecked Sendable {
         remoteHost: String,
         remotePort: UInt16
     ) async throws {
+        let effectiveUsername = sshUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? NSUserName() : sshUsername
         AppLogger.info(
-            "start requested ssh=\(sshHost):\(sshPort) user=\(sshUsername) "
+            "start requested ssh=\(sshHost):\(sshPort) user=\(effectiveUsername) "
                 + "remote=\(remoteHost):\(remotePort) hasPassword=\(!(sshPassword ?? "").isEmpty) " + "keyPath=\(privateKeyPath ?? "")",
             category: "SSHTunnel"
         )
@@ -56,26 +62,12 @@ class SSHTunnel: @unchecked Sendable {
         // Find available local port
         self.localPort = findAvailablePort()
 
-        // Prefer system ssh for compatibility when password auth is not required.
-        if sshPassword == nil || sshPassword?.isEmpty == true {
-            do {
-                AppLogger.info("trying tunnel mode=systemSSH", category: "SSHTunnel")
-                try await startWithSystemSSH()
-                self.mode = .systemSSH
-                self.isRunning = true
-                AppLogger.info("tunnel mode=systemSSH ready local=127.0.0.1:\(localPort)", category: "SSHTunnel")
-                return
-            } catch {
-                AppLogger.error("tunnel mode=systemSSH failed error=\(error), fallback to nioSSH", category: "SSHTunnel")
-            }
-        }
-
         // Create event loop group
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         self.group = group
 
         do {
-            AppLogger.info("trying tunnel mode=nioSSH", category: "SSHTunnel")
+            AppLogger.info("starting tunnel mode=nioSSH", category: "SSHTunnel")
             // Connect SSH channel
             let sshChannel = try await connectSSH(group: group)
             self.channel = sshChannel
@@ -102,14 +94,6 @@ class SSHTunnel: @unchecked Sendable {
         isRunning = false
         AppLogger.info("stop tunnel mode=\(mode.rawValue)", category: "SSHTunnel")
 
-        if let process = sshProcess {
-            if process.isRunning {
-                process.terminate()
-            }
-            sshProcess = nil
-            sshProcessStderr = nil
-        }
-
         // Close local server
         localServer?.close(promise: nil)
         localServer = nil
@@ -123,59 +107,6 @@ class SSHTunnel: @unchecked Sendable {
             try? group.syncShutdownGracefully()
             self.group = nil
         }
-    }
-
-    private func startWithSystemSSH() async throws {
-        let process = Process()
-        let stderr = Pipe()
-        let stdout = Pipe()
-
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-
-        var args = [
-            "ssh",
-            "-N",
-            "-T",
-            "-o", "ExitOnForwardFailure=yes",
-            "-o", "BatchMode=yes",
-            "-o", "ConnectTimeout=10",
-            "-o", "ServerAliveInterval=15",
-            "-o", "ServerAliveCountMax=1",
-            "-p", "\(sshPort)",
-            "-L", "127.0.0.1:\(localPort):\(remoteHost):\(remotePort)",
-        ]
-        if let keyPath = privateKeyPath, !keyPath.isEmpty {
-            let expandedPath = (keyPath as NSString).expandingTildeInPath
-            args.append(contentsOf: ["-i", expandedPath])
-        }
-        args.append("\(sshUsername)@\(sshHost)")
-
-        process.arguments = args
-        process.standardError = stderr
-        process.standardOutput = stdout
-        process.standardInput = Pipe()
-
-        do {
-            try process.run()
-            AppLogger.info("system ssh launched pid=\(process.processIdentifier)", category: "SSHTunnel")
-        } catch {
-            throw SSHTunnelError.connectionFailed("failed to launch ssh: \(error.localizedDescription)")
-        }
-
-        // Fast-fail window for auth/host/forward errors.
-        try await Task.sleep(nanoseconds: 900_000_000)
-
-        if !process.isRunning {
-            let data = stderr.fileHandleForReading.readDataToEndOfFile()
-            let message =
-                String(data: data, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let detail = message.isEmpty ? "ssh exited before tunnel was ready" : message
-            throw SSHTunnelError.connectionFailed(detail)
-        }
-
-        self.sshProcess = process
-        self.sshProcessStderr = stderr
     }
 
     // MARK: - SSH Connection
@@ -249,13 +180,13 @@ class SSHTunnel: @unchecked Sendable {
 
     private func createAuthDelegate() -> NIOSSHClientUserAuthenticationDelegate {
         if let password = sshPassword, !password.isEmpty {
-            return PasswordAuthDelegate(username: sshUsername, password: password)
+            return PasswordAuthDelegate(username: effectiveSSHUsername, password: password)
         } else if let keyPath = privateKeyPath, !keyPath.isEmpty {
             let expandedPath = (keyPath as NSString).expandingTildeInPath
-            return KeyAuthDelegate(username: sshUsername, keyPath: expandedPath)
+            return KeyAuthDelegate(username: effectiveSSHUsername, keyPath: expandedPath)
         } else {
             // Try default key locations
-            return KeyAuthDelegate(username: sshUsername, keyPath: nil)
+            return KeyAuthDelegate(username: effectiveSSHUsername, keyPath: nil)
         }
     }
 
@@ -482,26 +413,177 @@ private class KeyAuthDelegate: NIOSSHClientUserAuthenticationDelegate {
 
     private func loadKeyFromFile(path: String) throws -> NIOSSHPrivateKey {
         let keyData = try Data(contentsOf: URL(fileURLWithPath: path))
-        let keyString = String(data: keyData, encoding: .utf8) ?? ""
-
-        // Check for Ed25519 key
-        if keyString.contains("ssh-ed25519") || path.hasSuffix("id_ed25519") {
-            let key = try Curve25519.Signing.PrivateKey(rawRepresentation: keyData.suffix(32))
-            return NIOSSHPrivateKey(ed25519Key: key)
+        guard let keyString = String(data: keyData, encoding: .utf8) else {
+            throw SSHTunnelError.invalidKeyFormat
         }
 
-        // Check for ECDSA key
-        if keyString.contains("ecdsa-sha2") || path.hasSuffix("id_ecdsa") {
-            // Try to parse ECDSA key (simplified - may need P256/P384/P521)
-            throw SSHTunnelError.keyTypeNotSupported("ECDSA")
+        if keyString.contains("BEGIN OPENSSH PRIVATE KEY") {
+            return try parseOpenSSHPrivateKey(keyString)
         }
 
-        // Check for RSA key
-        if keyString.contains("ssh-rsa") || path.hasSuffix("id_rsa") {
-            throw SSHTunnelError.keyTypeNotSupported("RSA")
+        if keyString.contains("BEGIN") {
+            return try parsePEMPrivateKey(keyString)
         }
 
         throw SSHTunnelError.invalidKeyFormat
+    }
+
+    private func parsePEMPrivateKey(_ pem: String) throws -> NIOSSHPrivateKey {
+        if let p256Key = try? P256.Signing.PrivateKey(pemRepresentation: pem) {
+            return NIOSSHPrivateKey(p256Key: p256Key)
+        }
+        if let p384Key = try? P384.Signing.PrivateKey(pemRepresentation: pem) {
+            return NIOSSHPrivateKey(p384Key: p384Key)
+        }
+        if let p521Key = try? P521.Signing.PrivateKey(pemRepresentation: pem) {
+            return NIOSSHPrivateKey(p521Key: p521Key)
+        }
+        throw SSHTunnelError.invalidKeyFormat
+    }
+
+    private func parseOpenSSHPrivateKey(_ pem: String) throws -> NIOSSHPrivateKey {
+        let base64Lines =
+            pem
+            .components(separatedBy: .newlines)
+            .filter { !$0.hasPrefix("-----") && !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+            .joined()
+        guard let binary = Data(base64Encoded: base64Lines) else {
+            throw SSHTunnelError.invalidKeyFormat
+        }
+
+        var reader = OpenSSHDataReader(data: binary)
+        let magic = try reader.readNullTerminatedString()
+        guard magic == "openssh-key-v1" else {
+            throw SSHTunnelError.invalidKeyFormat
+        }
+
+        let cipherName = try reader.readString()
+        let kdfName = try reader.readString()
+        _ = try reader.readData()
+        let keyCount = try reader.readUInt32()
+
+        guard cipherName == "none", kdfName == "none" else {
+            throw SSHTunnelError.connectionFailed("Encrypted OpenSSH private keys are not supported yet")
+        }
+        guard keyCount == 1 else {
+            throw SSHTunnelError.invalidKeyFormat
+        }
+
+        _ = try reader.readData()  // public key blob
+        let privateBlob = try reader.readData()
+        var privateReader = OpenSSHDataReader(data: privateBlob)
+
+        let check1 = try privateReader.readUInt32()
+        let check2 = try privateReader.readUInt32()
+        guard check1 == check2 else {
+            throw SSHTunnelError.connectionFailed("OpenSSH private key checkints do not match")
+        }
+
+        let keyType = try privateReader.readString()
+        switch keyType {
+        case "ssh-ed25519":
+            _ = try privateReader.readData()  // public key
+            let privateAndPublic = try privateReader.readData()
+            guard privateAndPublic.count >= 64 else {
+                throw SSHTunnelError.invalidKeyFormat
+            }
+            let privateKeyBytes = privateAndPublic.prefix(32)
+            let privateKey = try Curve25519.Signing.PrivateKey(rawRepresentation: privateKeyBytes)
+            _ = try privateReader.readString()  // comment
+            return NIOSSHPrivateKey(ed25519Key: privateKey)
+        case "ecdsa-sha2-nistp256", "ecdsa-sha2-nistp384", "ecdsa-sha2-nistp521":
+            let curveName = try privateReader.readString()
+            _ = try privateReader.readData()  // public key blob
+            let privateScalar = try privateReader.readMPIntData()
+            _ = try privateReader.readString()  // comment
+            return try makeECDSAPrivateKey(curveName: curveName, privateScalar: privateScalar)
+        case "ssh-rsa":
+            throw SSHTunnelError.keyTypeNotSupported("RSA")
+        default:
+            throw SSHTunnelError.keyTypeNotSupported(keyType)
+        }
+    }
+
+    private func makeECDSAPrivateKey(curveName: String, privateScalar: Data) throws -> NIOSSHPrivateKey {
+        switch curveName {
+        case "nistp256":
+            let key = try P256.Signing.PrivateKey(rawRepresentation: normalizeScalar(privateScalar, targetLength: 32))
+            return NIOSSHPrivateKey(p256Key: key)
+        case "nistp384":
+            let key = try P384.Signing.PrivateKey(rawRepresentation: normalizeScalar(privateScalar, targetLength: 48))
+            return NIOSSHPrivateKey(p384Key: key)
+        case "nistp521":
+            let key = try P521.Signing.PrivateKey(rawRepresentation: normalizeScalar(privateScalar, targetLength: 66))
+            return NIOSSHPrivateKey(p521Key: key)
+        default:
+            throw SSHTunnelError.keyTypeNotSupported("ECDSA \(curveName)")
+        }
+    }
+
+    private func normalizeScalar(_ scalar: Data, targetLength: Int) -> Data {
+        let trimmedScalar = scalar.drop { $0 == 0 }
+        if trimmedScalar.count >= targetLength {
+            return Data(trimmedScalar.suffix(targetLength))
+        }
+        return Data(repeating: 0, count: targetLength - trimmedScalar.count) + trimmedScalar
+    }
+}
+
+private struct OpenSSHDataReader {
+    private let data: Data
+    private var offset: Int = 0
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    mutating func readUInt32() throws -> UInt32 {
+        guard offset + 4 <= data.count else {
+            throw SSHTunnelError.invalidKeyFormat
+        }
+        let value = data[offset..<(offset + 4)].reduce(UInt32(0)) { partialResult, byte in
+            (partialResult << 8) | UInt32(byte)
+        }
+        offset += 4
+        return value
+    }
+
+    mutating func readData() throws -> Data {
+        let length = Int(try readUInt32())
+        guard offset + length <= data.count else {
+            throw SSHTunnelError.invalidKeyFormat
+        }
+        let value = data[offset..<(offset + length)]
+        offset += length
+        return Data(value)
+    }
+
+    mutating func readString() throws -> String {
+        let value = try readData()
+        guard let string = String(data: value, encoding: .utf8) else {
+            throw SSHTunnelError.invalidKeyFormat
+        }
+        return string
+    }
+
+    mutating func readNullTerminatedString() throws -> String {
+        guard let endIndex = data[offset...].firstIndex(of: 0) else {
+            throw SSHTunnelError.invalidKeyFormat
+        }
+        let value = data[offset..<endIndex]
+        offset = endIndex + 1
+        guard let string = String(data: value, encoding: .utf8) else {
+            throw SSHTunnelError.invalidKeyFormat
+        }
+        return string
+    }
+
+    mutating func readMPIntData() throws -> Data {
+        let value = try readData()
+        if value.first == 0 {
+            return Data(value.dropFirst())
+        }
+        return value
     }
 }
 
