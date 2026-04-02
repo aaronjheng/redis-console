@@ -22,6 +22,8 @@
     <string>NSApplication</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Redis Console needs local network access to connect to Redis and SSH hosts on your LAN.</string>
     <key>CFBundleIconFile</key>
     <string>redis-console</string>
 </dict>

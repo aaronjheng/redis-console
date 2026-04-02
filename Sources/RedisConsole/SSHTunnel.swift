@@ -239,7 +239,8 @@ class SSHTunnel: @unchecked Sendable {
 
             sshHandler.createChannel(promise, channelType: channelType) { childChannel, _ in
                 childChannel.pipeline.addHandlers([
-                    ErrorHandler()
+                    SSHWrapperHandler(),
+                    ErrorHandler(),
                 ])
             }
         } catch {
@@ -268,9 +269,7 @@ class SSHTunnel: @unchecked Sendable {
                     localChannel.close(promise: nil)
                 }
 
-                return localChannel.closeFuture.flatMap {
-                    sshChildChannel.closeFuture
-                }
+                return localChannel.eventLoop.makeSucceededFuture(())
             }
         }
     }
@@ -662,6 +661,30 @@ private class DataForwarder: ChannelInboundHandler {
     func channelInactive(context: ChannelHandlerContext) {
         target.close(promise: nil)
         context.fireChannelInactive()
+    }
+}
+
+private final class SSHWrapperHandler: ChannelDuplexHandler {
+    typealias InboundIn = SSHChannelData
+    typealias InboundOut = ByteBuffer
+    typealias OutboundIn = ByteBuffer
+    typealias OutboundOut = SSHChannelData
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        let data = unwrapInboundIn(data)
+
+        guard case .channel = data.type, case .byteBuffer(let buffer) = data.data else {
+            context.fireErrorCaught(SSHTunnelError.handshakeFailed("Unexpected SSH channel data"))
+            return
+        }
+
+        context.fireChannelRead(wrapInboundOut(buffer))
+    }
+
+    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+        let data = unwrapOutboundIn(data)
+        let wrapped = SSHChannelData(type: .channel, data: .byteBuffer(data))
+        context.write(wrapOutboundOut(wrapped), promise: promise)
     }
 }
 

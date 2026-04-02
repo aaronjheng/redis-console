@@ -575,9 +575,9 @@ struct ConnectionDetailView: View {
                     Section("SSH Tunnel") {
                         Toggle("Enable SSH Tunnel", isOn: $sshEnabled)
                         if sshEnabled {
-                            TextField("SSH Host", text: $sshHost)
+                            TextField("Host", text: $sshHost)
                             HStack {
-                                Text("SSH Port")
+                                Text("Port")
                                 Spacer()
                                 TextField(
                                     "",
@@ -592,10 +592,10 @@ struct ConnectionDetailView: View {
                                 )
                                 .frame(width: 80)
                             }
-                            TextField("SSH Username (optional)", text: $sshUsername)
-                            SecureField("SSH Password (optional)", text: $sshPassword)
+                            TextField("Username (optional)", text: $sshUsername)
+                            SecureField("Password (optional)", text: $sshPassword)
                             TextField("Private Key Path (optional)", text: $sshPrivateKeyPath)
-                            Text("Provide SSH password or a private key file path")
+                            Text("Provide a password or a private key file path")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

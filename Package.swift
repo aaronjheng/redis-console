@@ -5,7 +5,7 @@ let package = Package(
     name: "RedisConsole",
     platforms: [.macOS(.v14)],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio-ssh.git", from: "0.10.0"),
+        .package(path: "Vendor/swift-nio-ssh"),
     ],
     targets: [
         .executableTarget(
