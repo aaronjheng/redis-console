@@ -3,7 +3,7 @@ import Foundation
 import NIO
 import NIOCore
 import NIOPosix
-import NIOSSH
+@preconcurrency import NIOSSH
 
 class SSHTunnel: @unchecked Sendable {
     enum TunnelMode: String {
@@ -181,8 +181,8 @@ class SSHTunnel: @unchecked Sendable {
     // MARK: - SSH Connection
 
     private func connectSSH(group: EventLoopGroup) async throws -> Channel {
-        let authDelegate = createAuthDelegate()
-        let serverHostKeyDelegate = AcceptAllServerHostKeysDelegate()
+        let authDelegate = SSHAuthDelegateBox(value: createAuthDelegate())
+        let serverHostKeyDelegate = SSHServerAuthDelegateBox(value: AcceptAllServerHostKeysDelegate())
         let handshakePromise = group.next().makePromise(of: Void.self)
 
         let bootstrap = ClientBootstrap(group: group)
@@ -192,18 +192,23 @@ class SSHTunnel: @unchecked Sendable {
                 let sshHandler = NIOSSHHandler(
                     role: .client(
                         .init(
-                            userAuthDelegate: authDelegate,
-                            serverAuthDelegate: serverHostKeyDelegate
+                            userAuthDelegate: authDelegate.value,
+                            serverAuthDelegate: serverHostKeyDelegate.value
                         )),
                     allocator: channel.allocator,
                     inboundChildChannelInitializer: nil
                 )
 
-                return channel.pipeline.addHandlers([
-                    sshHandler,
-                    HandshakeHandler(promise: handshakePromise),
-                    ErrorHandler(),
-                ])
+                do {
+                    try channel.pipeline.syncOperations.addHandler(sshHandler)
+                    try channel.pipeline.syncOperations.addHandlers([
+                        HandshakeHandler(promise: handshakePromise),
+                        ErrorHandler(),
+                    ])
+                    return channel.eventLoop.makeSucceededFuture(())
+                } catch {
+                    return channel.eventLoop.makeFailedFuture(error)
+                }
             }
 
         do {
@@ -257,7 +262,9 @@ class SSHTunnel: @unchecked Sendable {
     // MARK: - Local TCP Server
 
     private func startLocalServer(group: EventLoopGroup, sshChannel: Channel) async throws -> Channel {
-        let sshHandler = try await sshChannel.pipeline.handler(type: NIOSSHHandler.self).get()
+        let sshHandler = try await sshChannel.pipeline.handler(type: NIOSSHHandler.self)
+            .map { SSHHandlerBox(value: $0) }
+            .get()
 
         let bootstrap = ServerBootstrap(group: group)
             .serverChannelOption(ChannelOptions.backlog, value: 256)
@@ -265,7 +272,7 @@ class SSHTunnel: @unchecked Sendable {
             .childChannelInitializer { channel in
                 self.forwardToSSHChannel(
                     localChannel: channel,
-                    sshHandler: sshHandler,
+                    sshHandler: sshHandler.value,
                     sshChannel: sshChannel
                 )
             }
@@ -503,6 +510,18 @@ private class AcceptAllServerHostKeysDelegate: NIOSSHClientServerAuthenticationD
         // Accept all host keys (in production, you should verify the host key)
         validationCompletePromise.succeed(())
     }
+}
+
+private struct SSHAuthDelegateBox: @unchecked Sendable {
+    let value: NIOSSHClientUserAuthenticationDelegate
+}
+
+private struct SSHServerAuthDelegateBox: @unchecked Sendable {
+    let value: AcceptAllServerHostKeysDelegate
+}
+
+private struct SSHHandlerBox: @unchecked Sendable {
+    let value: NIOSSHHandler
 }
 
 // MARK: - SSH Handlers
