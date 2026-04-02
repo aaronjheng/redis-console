@@ -73,7 +73,11 @@ class RESPParser {
 
     func parse() -> RESPValue? {
         guard !buffer.isEmpty else { return nil }
+        let snapshot = buffer
         let result = parseValue()
+        if result == nil {
+            buffer = snapshot
+        }
         return result
     }
 

@@ -353,6 +353,8 @@ class ConnectionState: ObservableObject {
 
     private var connectTask: Task<Void, Never>?
     private var sshTunnel: SSHTunnel?
+    private var isScanningKeysRequest = false
+    private var pendingResetScan = false
 
     var windowTitle: String {
         if let conn = selectedConnection {
@@ -495,17 +497,32 @@ class ConnectionState: ObservableObject {
     // MARK: - Key Browser
 
     func scanKeys(reset: Bool = false) async {
-        guard let client = activeClient, client.isConnected else { return }
+        if isScanningKeysRequest {
+            pendingResetScan = pendingResetScan || reset
+            return
+        }
+
+        guard let client = activeClient, client.isConnected else {
+            isLoadingKeys = false
+            return
+        }
+
+        isScanningKeysRequest = true
         if reset {
             scanCursor = "0"
             keys = []
             hasMoreKeys = true
         }
         isLoadingKeys = true
+
         do {
             let result = try await client.send("SCAN", scanCursor, "MATCH", keyFilter, "COUNT", "1000")
             let arr = result.arrayValues
-            guard arr.count >= 2 else { return }
+            guard arr.count >= 2 else {
+                isScanningKeysRequest = false
+                isLoadingKeys = false
+                return
+            }
             scanCursor = arr[0]?.string ?? "0"
             hasMoreKeys = scanCursor != "0"
             let newKeyNames = arr[1]?.arrayValues.compactMap { $0?.string } ?? []
@@ -517,8 +534,16 @@ class ConnectionState: ObservableObject {
         } catch {
             connectionError = error.localizedDescription
         }
+
+        let shouldRestart = pendingResetScan
+        pendingResetScan = false
+        isScanningKeysRequest = false
         isLoadingKeys = false
         loadTypes()
+
+        if shouldRestart {
+            await scanKeys(reset: true)
+        }
     }
 
     private func loadTypes() {

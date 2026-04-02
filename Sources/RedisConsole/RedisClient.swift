@@ -8,7 +8,6 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     private let queue = DispatchQueue(label: "redis.client.queue")
     private var pendingCompletions: [(Result<RESPValue, Error>) -> Void] = []
     private var parser = RESPParser()
-    private var receiveBuffer = Data()
 
     @Published var isConnected = false
     @Published var lastError: String?
@@ -74,6 +73,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         connection = nil
         isConnected = false
         pendingCompletions.removeAll()
+        parser = RESPParser()
     }
 
     private func startReceiving() {
@@ -81,7 +81,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
             guard let self = self else { return }
             if let data = data, !data.isEmpty {
                 self.queue.async {
-                    self.receiveBuffer.append(data)
+                    self.parser.append(data)
                     self.processBuffer()
                 }
             }
@@ -97,14 +97,11 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     private func processBuffer() {
-        let parser = RESPParser()
-        parser.append(receiveBuffer)
-        if let value = parser.parse() {
+        while let value = parser.parse() {
             if let completion = pendingCompletions.first {
                 pendingCompletions.removeFirst()
                 completion(.success(value))
             }
-            receiveBuffer = Data()
         }
     }
 

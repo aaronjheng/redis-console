@@ -39,6 +39,7 @@ struct BrowserView: View {
                         Image(systemName: "arrow.clockwise")
                     }
                     .buttonStyle(.borderless)
+                    .disabled(app.isLoadingKeys)
                     .help("Refresh")
                 }
                 .padding(8)
@@ -84,6 +85,7 @@ struct BrowserView: View {
                             Task { await app.scanKeys() }
                         }
                         .padding(8)
+                        .disabled(app.isLoadingKeys)
                     }
                 }
 
