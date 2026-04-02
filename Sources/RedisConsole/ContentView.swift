@@ -325,7 +325,7 @@ struct TabContentView: View {
             if conn.activeClient?.isConnected == true {
                 switch conn.currentView {
                 case .browser: BrowserView()
-                case .cli: CLIView()
+                case .shell: ShellView()
                 case .slowlog: SlowLogView()
                 case .serverInfo: ServerInfoView()
                 }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct CLIView: View {
+struct ShellView: View {
     @EnvironmentObject var app: ConnectionState
     @State private var input = ""
     @State private var historyIndex = -1
@@ -19,7 +19,7 @@ struct CLIView: View {
     var body: some View {
         VStack(spacing: 0) {
             // History list
-            if app.cliHistory.isEmpty {
+            if app.shellHistory.isEmpty {
                 Spacer()
                 VStack(spacing: 8) {
                     Image(systemName: "terminal")
@@ -36,15 +36,15 @@ struct CLIView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 8) {
-                            ForEach(app.cliHistory) { entry in
-                                CLIHistoryRow(entry: entry)
+                            ForEach(app.shellHistory) { entry in
+                                ShellHistoryRow(entry: entry)
                                     .id(entry.id)
                             }
                         }
                         .padding()
                     }
-                    .onChange(of: app.cliHistory.count) { _, _ in
-                        if let last = app.cliHistory.last {
+                    .onChange(of: app.shellHistory.count) { _, _ in
+                        if let last = app.shellHistory.last {
                             withAnimation {
                                 proxy.scrollTo(last.id, anchor: .bottom)
                             }
@@ -100,16 +100,16 @@ struct CLIView: View {
                         return .ignored
                     }
                     .onKeyPress(.upArrow) {
-                        if !app.cliHistory.isEmpty {
-                            historyIndex = min(historyIndex + 1, app.cliHistory.count - 1)
-                            input = app.cliHistory[app.cliHistory.count - 1 - historyIndex].command
+                        if !app.shellHistory.isEmpty {
+                            historyIndex = min(historyIndex + 1, app.shellHistory.count - 1)
+                            input = app.shellHistory[app.shellHistory.count - 1 - historyIndex].command
                         }
                         return .handled
                     }
                     .onKeyPress(.downArrow) {
                         if historyIndex > 0 {
                             historyIndex -= 1
-                            input = app.cliHistory[app.cliHistory.count - 1 - historyIndex].command
+                            input = app.shellHistory[app.shellHistory.count - 1 - historyIndex].command
                         } else if historyIndex == 0 {
                             historyIndex = -1
                             input = ""
@@ -140,8 +140,8 @@ struct CLIView: View {
     }
 }
 
-struct CLIHistoryRow: View {
-    let entry: CLIHistoryEntry
+struct ShellHistoryRow: View {
+    let entry: ShellHistoryEntry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {

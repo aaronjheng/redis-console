@@ -71,9 +71,9 @@ class RedisKeyEntry: Identifiable, Hashable {
     }
 }
 
-// MARK: - CLI History
+// MARK: - Shell History
 
-struct CLIHistoryEntry: Identifiable {
+struct ShellHistoryEntry: Identifiable {
     let id = UUID()
     let command: String
     let result: String
@@ -162,14 +162,14 @@ class AppStore: ObservableObject {
 
 enum AppView: String, CaseIterable {
     case browser = "Browser"
-    case cli = "CLI"
+    case shell = "Shell"
     case slowlog = "Slow Log"
     case serverInfo = "Server Info"
 
     var icon: String {
         switch self {
         case .browser: return "key"
-        case .cli: return "terminal"
+        case .shell: return "terminal"
         case .slowlog: return "clock.badge.exclamationmark"
         case .serverInfo: return "info.circle"
         }
@@ -213,8 +213,8 @@ class ConnectionState: ObservableObject {
     @Published var hasMoreKeys = true
     @Published var keyFilter: String = "*"
 
-    @Published var cliHistory: [CLIHistoryEntry] = []
-    @Published var cliInput: String = ""
+    @Published var shellHistory: [ShellHistoryEntry] = []
+    @Published var shellInput: String = ""
 
     @Published var serverInfo: [String: [String: String]] = [:]
 
@@ -363,7 +363,7 @@ class ConnectionState: ObservableObject {
         selectedKey = nil
         keyDetail = ""
         serverInfo = [:]
-        cliHistory = []
+        shellHistory = []
     }
 
     // MARK: - Key Browser
@@ -516,7 +516,7 @@ class ConnectionState: ObservableObject {
         await scanKeys(reset: true)
     }
 
-    // MARK: - CLI
+    // MARK: - Shell
 
     func executeCommand(_ input: String) async {
         guard let client = activeClient, client.isConnected else { return }
@@ -524,7 +524,7 @@ class ConnectionState: ObservableObject {
         guard !parts.isEmpty else { return }
         do {
             let result = try await client.send(parts)
-            let entry = CLIHistoryEntry(
+            let entry = ShellHistoryEntry(
                 command: input,
                 result: result.displayString,
                 timestamp: Date(),
@@ -533,17 +533,17 @@ class ConnectionState: ObservableObject {
                     return false
                 }()
             )
-            cliHistory.append(entry)
+            shellHistory.append(entry)
         } catch {
-            let entry = CLIHistoryEntry(
+            let entry = ShellHistoryEntry(
                 command: input,
                 result: error.localizedDescription,
                 timestamp: Date(),
                 isError: true
             )
-            cliHistory.append(entry)
+            shellHistory.append(entry)
         }
-        cliInput = ""
+        shellInput = ""
     }
 
     private func parseCommand(_ input: String) -> [String] {
