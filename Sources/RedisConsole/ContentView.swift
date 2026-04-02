@@ -364,7 +364,7 @@ struct WindowTitleUpdater: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {
         guard let window = nsView.window else { return }
         conn.window = window
-        if let selectedConnection = conn.selectedConnection {
+        if let client = conn.activeClient, client.isConnected, let selectedConnection = conn.selectedConnection {
             window.title = "\(selectedConnection.name) — \(selectedConnection.address)"
         } else {
             window.title = "Redis Console"
