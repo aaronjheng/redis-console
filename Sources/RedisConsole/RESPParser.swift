@@ -13,13 +13,13 @@ enum RESPValue: CustomStringConvertible, Sendable {
 
     var description: String {
         switch self {
-        case .simpleString(let s): return s
-        case .error(let s): return "(error) \(s)"
-        case .integer(let i): return "(integer) \(i)"
-        case .bulkString(let s): return s ?? "(nil)"
-        case .array(let a):
-            return a.enumerated().map { i, v in
-                "\(i+1)) \(v?.description ?? "(nil)")"
+        case .simpleString(let string): return string
+        case .error(let message): return "(error) \(message)"
+        case .integer(let integer): return "(integer) \(integer)"
+        case .bulkString(let string): return string ?? "(nil)"
+        case .array(let values):
+            return values.enumerated().map { index, value in
+                "\(index + 1)) \(value?.description ?? "(nil)")"
             }.joined(separator: "\n")
         case .null: return "(nil)"
         }
@@ -27,14 +27,14 @@ enum RESPValue: CustomStringConvertible, Sendable {
 
     var displayString: String {
         switch self {
-        case .simpleString(let s): return s
-        case .error(let s): return "ERR \(s)"
-        case .integer(let i): return "\(i)"
-        case .bulkString(let s): return s ?? "(nil)"
-        case .array(let a):
-            return a.enumerated().map { i, v in
-                let content = v?.displayString ?? "(nil)"
-                return "\(i+1)) \(content)"
+        case .simpleString(let string): return string
+        case .error(let message): return "ERR \(message)"
+        case .integer(let integer): return "\(integer)"
+        case .bulkString(let string): return string ?? "(nil)"
+        case .array(let values):
+            return values.enumerated().map { index, value in
+                let content = value?.displayString ?? "(nil)"
+                return "\(index + 1)) \(content)"
             }.joined(separator: "\n")
         case .null: return "(nil)"
         }
@@ -46,20 +46,20 @@ enum RESPValue: CustomStringConvertible, Sendable {
     }
 
     var arrayValues: [RESPValue?] {
-        if case .array(let a) = self { return a }
+        if case .array(let values) = self { return values }
         return []
     }
 
     var string: String? {
         switch self {
-        case .simpleString(let s): return s
-        case .bulkString(let s): return s
+        case .simpleString(let string): return string
+        case .bulkString(let string): return string
         default: return nil
         }
     }
 
     var intValue: Int? {
-        if case .integer(let i) = self { return i }
+        if case .integer(let integer) = self { return integer }
         return nil
     }
 }

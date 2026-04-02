@@ -27,7 +27,9 @@ func withTimeout<T: Sendable>(
             throw OperationTimeoutError.timedOut(context: context, seconds: seconds)
         }
 
-        let result = try await group.next()!
+        guard let result = try await group.next() else {
+            throw OperationTimeoutError.timedOut(context: context, seconds: seconds)
+        }
         group.cancelAll()
         return result
     }

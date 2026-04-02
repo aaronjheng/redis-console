@@ -23,13 +23,17 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     func connect() async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let params = NWParameters.tcp
             params.allowLocalEndpointReuse = true
+            guard let nwPort = NWEndpoint.Port(rawValue: port) else {
+                continuation.resume(throwing: RedisError.commandError("Invalid Redis port: \(port)"))
+                return
+            }
 
             connection = NWConnection(
                 host: NWEndpoint.Host(host),
-                port: NWEndpoint.Port(rawValue: port)!,
+                port: nwPort,
                 using: params
             )
 

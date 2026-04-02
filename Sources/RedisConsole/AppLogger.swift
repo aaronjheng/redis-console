@@ -3,14 +3,16 @@ import Foundation
 enum AppLogger {
     private static let queue = DispatchQueue(label: "redis.console.logger")
     private static let formatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
     }()
 
     static var logFileURL: URL {
-        let logs = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("Logs", isDirectory: true)
+        guard let libraryDirectory = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else {
+            return FileManager.default.temporaryDirectory.appendingPathComponent("redis.console.log")
+        }
+        let logs = libraryDirectory.appendingPathComponent("Logs", isDirectory: true)
         let dir = logs.appendingPathComponent("redis.console", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("app.log")
@@ -32,7 +34,7 @@ enum AppLogger {
                 if FileManager.default.fileExists(atPath: url.path) {
                     if let handle = try? FileHandle(forWritingTo: url) {
                         defer { try? handle.close() }
-                        try? handle.seekToEnd()
+                        _ = try? handle.seekToEnd()
                         try? handle.write(contentsOf: data)
                     }
                 } else {

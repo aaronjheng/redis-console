@@ -9,7 +9,7 @@ enum KeychainHelper {
 
     static func set(_ password: String, for id: UUID) {
         let account = id.uuidString
-        let data = password.data(using: .utf8)!
+        guard let data = password.data(using: .utf8) else { return }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -45,7 +45,7 @@ enum KeychainHelper {
     }
 
     static func setSSHCredentials(password: String, passphrase: String, for id: UUID) {
-        let sshPassword = (password + "\n" + passphrase).data(using: .utf8)!
+        guard let sshPassword = (password + "\n" + passphrase).data(using: .utf8) else { return }
         let account = "ssh_\(id.uuidString)"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -200,7 +200,11 @@ class AppStore: ObservableObject {
     private let storeURL: URL
 
     private init() {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            connections = [.default]
+            storeURL = FileManager.default.temporaryDirectory.appendingPathComponent("connections.json")
+            return
+        }
         let dir = appSupport.appendingPathComponent("redis.console", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         storeURL = dir.appendingPathComponent("connections.json")
@@ -208,10 +212,11 @@ class AppStore: ObservableObject {
     }
 
     func loadConnections() {
-        if let data = try? Data(contentsOf: storeURL),
+        if let data = try? Data(contentsOf: storeURL) {
             let decoded = try? JSONDecoder().decode([RedisConnectionConfig].self, from: data)
-        {
-            connections = decoded
+            if let decoded {
+                connections = decoded
+            }
         }
         if connections.isEmpty {
             connections = [.default]
@@ -220,10 +225,10 @@ class AppStore: ObservableObject {
 
     func saveConnections() {
         var toSave = connections
-        for i in toSave.indices {
-            toSave[i].password = ""
-            toSave[i].sshPassword = ""
-            toSave[i].sshPrivateKeyPassphrase = ""
+        for index in toSave.indices {
+            toSave[index].password = ""
+            toSave[index].sshPassword = ""
+            toSave[index].sshPrivateKeyPassphrase = ""
         }
         if let data = try? JSONEncoder().encode(toSave) {
             try? data.write(to: storeURL, options: .atomic)
@@ -315,7 +320,7 @@ enum RightPanel: Equatable {
         switch (lhs, rhs) {
         case (.welcome, .welcome): return true
         case (.newConnection, .newConnection): return true
-        case (.editConnection(let a), .editConnection(let b)): return a.id == b.id
+        case (.editConnection(let leftConfig), .editConnection(let rightConfig)): return leftConfig.id == rightConfig.id
         default: return false
         }
     }
@@ -370,7 +375,8 @@ class ConnectionState: ObservableObject {
     func connect(to config: RedisConnectionConfig) async {
         let resolvedConfig = AppStore.shared.connectionWithSecrets(id: config.id) ?? config
         AppLogger.info(
-            "connect requested name=\(resolvedConfig.name) redis=\(resolvedConfig.host):\(resolvedConfig.port) sshEnabled=\(resolvedConfig.sshEnabled)",
+            "connect requested name=\(resolvedConfig.name) "
+                + "redis=\(resolvedConfig.host):\(resolvedConfig.port) sshEnabled=\(resolvedConfig.sshEnabled)",
             category: "Connection"
         )
         connectTask?.cancel()
@@ -401,7 +407,8 @@ class ConnectionState: ObservableObject {
                     let tunnel = SSHTunnel()
                     sshTunnel = tunnel
                     AppLogger.info(
-                        "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.sshPort) user=\(sshUsername) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
+                        "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.sshPort) "
+                            + "user=\(sshUsername) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
                         category: "Connection"
                     )
                     try await withTimeout(12, context: "SSH tunnel setup") {
@@ -440,7 +447,7 @@ class ConnectionState: ObservableObject {
                 try Task.checkCancellation()
 
                 if resolvedConfig.database != 0 {
-                    let _ = try? await withTimeout(5, context: "Redis SELECT") {
+                    _ = try? await withTimeout(5, context: "Redis SELECT") {
                         try await redis.send("SELECT", "\(resolvedConfig.database)")
                     }
                 }
@@ -555,12 +562,10 @@ class ConnectionState: ObservableObject {
             await withTaskGroup(of: Void.self) { group in
                 for entry in toLoad {
                     group.addTask {
-                        if let type = try? await client.send("TYPE", entry.key),
-                            let typeName = type.string
-                        {
-                            await MainActor.run {
-                                entry.type = typeName
-                            }
+                        let typeResult = try? await client.send("TYPE", entry.key)
+                        guard let typeName = typeResult?.string else { return }
+                        await MainActor.run {
+                            entry.type = typeName
                         }
                     }
                 }
@@ -584,39 +589,39 @@ class ConnectionState: ObservableObject {
                 keyDetail = value.string ?? "(nil)"
             case "list":
                 let value = try await client.send("LRANGE", entry.key, "0", "99")
-                let items = value.arrayValues.enumerated().compactMap { i, v -> (String, String)? in
-                    guard let s = v?.string else { return nil }
-                    return ("[\(i)]", s)
+                let items = value.arrayValues.enumerated().compactMap { index, value -> (String, String)? in
+                    guard let stringValue = value?.string else { return nil }
+                    return ("[\(index)]", stringValue)
                 }
                 keyDetailRows = items
             case "hash":
                 let value = try await client.send("HGETALL", entry.key)
                 let items = value.arrayValues
                 var rows: [(String, String)] = []
-                var i = 0
-                while i + 1 < items.count {
-                    let k = items[i]?.string ?? ""
-                    let v = items[i + 1]?.string ?? ""
-                    rows.append((k, v))
-                    i += 2
+                var itemIndex = 0
+                while itemIndex + 1 < items.count {
+                    let field = items[itemIndex]?.string ?? ""
+                    let fieldValue = items[itemIndex + 1]?.string ?? ""
+                    rows.append((field, fieldValue))
+                    itemIndex += 2
                 }
                 keyDetailRows = rows
             case "set":
                 let value = try await client.send("SMEMBERS", entry.key)
-                keyDetailRows = value.arrayValues.enumerated().compactMap { i, v in
-                    guard let s = v?.string else { return nil }
-                    return ("[\(i)]", s)
+                keyDetailRows = value.arrayValues.enumerated().compactMap { index, value in
+                    guard let stringValue = value?.string else { return nil }
+                    return ("[\(index)]", stringValue)
                 }
             case "zset":
                 let value = try await client.send("ZRANGE", entry.key, "0", "99", "WITHSCORES")
                 let items = value.arrayValues
                 var rows: [(String, String)] = []
-                var i = 0
-                while i + 1 < items.count {
-                    let member = items[i]?.string ?? ""
-                    let score = items[i + 1]?.string ?? ""
+                var itemIndex = 0
+                while itemIndex + 1 < items.count {
+                    let member = items[itemIndex]?.string ?? ""
+                    let score = items[itemIndex + 1]?.string ?? ""
                     rows.append((score, member))
-                    i += 2
+                    itemIndex += 2
                 }
                 keyDetailRows = rows
             case "stream":
@@ -634,7 +639,7 @@ class ConnectionState: ObservableObject {
 
     func deleteKey(_ entry: RedisKeyEntry) async {
         guard let client = activeClient else { return }
-        let _ = try? await client.send("DEL", entry.key)
+        _ = try? await client.send("DEL", entry.key)
         keys.removeAll { $0.key == entry.key }
         if selectedKey?.key == entry.key {
             selectedKey = nil
@@ -644,7 +649,7 @@ class ConnectionState: ObservableObject {
 
     func renameKey(old: String, new: String) async {
         guard let client = activeClient else { return }
-        let _ = try? await client.send("RENAME", old, new)
+        _ = try? await client.send("RENAME", old, new)
         await scanKeys(reset: true)
     }
 

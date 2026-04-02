@@ -133,23 +133,23 @@ struct BrowserView: View {
         guard let client = app.activeClient else { return }
         switch type {
         case "string":
-            let _ = try? await client.send("SET", name, value)
+            _ = try? await client.send("SET", name, value)
         case "list":
-            let _ = try? await client.send("LPUSH", name, value)
+            _ = try? await client.send("LPUSH", name, value)
         case "hash":
             let parts = value.split(separator: ":", maxSplits: 1)
             if parts.count == 2 {
-                let _ = try? await client.send("HSET", name, String(parts[0]), String(parts[1]))
+                _ = try? await client.send("HSET", name, String(parts[0]), String(parts[1]))
             }
         case "set":
-            let _ = try? await client.send("SADD", name, value)
+            _ = try? await client.send("SADD", name, value)
         case "zset":
             let parts = value.split(separator: " ", maxSplits: 1)
             if parts.count == 2 {
-                let _ = try? await client.send("ZADD", name, String(parts[0]), String(parts[1]))
+                _ = try? await client.send("ZADD", name, String(parts[0]), String(parts[1]))
             }
         default:
-            let _ = try? await client.send("SET", name, value)
+            _ = try? await client.send("SET", name, value)
         }
         await app.scanKeys(reset: true)
     }
@@ -225,7 +225,7 @@ struct KeyDetailView: View {
                     Spacer()
                     Button {
                         Task {
-                            let _ = try? await app.activeClient?.send("EXPIRE", key.key, "3600")
+                            _ = try? await app.activeClient?.send("EXPIRE", key.key, "3600")
                             await app.selectKey(key)
                         }
                     } label: {

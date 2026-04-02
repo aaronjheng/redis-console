@@ -30,6 +30,7 @@ class SSHTunnel: @unchecked Sendable {
     private var remoteHost: String = ""
     private var remotePort: UInt16 = 6379
 
+    // swiftlint:disable:next function_parameter_count
     func start(
         sshHost: String,
         sshPort: UInt16,
@@ -40,7 +41,8 @@ class SSHTunnel: @unchecked Sendable {
         remotePort: UInt16
     ) async throws {
         AppLogger.info(
-            "start requested ssh=\(sshHost):\(sshPort) user=\(sshUsername) remote=\(remoteHost):\(remotePort) hasPassword=\(!(sshPassword ?? "").isEmpty) keyPath=\(privateKeyPath ?? "")",
+            "start requested ssh=\(sshHost):\(sshPort) user=\(sshUsername) "
+                + "remote=\(remoteHost):\(remotePort) hasPassword=\(!(sshPassword ?? "").isEmpty) " + "keyPath=\(privateKeyPath ?? "")",
             category: "SSHTunnel"
         )
         self.sshHost = sshHost

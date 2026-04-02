@@ -92,8 +92,8 @@ struct CLIView: View {
                         showCompletions = !newValue.isEmpty
                     }
                     .onKeyPress(.tab) {
-                        if !filteredCompletions.isEmpty {
-                            input = filteredCompletions.first! + " "
+                        if let firstCompletion = filteredCompletions.first {
+                            input = firstCompletion + " "
                             showCompletions = false
                             return .handled
                         }

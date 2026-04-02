@@ -357,8 +357,8 @@ struct WindowTitleUpdater: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {
         guard let window = nsView.window else { return }
         conn.window = window
-        if let c = conn.selectedConnection {
-            window.title = "\(c.name) — \(c.address)"
+        if let selectedConnection = conn.selectedConnection {
+            window.title = "\(selectedConnection.name) — \(selectedConnection.address)"
         } else {
             window.title = "Redis Console"
         }
@@ -380,11 +380,11 @@ struct TabSidebarView: View {
                         .foregroundStyle(.green)
                         .font(.system(size: 8))
                     VStack(alignment: .leading, spacing: 1) {
-                        if let c = conn.selectedConnection {
-                            Text(c.name)
+                        if let selectedConnection = conn.selectedConnection {
+                            Text(selectedConnection.name)
                                 .font(.headline)
                                 .lineLimit(1)
-                            Text(c.address)
+                            Text(selectedConnection.address)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -431,7 +431,9 @@ struct TabSidebarView: View {
                         get: { conn.selectedConnection },
                         set: {
                             conn.selectedConnection = $0
-                            if let c = $0 { conn.rightPanel = .editConnection(c) }
+                            if let selectedConnection = $0 {
+                                conn.rightPanel = .editConnection(selectedConnection)
+                            }
                         }
                     )
                 ) {
@@ -527,7 +529,7 @@ struct ConnectionDetailView: View {
     @State private var sshPrivateKeyPath = ""
 
     private var editingConfig: RedisConnectionConfig? {
-        if case .editConnection(let c) = conn.rightPanel { return c }
+        if case .editConnection(let config) = conn.rightPanel { return config }
         return nil
     }
     private var isNew: Bool {
@@ -548,7 +550,11 @@ struct ConnectionDetailView: View {
                                 "",
                                 text: Binding(
                                     get: { "\(port)" },
-                                    set: { if let v = UInt16($0) { port = v } }
+                                    set: {
+                                        if let parsedPort = UInt16($0) {
+                                            port = parsedPort
+                                        }
+                                    }
                                 )
                             )
                             .frame(width: 80)
@@ -558,8 +564,8 @@ struct ConnectionDetailView: View {
                             Text("Database")
                             Spacer()
                             Picker("", selection: $database) {
-                                ForEach(0..<16) { i in
-                                    Text("DB \(i)").tag(i)
+                                ForEach(0..<16) { databaseIndex in
+                                    Text("DB \(databaseIndex)").tag(databaseIndex)
                                 }
                             }
                             .frame(width: 100)
@@ -577,7 +583,11 @@ struct ConnectionDetailView: View {
                                     "",
                                     text: Binding(
                                         get: { "\(sshPort)" },
-                                        set: { if let v = UInt16($0) { sshPort = v } }
+                                        set: {
+                                            if let parsedPort = UInt16($0) {
+                                                sshPort = parsedPort
+                                            }
+                                        }
                                     )
                                 )
                                 .frame(width: 80)
@@ -722,8 +732,8 @@ struct ConnectionDetailView: View {
     private func loadConfig(from panel: RightPanel) {
         testResult = nil
         switch panel {
-        case .editConnection(let c):
-            let resolved = store.connectionWithSecrets(id: c.id) ?? c
+        case .editConnection(let config):
+            let resolved = store.connectionWithSecrets(id: config.id) ?? config
             name = resolved.name
             host = resolved.host
             port = resolved.port
@@ -817,7 +827,7 @@ struct ConnectionDetailView: View {
                 try await createdClient.connect()
             }
             if database != 0 {
-                let _ = try? await withTimeout(5, context: "Redis SELECT") {
+                _ = try? await withTimeout(5, context: "Redis SELECT") {
                     try await createdClient.send("SELECT", "\(database)")
                 }
             }
