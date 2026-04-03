@@ -456,10 +456,9 @@ struct TabSidebarView: View {
                             )
                             .contextMenu {
                                 Button("Duplicate") {
-                                    var newConfig = config
-                                    newConfig.id = UUID()
-                                    newConfig.name = "\(config.name) (copy)"
-                                    store.addConnection(newConfig)
+                                    let pasteboard = NSPasteboard.general
+                                    pasteboard.clearContents()
+                                    pasteboard.setString(config.address, forType: .string)
                                 }
                                 Button("Delete") {
                                     store.deleteConnection(config)
