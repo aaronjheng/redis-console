@@ -455,6 +455,12 @@ struct TabSidebarView: View {
                                 }
                             )
                             .contextMenu {
+                                Button("Duplicate") {
+                                    var newConfig = config
+                                    newConfig.id = UUID()
+                                    newConfig.name = "\(config.name) (copy)"
+                                    store.addConnection(newConfig)
+                                }
                                 Button("Delete") {
                                     store.deleteConnection(config)
                                     if conn.selectedConnection?.id == config.id {
