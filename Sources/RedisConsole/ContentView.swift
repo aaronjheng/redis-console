@@ -454,6 +454,15 @@ struct TabSidebarView: View {
                                     Task { await conn.connect(to: config) }
                                 }
                             )
+                            .contextMenu {
+                                Button("Delete") {
+                                    store.deleteConnection(config)
+                                    if conn.selectedConnection?.id == config.id {
+                                        conn.selectedConnection = nil
+                                        conn.rightPanel = .welcome
+                                    }
+                                }
+                            }
                     }
                 }
                 .listStyle(.sidebar)
