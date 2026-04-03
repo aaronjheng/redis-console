@@ -533,7 +533,7 @@ struct ConnectionDetailView: View {
     @State private var sshEnabled = false
     @State private var sshHost = ""
     @State private var sshPort: UInt16 = 22
-    @State private var sshUsername = ""
+    @State private var sshUser = ""
     @State private var sshPassword = ""
     @State private var sshPrivateKeyPath = ""
     @State private var uriInput = ""
@@ -611,7 +611,7 @@ struct ConnectionDetailView: View {
                                 )
                                 .frame(width: 80)
                             }
-                            TextField("Username (optional)", text: $sshUsername)
+                            TextField("User (optional)", text: $sshUser)
                             SecureField("Password (optional)", text: $sshPassword)
                             TextField("Private Key Path (optional)", text: $sshPrivateKeyPath)
                             Text("Provide a password or a private key file path")
@@ -680,7 +680,7 @@ struct ConnectionDetailView: View {
                         updated.sshEnabled = sshEnabled
                         updated.sshHost = sshHost
                         updated.sshPort = sshPort
-                        updated.sshUsername = sshUsername
+                        updated.sshUser = sshUser
                         updated.sshPassword = sshPassword
                         updated.sshPrivateKeyPath = sshPrivateKeyPath
                         store.updateConnection(updated)
@@ -720,7 +720,7 @@ struct ConnectionDetailView: View {
         config.sshEnabled = sshEnabled
         config.sshHost = sshHost
         config.sshPort = sshPort
-        config.sshUsername = sshUsername
+        config.sshUser = sshUser
         config.sshPassword = sshPassword
         config.sshPrivateKeyPath = sshPrivateKeyPath
         return config
@@ -740,7 +740,7 @@ struct ConnectionDetailView: View {
             sshEnabled = config.sshEnabled
             sshHost = config.sshHost
             sshPort = config.sshPort
-            sshUsername = config.sshUsername
+            sshUser = config.sshUser
             sshPassword = config.sshPassword
             sshPrivateKeyPath = config.sshPrivateKeyPath
         case .newConnection:
@@ -754,7 +754,7 @@ struct ConnectionDetailView: View {
             sshEnabled = false
             sshHost = ""
             sshPort = 22
-            sshUsername = ""
+            sshUser = ""
             sshPassword = ""
             sshPrivateKeyPath = ""
         default: break
@@ -763,7 +763,7 @@ struct ConnectionDetailView: View {
 
     private func testConnection() async {
         AppLogger.info(
-            "test connection requested redis=\(host):\(port) sshEnabled=\(sshEnabled) ssh=\(sshHost):\(sshPort) user=\(sshUsername)",
+            "test connection requested redis=\(host):\(port) sshEnabled=\(sshEnabled) ssh=\(sshHost):\(sshPort) user=\(sshUser)",
             category: "ConnectionTest"
         )
         isTesting = true
@@ -781,8 +781,8 @@ struct ConnectionDetailView: View {
 
         if sshEnabled {
             let trimmedSSHHost = sshHost.trimmingCharacters(in: .whitespacesAndNewlines)
-            let trimmedSSHUsername = sshUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-            let effectiveSSHUsername = trimmedSSHUsername.isEmpty ? NSUserName() : trimmedSSHUsername
+            let trimmedSSHUser = sshUser.trimmingCharacters(in: .whitespacesAndNewlines)
+            let effectiveSSHUser = trimmedSSHUser.isEmpty ? NSUserName() : trimmedSSHUser
             guard !trimmedSSHHost.isEmpty else {
                 testResult = "Failed — SSH host is required"
                 AppLogger.error("test failed: empty ssh host", category: "ConnectionTest")
@@ -796,7 +796,7 @@ struct ConnectionDetailView: View {
                     try await createdTunnel.start(
                         sshHost: trimmedSSHHost,
                         sshPort: sshPort,
-                        sshUsername: effectiveSSHUsername,
+                        sshUser: effectiveSSHUser,
                         sshPassword: sshPassword.isEmpty ? nil : sshPassword,
                         privateKeyPath: sshPrivateKeyPath.isEmpty ? nil : sshPrivateKeyPath,
                         remoteHost: host,

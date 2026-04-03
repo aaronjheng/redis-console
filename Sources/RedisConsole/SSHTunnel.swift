@@ -21,16 +21,16 @@ class SSHTunnel: @unchecked Sendable {
     // SSH configuration
     private var sshHost: String = ""
     private var sshPort: UInt16 = 22
-    private var sshUsername: String = ""
+    private var sshUser: String = ""
     private var sshPassword: String?
     private var privateKeyPath: String?
     private var remoteHost: String = ""
     private var remotePort: UInt16 = 6379
 
-    private var effectiveSSHUsername: String {
-        let trimmedUsername = sshUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedUsername.isEmpty {
-            return trimmedUsername
+    private var effectiveSSHUser: String {
+        let trimmedUser = sshUser.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedUser.isEmpty {
+            return trimmedUser
         }
         return NSUserName()
     }
@@ -39,21 +39,21 @@ class SSHTunnel: @unchecked Sendable {
     func start(
         sshHost: String,
         sshPort: UInt16,
-        sshUsername: String,
+        sshUser: String,
         sshPassword: String?,
         privateKeyPath: String?,
         remoteHost: String,
         remotePort: UInt16
     ) async throws {
-        let effectiveUsername = sshUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? NSUserName() : sshUsername
+        let effectiveUser = sshUser.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? NSUserName() : sshUser
         AppLogger.info(
-            "start requested ssh=\(sshHost):\(sshPort) user=\(effectiveUsername) "
+            "start requested ssh=\(sshHost):\(sshPort) user=\(effectiveUser) "
                 + "remote=\(remoteHost):\(remotePort) hasPassword=\(!(sshPassword ?? "").isEmpty) " + "keyPath=\(privateKeyPath ?? "")",
             category: "SSHTunnel"
         )
         self.sshHost = sshHost
         self.sshPort = sshPort
-        self.sshUsername = sshUsername
+        self.sshUser = sshUser
         self.sshPassword = sshPassword
         self.privateKeyPath = privateKeyPath
         self.remoteHost = remoteHost
@@ -180,13 +180,13 @@ class SSHTunnel: @unchecked Sendable {
 
     private func createAuthDelegate() -> NIOSSHClientUserAuthenticationDelegate {
         if let password = sshPassword, !password.isEmpty {
-            return PasswordAuthDelegate(username: effectiveSSHUsername, password: password)
+            return PasswordAuthDelegate(username: effectiveSSHUser, password: password)
         } else if let keyPath = privateKeyPath, !keyPath.isEmpty {
             let expandedPath = (keyPath as NSString).expandingTildeInPath
-            return KeyAuthDelegate(username: effectiveSSHUsername, keyPath: expandedPath)
+            return KeyAuthDelegate(username: effectiveSSHUser, keyPath: expandedPath)
         } else {
             // Try default key locations
-            return KeyAuthDelegate(username: effectiveSSHUsername, keyPath: nil)
+            return KeyAuthDelegate(username: effectiveSSHUser, keyPath: nil)
         }
     }
 

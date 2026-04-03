@@ -15,7 +15,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var sshEnabled: Bool = false
     var sshHost: String = ""
     var sshPort: UInt16 = 22
-    var sshUsername: String = ""
+    var sshUser: String = ""
     var sshPassword: String = ""
     var sshPrivateKeyPath: String = ""
     var sshPrivateKeyPassphrase: String = ""
@@ -289,8 +289,8 @@ class ConnectionState: ObservableObject {
             do {
                 if resolvedConfig.sshEnabled {
                     let sshHost = resolvedConfig.sshHost.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let sshUsername = resolvedConfig.sshUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let effectiveSSHUsername = sshUsername.isEmpty ? NSUserName() : sshUsername
+                    let sshUser = resolvedConfig.sshUser.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let effectiveSSHUser = sshUser.isEmpty ? NSUserName() : sshUser
                     guard !sshHost.isEmpty else {
                         throw SSHTunnelError.connectionFailed("SSH host is required")
                     }
@@ -299,14 +299,14 @@ class ConnectionState: ObservableObject {
                     sshTunnel = tunnel
                     AppLogger.info(
                         "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.sshPort) "
-                            + "user=\(effectiveSSHUsername) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
+                            + "user=\(effectiveSSHUser) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
                         category: "Connection"
                     )
                     try await withTimeout(12, context: "SSH tunnel setup") {
                         try await tunnel.start(
                             sshHost: sshHost,
                             sshPort: resolvedConfig.sshPort,
-                            sshUsername: effectiveSSHUsername,
+                            sshUser: effectiveSSHUser,
                             sshPassword: resolvedConfig.sshPassword.isEmpty ? nil : resolvedConfig.sshPassword,
                             privateKeyPath: resolvedConfig.sshPrivateKeyPath.isEmpty ? nil : resolvedConfig.sshPrivateKeyPath,
                             remoteHost: resolvedConfig.host,
