@@ -26,8 +26,8 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
 
     static func parseURI(_ uri: String) -> RedisConnectionConfig? {
         guard let components = URLComponents(string: uri),
-              let scheme = components.scheme,
-              scheme == "redis" || scheme == "rediss"
+            let scheme = components.scheme,
+            scheme == "redis" || scheme == "rediss"
         else { return nil }
 
         let host = components.host ?? "127.0.0.1"
