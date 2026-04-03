@@ -23,6 +23,12 @@ Redis Console is a native macOS Redis client written in Swift, with SSH tunnel s
 - Follow `.swift-format` and `.swiftlint.yml` configurations
 - Run `just lint` to check code style, `just lint-fix` to auto-fix
 
+## Git Workflow Rules
+
+- NEVER run `git commit`, `git push`, or any other git mutations unless explicitly instructed
+- Always ask for confirmation before committing changes
+- Always ask for confirmation before pushing to remote
+
 ## Commit Message Guidelines
 
 - Use a single sentence
