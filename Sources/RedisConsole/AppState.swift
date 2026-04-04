@@ -235,6 +235,7 @@ class ConnectionState: ObservableObject {
     @Published var keyDetail: String = ""
     @Published var keyDetailRows: [(String, String)] = []
     @Published var keyType: String = ""
+    @Published var valueSize: Int? = nil
     @Published var isLoadingKeys = false
     @Published var isLoadingDetail = false
     @Published var scanCursor: String = "0"
@@ -463,6 +464,7 @@ class ConnectionState: ObservableObject {
         isLoadingDetail = true
         keyDetail = ""
         keyDetailRows = []
+        valueSize = nil
         guard let client = activeClient else { return }
         do {
             let typeResult = try await client.send("TYPE", entry.key)
@@ -516,6 +518,9 @@ class ConnectionState: ObservableObject {
                 let value = try await client.send("GET", entry.key)
                 keyDetail = value.string ?? "(nil)"
             }
+
+            let memResult = try? await client.send("MEMORY", "USAGE", entry.key)
+            valueSize = memResult?.intValue
         } catch {
             keyDetail = "Error: \(error.localizedDescription)"
         }

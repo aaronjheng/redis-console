@@ -239,6 +239,7 @@ struct KeyDetailView: View {
                         HashDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
+                            valueSize: app.valueSize,
                             onAddField: { showingAddHashField = true },
                             onEditField: { field, value in
                                 editingHashField = field
@@ -291,6 +292,7 @@ struct KeyDetailView: View {
                         ListDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
+                            valueSize: app.valueSize,
                             onAddElement: { showingAddListElement = true },
                             onEditElement: { index, value in
                                 editingListElement = ListElementEdit(index: index, value: value)
@@ -342,6 +344,7 @@ struct KeyDetailView: View {
                         SetDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
+                            valueSize: app.valueSize,
                             onAddMember: { showingAddSetMember = true },
                             onDeleteMember: { member in
                                 Task {
@@ -369,6 +372,7 @@ struct KeyDetailView: View {
                         ZSetDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
+                            valueSize: app.valueSize,
                             onAddMember: { showingAddZSetMember = true },
                             onEditMember: { member, score in
                                 editingZSetMember = ZSetMemberEdit(member: member, score: score)
@@ -425,6 +429,7 @@ struct KeyDetailView: View {
                         StringDetailView(
                             key: key.key,
                             value: app.keyDetail,
+                            valueSize: app.valueSize,
                             onSave: { value in
                                 Task {
                                     await app.updateStringValue(key: key.key, value: value)
@@ -571,6 +576,7 @@ struct KeyDetailView: View {
 struct StringDetailView: View {
     let key: String
     let value: String
+    let valueSize: Int?
     let onSave: (String) -> Void
 
     @State private var isEditing = false
@@ -628,6 +634,19 @@ struct StringDetailView: View {
                     .help("Edit value")
                 }
             }
+
+            Divider()
+
+            HStack {
+                Spacer()
+
+                if let valueSize {
+                    Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(8)
         }
     }
 }
@@ -643,6 +662,7 @@ struct HashRow: Identifiable {
 struct HashDetailView: View {
     let key: String
     let rows: [(String, String)]
+    let valueSize: Int?
     let onAddField: () -> Void
     let onEditField: (String, String) -> Void
     let onDeleteField: (String) -> Void
@@ -702,9 +722,15 @@ struct HashDetailView: View {
 
                 Spacer()
 
-                Text("\(rows.count) fields")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text("\(rows.count) fields")
+                    if let valueSize {
+                        Text("\u{00B7}")
+                        Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             .padding(8)
         }
@@ -722,6 +748,7 @@ struct ListRow: Identifiable {
 struct ListDetailView: View {
     let key: String
     let rows: [(String, String)]
+    let valueSize: Int?
     let onAddElement: () -> Void
     let onEditElement: (Int, String) -> Void
     let onDeleteElement: (Int, String) -> Void
@@ -784,9 +811,15 @@ struct ListDetailView: View {
 
                 Spacer()
 
-                Text("\(rows.count) elements")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text("\(rows.count) elements")
+                    if let valueSize {
+                        Text("\u{00B7}")
+                        Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             .padding(8)
         }
@@ -803,6 +836,7 @@ struct SetRow: Identifiable {
 struct SetDetailView: View {
     let key: String
     let rows: [(String, String)]
+    let valueSize: Int?
     let onAddMember: () -> Void
     let onDeleteMember: (String) -> Void
 
@@ -844,9 +878,15 @@ struct SetDetailView: View {
 
                 Spacer()
 
-                Text("\(rows.count) members")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text("\(rows.count) members")
+                    if let valueSize {
+                        Text("\u{00B7}")
+                        Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             .padding(8)
         }
@@ -864,6 +904,7 @@ struct ZSetRow: Identifiable {
 struct ZSetDetailView: View {
     let key: String
     let rows: [(String, String)]
+    let valueSize: Int?
     let onAddMember: () -> Void
     let onEditMember: (String, String) -> Void
     let onDeleteMember: (String) -> Void
@@ -923,9 +964,15 @@ struct ZSetDetailView: View {
 
                 Spacer()
 
-                Text("\(rows.count) members")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text("\(rows.count) members")
+                    if let valueSize {
+                        Text("\u{00B7}")
+                        Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             .padding(8)
         }
