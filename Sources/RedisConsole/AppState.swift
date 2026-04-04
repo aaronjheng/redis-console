@@ -538,6 +538,87 @@ class ConnectionState: ObservableObject {
         await scanKeys(reset: true)
     }
 
+    // MARK: - Key Editing
+
+    func updateStringValue(key: String, value: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("SET", key, value)
+    }
+
+    func addHashField(key: String, field: String, value: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("HSET", key, field, value)
+    }
+
+    func updateHashField(key: String, field: String, value: String) async {
+        await addHashField(key: key, field: field, value: value)
+    }
+
+    func deleteHashField(key: String, field: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("HDEL", key, field)
+    }
+
+    func addListElement(key: String, value: String, tail: Bool = false) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send(tail ? "RPUSH" : "LPUSH", key, value)
+    }
+
+    func updateListElement(key: String, index: Int, value: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("LSET", key, "\(index)", value)
+    }
+
+    func deleteListElement(key: String, value: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("LREM", key, "1", value)
+    }
+
+    func addSetMember(key: String, member: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("SADD", key, member)
+    }
+
+    func deleteSetMember(key: String, member: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("SREM", key, member)
+    }
+
+    func addZSetMember(key: String, member: String, score: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("ZADD", key, score, member)
+    }
+
+    func updateZSetScore(key: String, member: String, score: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("ZADD", key, score, member)
+    }
+
+    func deleteZSetMember(key: String, member: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("ZREM", key, member)
+    }
+
+    func addStreamEntry(key: String, fields: [(String, String)]) async {
+        guard let client = activeClient else { return }
+        var args = [key, "*"]
+        for (field, value) in fields {
+            args.append(field)
+            args.append(value)
+        }
+        _ = try? await client.send(args)
+    }
+
+    func deleteStreamEntry(key: String, entryId: String) async {
+        guard let client = activeClient else { return }
+        _ = try? await client.send("XDEL", key, entryId)
+    }
+
+    func refreshSelectedKey() async {
+        guard let selectedKey else { return }
+        await selectKey(selectedKey)
+    }
+
     // MARK: - Shell
 
     func executeCommand(_ input: String) async {

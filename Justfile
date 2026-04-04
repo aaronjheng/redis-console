@@ -7,6 +7,12 @@ lint:
 lint-fix:
     swiftlint lint --fix Sources
 
+format:
+    swift-format format -i -r Sources
+
+format-check:
+    swift-format lint -r Sources
+
 build-release:
     swift build -c release
 
