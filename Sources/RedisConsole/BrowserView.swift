@@ -208,7 +208,6 @@ struct KeyDetailView: View {
     @State private var showingAddListElement = false
     @State private var newListElement = ""
     @State private var newListPosition: ListPosition = .head
-    @State private var editingListElement: ListElementEdit?
     @State private var showingAddSetMember = false
     @State private var newSetMember = ""
     @State private var showingAddZSetMember = false
@@ -293,8 +292,11 @@ struct KeyDetailView: View {
                             rows: app.keyDetailRows,
                             valueSize: app.valueSize,
                             onAddElement: { showingAddListElement = true },
-                            onEditElement: { index, value in
-                                editingListElement = ListElementEdit(index: index, value: value)
+                            onSaveElement: { index, value in
+                                Task {
+                                    await app.updateListElement(key: key.key, index: index, value: value)
+                                    await app.refreshSelectedKey()
+                                }
                             },
                             onDeleteElement: { _, value in
                                 Task {
@@ -316,26 +318,6 @@ struct KeyDetailView: View {
                                     showingAddListElement = false
                                 },
                                 onCancel: { showingAddListElement = false }
-                            )
-                        }
-                        .sheet(
-                            item: $editingListElement,
-                            onDismiss: {
-                                editingListElement = nil
-                            }
-                        ) { element in
-                            EditListElementSheet(
-                                key: key.key,
-                                index: element.index,
-                                value: element.value,
-                                onSave: { index, value in
-                                    Task {
-                                        await app.updateListElement(key: key.key, index: index, value: value)
-                                        await app.refreshSelectedKey()
-                                    }
-                                    editingListElement = nil
-                                },
-                                onCancel: { editingListElement = nil }
                             )
                         }
 
@@ -718,13 +700,100 @@ struct ListRow: Identifiable {
     let value: String
 }
 
+struct EditableListCell: View {
+    let row: ListRow
+    @Binding var editingIndex: Int?
+    @Binding var editValue: String
+    let onSaveElement: (Int, String) -> Void
+
+    var body: some View {
+        if editingIndex == row.index {
+            InlineTextField(
+                text: $editValue,
+                onSubmit: { onSaveElement(row.index, editValue) },
+                onCancel: { editingIndex = nil }
+            )
+        } else {
+            Text(row.value)
+                .font(.system(.body, design: .monospaced))
+                .lineLimit(2)
+                .onTapGesture(count: 2) {
+                    editingIndex = row.index
+                    editValue = row.value
+                }
+        }
+    }
+}
+
+struct InlineTextField: NSViewRepresentable {
+    @Binding var text: String
+    let onSubmit: () -> Void
+    let onCancel: () -> Void
+
+    func makeNSView(context: Context) -> NSTextField {
+        let textField = NSTextField()
+        textField.isBezeled = true
+        textField.bezelStyle = .roundedBezel
+        textField.font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        textField.delegate = context.coordinator
+        textField.focusRingType = .none
+        return textField
+    }
+
+    func updateNSView(_ nsView: NSTextField, context: Context) {
+        if nsView.stringValue != text {
+            nsView.stringValue = text
+        }
+        DispatchQueue.main.async {
+            nsView.window?.makeFirstResponder(nsView)
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, NSTextFieldDelegate {
+        let parent: InlineTextField
+
+        init(_ parent: InlineTextField) {
+            self.parent = parent
+        }
+
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+                parent.onSubmit()
+                return true
+            }
+            if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+                parent.onCancel()
+                return true
+            }
+            return false
+        }
+
+        func controlTextDidEndEditing(_ obj: Notification) {
+            parent.onSubmit()
+        }
+
+        func controlTextDidChange(_ obj: Notification) {
+            if let textField = obj.object as? NSTextField {
+                parent.text = textField.stringValue
+            }
+        }
+    }
+}
+
 struct ListDetailView: View {
     let key: String
     let rows: [(String, String)]
     let valueSize: Int?
     let onAddElement: () -> Void
-    let onEditElement: (Int, String) -> Void
+    let onSaveElement: (Int, String) -> Void
     let onDeleteElement: (Int, String) -> Void
+
+    @State private var editingIndex: Int?
+    @State private var editValue = ""
 
     private var listRows: [ListRow] {
         rows.enumerated().map { index, row in
@@ -743,15 +812,19 @@ struct ListDetailView: View {
                 .width(60)
 
                 TableColumn("Value") { row in
-                    Text(row.value)
-                        .font(.system(.body, design: .monospaced))
-                        .lineLimit(2)
+                    EditableListCell(
+                        row: row,
+                        editingIndex: $editingIndex,
+                        editValue: $editValue,
+                        onSaveElement: onSaveElement
+                    )
                 }
 
                 TableColumn("Actions") { row in
                     HStack(spacing: 8) {
                         Button {
-                            onEditElement(row.index, row.value)
+                            editingIndex = row.index
+                            editValue = row.value
                         } label: {
                             Image(systemName: "pencil")
                         }
@@ -1055,52 +1128,6 @@ struct AddListElementSheet: View {
     }
 }
 
-struct EditListElementSheet: View {
-    let key: String
-    let index: Int
-    let value: String
-    @State private var editValue: String
-    let onSave: (Int, String) -> Void
-    let onCancel: () -> Void
-
-    init(key: String, index: Int, value: String, onSave: @escaping (Int, String) -> Void, onCancel: @escaping () -> Void) {
-        self.key = key
-        self.index = index
-        self.value = value
-        self._editValue = State(initialValue: value)
-        self.onSave = onSave
-        self.onCancel = onCancel
-    }
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Edit List Element")
-                .font(.headline)
-
-            Form {
-                HStack {
-                    Text("Index")
-                    Spacer()
-                    Text("[\(index)]")
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                TextField("Value", text: $editValue, axis: .vertical)
-                    .lineLimit(3...6)
-            }
-            .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { onCancel() }
-                Spacer()
-                Button("Save") { onSave(index, editValue) }
-            }
-        }
-        .padding()
-        .frame(width: 400)
-    }
-}
-
 struct AddSetMemberSheet: View {
     let key: String
     @Binding var member: String
@@ -1218,12 +1245,6 @@ extension KeyDetailView.ListPosition: Identifiable {
         case .tail: return 1
         }
     }
-}
-
-struct ListElementEdit: Identifiable {
-    let id = UUID()
-    let index: Int
-    let value: String
 }
 
 struct ZSetMemberEdit: Identifiable {
