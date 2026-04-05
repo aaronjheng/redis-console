@@ -321,6 +321,7 @@ struct TabContentView: View {
         HSplitView {
             TabSidebarView()
                 .frame(minWidth: 220, maxWidth: 280)
+                .ignoresSafeArea()
 
             if conn.activeClient?.isConnected == true {
                 switch conn.currentView {
@@ -418,6 +419,8 @@ struct TabSidebarView: View {
                     }
                 }
                 .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+                .background(Color(white: 0.95))
             } else {
                 HStack {
                     Text("Connections")
@@ -432,6 +435,8 @@ struct TabSidebarView: View {
                 }
                 .padding()
                 .background(Color(nsColor: .controlBackgroundColor))
+
+                Divider()
 
                 List(
                     selection: Binding(
@@ -471,8 +476,11 @@ struct TabSidebarView: View {
                     }
                 }
                 .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+                .background(Color(white: 0.95))
             }
         }
+        .background(Color(white: 0.95))
     }
 }
 
