@@ -607,7 +607,7 @@ private struct SSHHandlerBox: @unchecked Sendable {
 
 // MARK: - SSH Handlers
 
-private class HandshakeHandler: ChannelInboundHandler {
+private final class HandshakeHandler: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = Any
     typealias InboundOut = Any
 
@@ -643,7 +643,7 @@ private class HandshakeHandler: ChannelInboundHandler {
     }
 }
 
-private class DataForwarder: ChannelInboundHandler {
+private final class DataForwarder: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = ByteBuffer
     typealias InboundOut = ByteBuffer
 
@@ -664,7 +664,7 @@ private class DataForwarder: ChannelInboundHandler {
     }
 }
 
-private final class SSHWrapperHandler: ChannelDuplexHandler {
+private final class SSHWrapperHandler: ChannelDuplexHandler, @unchecked Sendable {
     typealias InboundIn = SSHChannelData
     typealias InboundOut = ByteBuffer
     typealias OutboundIn = ByteBuffer
@@ -688,7 +688,7 @@ private final class SSHWrapperHandler: ChannelDuplexHandler {
     }
 }
 
-private class ErrorHandler: ChannelInboundHandler {
+private final class ErrorHandler: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = Any
 
     func errorCaught(context: ChannelHandlerContext, error: Error) {

@@ -442,17 +442,30 @@ class ConnectionState: ObservableObject {
 
     private func loadTypes() {
         guard let client = activeClient, client.isConnected else { return }
-        let toLoad = keys.filter { $0.type.isEmpty }
+        let keyNames = keys.filter { $0.type.isEmpty }.map(\.key)
         Task {
-            await withTaskGroup(of: Void.self) { group in
-                for entry in toLoad {
+            let resolved = await withTaskGroup(of: (String, String)?.self, returning: [(String, String)].self) {
+                group in
+                for keyName in keyNames {
                     group.addTask {
-                        let typeResult = try? await client.send("TYPE", entry.key)
-                        guard let typeName = typeResult?.string else { return }
-                        await MainActor.run {
-                            entry.type = typeName
-                        }
+                        let typeResult = try? await client.send("TYPE", keyName)
+                        guard let typeName = typeResult?.string else { return nil }
+                        return (keyName, typeName)
                     }
+                }
+
+                var pairs: [(String, String)] = []
+                for await pair in group {
+                    if let pair {
+                        pairs.append(pair)
+                    }
+                }
+                return pairs
+            }
+
+            for (keyName, typeName) in resolved {
+                if let entry = keys.first(where: { $0.key == keyName }) {
+                    entry.type = typeName
                 }
             }
         }

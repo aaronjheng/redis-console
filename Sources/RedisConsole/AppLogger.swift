@@ -2,11 +2,6 @@ import Foundation
 
 enum AppLogger {
     private static let queue = DispatchQueue(label: "redis.console.logger")
-    private static let formatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
 
     static var logFileURL: URL {
         guard let libraryDirectory = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else {
@@ -27,6 +22,8 @@ enum AppLogger {
     }
 
     private static func write(level: String, category: String, message: String) {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let line = "\(formatter.string(from: Date())) [\(level)] [\(category)] \(message)\n"
         queue.async {
             let url = logFileURL
