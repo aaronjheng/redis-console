@@ -1260,6 +1260,11 @@ struct AddKeySheet: View {
     let onSave: (String, String, String) -> Void
     let onCancel: () -> Void
 
+    @State private var hashField = ""
+    @State private var hashValue = ""
+    @State private var zsetMember = ""
+    @State private var zsetScore = ""
+
     var body: some View {
         VStack(spacing: 16) {
             Text("Add New Key")
@@ -1274,16 +1279,36 @@ struct AddKeySheet: View {
                     Text("Set").tag("set")
                     Text("Sorted Set").tag("zset")
                 }
-                TextField("Value", text: $keyValue, axis: .vertical)
-                    .lineLimit(3...6)
+
+                switch keyType {
+                case "hash":
+                    TextField("Field", text: $hashField)
+                    TextField("Value", text: $hashValue, axis: .vertical)
+                        .lineLimit(3...6)
+                case "zset":
+                    TextField("Member", text: $zsetMember)
+                    TextField("Score", text: $zsetScore)
+                default:
+                    TextField("Value", text: $keyValue, axis: .vertical)
+                        .lineLimit(3...6)
+                }
             }
             .formStyle(.grouped)
 
             HStack {
                 Button("Cancel") { onCancel() }
                 Spacer()
-                Button("Add") { onSave(keyName, keyType, keyValue) }
-                    .disabled(keyName.isEmpty)
+                Button("Add") {
+                    switch keyType {
+                    case "hash":
+                        onSave(keyName, keyType, "\(hashField):\(hashValue)")
+                    case "zset":
+                        onSave(keyName, keyType, "\(zsetScore):\(zsetMember)")
+                    default:
+                        onSave(keyName, keyType, keyValue)
+                    }
+                }
+                .disabled(keyName.isEmpty)
             }
         }
         .padding()
