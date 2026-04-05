@@ -381,7 +381,6 @@ struct TabSidebarView: View {
     var body: some View {
         VStack(spacing: 0) {
             if conn.activeClient?.isConnected == true {
-                // Connected — compact header + tool navigation
                 HStack {
                     Image(systemName: "circle.fill")
                         .foregroundStyle(.green)
@@ -406,6 +405,7 @@ struct TabSidebarView: View {
                     .help("Disconnect")
                 }
                 .padding()
+                .background(Color(nsColor: .controlBackgroundColor))
 
                 Divider()
 
@@ -419,7 +419,6 @@ struct TabSidebarView: View {
                 }
                 .listStyle(.sidebar)
             } else {
-                // Disconnected — connection list
                 HStack {
                     Text("Connections")
                         .font(.headline)
@@ -432,6 +431,7 @@ struct TabSidebarView: View {
                     .buttonStyle(.borderless)
                 }
                 .padding()
+                .background(Color(nsColor: .controlBackgroundColor))
 
                 List(
                     selection: Binding(
