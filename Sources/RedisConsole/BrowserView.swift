@@ -558,44 +558,44 @@ struct StringDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             if isEditing {
-                VStack(spacing: 12) {
-                    HStack {
-                        Text("Edit Value")
-                            .font(.headline)
-                        Spacer()
-                        HStack(spacing: 8) {
-                            Button("Cancel") {
-                                isEditing = false
-                            }
-                            .buttonStyle(.borderless)
-                            Button("Save") {
-                                onSave(editValue)
-                                isEditing = false
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.top)
-
+                VStack(spacing: 8) {
                     TextEditor(text: $editValue)
                         .font(.system(.body, design: .monospaced))
                         .padding(8)
                         .background(Color(nsColor: .textBackgroundColor))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .padding(.horizontal)
-                        .padding(.bottom)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.accentColor, lineWidth: 2)
+                        )
+
+                    HStack(spacing: 8) {
+                        Spacer()
+                        Button("Cancel") {
+                            isEditing = false
+                        }
+                        .buttonStyle(.borderless)
+                        Button("Save") {
+                            onSave(editValue)
+                            isEditing = false
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
             } else {
-                ScrollView {
-                    Text(value)
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                }
-                .overlay(alignment: .topTrailing) {
+                ZStack(alignment: .topTrailing) {
+                    ScrollView {
+                        Text(value)
+                            .font(.system(.body, design: .monospaced))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                    }
+                    .onTapGesture(count: 2) {
+                        editValue = value
+                        isEditing = true
+                    }
+
                     Button {
                         editValue = value
                         isEditing = true
