@@ -144,7 +144,7 @@ struct BrowserView: View {
         case "set":
             _ = try? await client.send("SADD", name, value)
         case "zset":
-            let parts = value.split(separator: " ", maxSplits: 1)
+            let parts = value.split(separator: ":", maxSplits: 1)
             if parts.count == 2 {
                 _ = try? await client.send("ZADD", name, String(parts[0]), String(parts[1]))
             }
