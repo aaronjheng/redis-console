@@ -215,8 +215,7 @@ struct KeyDetailView: View {
     @State private var newZSetMember = ""
     @State private var newZSetScore = ""
     @State private var editingZSetMember: ZSetMemberEdit?
-    @State private var showingAddStreamEntry = false
-    @State private var newStreamFields: [(String, String)] = [("", "")]
+
 
     enum ListPosition {
         case head, tail
@@ -437,32 +436,6 @@ struct KeyDetailView: View {
                                 }
                             }
                         )
-                    case "stream":
-                        StreamDetailView(
-                            key: key.key,
-                            value: app.keyDetail,
-                            onAddEntry: { showingAddStreamEntry = true },
-                            onDeleteEntry: { entryId in
-                                Task {
-                                    await app.deleteStreamEntry(key: key.key, entryId: entryId)
-                                    await app.refreshSelectedKey()
-                                }
-                            }
-                        )
-                        .sheet(isPresented: $showingAddStreamEntry) {
-                            AddStreamEntrySheet(
-                                key: key.key,
-                                fields: $newStreamFields,
-                                onSave: { fields in
-                                    Task {
-                                        await app.addStreamEntry(key: key.key, fields: fields)
-                                        await app.refreshSelectedKey()
-                                    }
-                                    showingAddStreamEntry = false
-                                },
-                                onCancel: { showingAddStreamEntry = false }
-                            )
-                        }
                     default:
                         emptyValueView
                     }
@@ -979,42 +952,6 @@ struct ZSetDetailView: View {
     }
 }
 
-// MARK: - Stream Detail View
-
-struct StreamDetailView: View {
-    let key: String
-    let value: String
-    let onAddEntry: () -> Void
-    let onDeleteEntry: (String) -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                Text(value)
-                    .font(.system(.body, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-            }
-
-            Divider()
-
-            HStack {
-                Button {
-                    onAddEntry()
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .buttonStyle(.borderless)
-                .help("Add entry")
-
-                Spacer()
-            }
-            .padding(8)
-        }
-    }
-}
-
 // MARK: - Edit Sheets
 
 struct AddHashFieldSheet: View {
@@ -1265,58 +1202,6 @@ struct EditZSetMemberSheet: View {
         }
         .padding()
         .frame(width: 400)
-    }
-}
-
-struct AddStreamEntrySheet: View {
-    let key: String
-    @Binding var fields: [(String, String)]
-    let onSave: ([(String, String)]) -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Add Stream Entry")
-                .font(.headline)
-
-            Form {
-                ForEach(fields.indices, id: \.self) { index in
-                    HStack(spacing: 8) {
-                        TextField("Field", text: $fields[index].0)
-                        TextField("Value", text: $fields[index].1)
-                        if fields.count > 1 {
-                            Button {
-                                fields.remove(at: index)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                            }
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(.red)
-                        }
-                    }
-                }
-
-                Button {
-                    fields.append(("", ""))
-                } label: {
-                    Label("Add Field", systemImage: "plus")
-                }
-                .buttonStyle(.borderless)
-            }
-            .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { onCancel() }
-                Spacer()
-                Button("Add") {
-                    let validFields = fields.filter { !$0.0.isEmpty }
-                    guard !validFields.isEmpty else { return }
-                    onSave(validFields)
-                }
-            }
-        }
-        .padding()
-        .frame(width: 500)
     }
 }
 

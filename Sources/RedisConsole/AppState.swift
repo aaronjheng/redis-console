@@ -77,7 +77,6 @@ class RedisKeyEntry: Identifiable, Hashable {
         case "hash": return "tablecells"
         case "set": return "circle.grid.cross"
         case "zset": return "arrow.up.arrow.down.circle"
-        case "stream": return "flowchart"
         default: return "questionmark.circle"
         }
     }
@@ -511,9 +510,6 @@ class ConnectionState: ObservableObject {
                     itemIndex += 2
                 }
                 keyDetailRows = rows
-            case "stream":
-                let value = try await client.send("XRANGE", entry.key, "-", "+", "COUNT", "100")
-                keyDetail = value.displayString
             default:
                 let value = try await client.send("GET", entry.key)
                 keyDetail = value.string ?? "(nil)"
@@ -602,21 +598,6 @@ class ConnectionState: ObservableObject {
     func deleteZSetMember(key: String, member: String) async {
         guard let client = activeClient else { return }
         _ = try? await client.send("ZREM", key, member)
-    }
-
-    func addStreamEntry(key: String, fields: [(String, String)]) async {
-        guard let client = activeClient else { return }
-        var args = [key, "*"]
-        for (field, value) in fields {
-            args.append(field)
-            args.append(value)
-        }
-        _ = try? await client.send(args)
-    }
-
-    func deleteStreamEntry(key: String, entryId: String) async {
-        guard let client = activeClient else { return }
-        _ = try? await client.send("XDEL", key, entryId)
     }
 
     func refreshSelectedKey() async {
@@ -758,8 +739,7 @@ class ConnectionState: ObservableObject {
             "SLAVEOF", "SLOWLOG", "SMEMBERS", "SMOVE", "SORT", "SPOP", "SRANDMEMBER",
             "SREM", "SSCAN", "STRLEN", "SUBSCRIBE", "SUNION", "SUNIONSTORE", "SYNC",
             "TIME", "TOUCH", "TTL", "TYPE", "UNLINK", "UNSUBSCRIBE", "UNWATCH", "WAIT",
-            "WATCH", "XADD", "XCLAIM", "XDEL", "XGROUP", "XINFO", "XLEN", "XPENDING",
-            "XRANGE", "XREAD", "XREADGROUP", "XREVRANGE", "XTRIM", "ZADD", "ZCARD",
+            "WATCH", "ZADD", "ZCARD",
             "ZCOUNT", "ZINCRBY", "ZINTERSTORE", "ZLEXCOUNT", "ZPOPMAX", "ZPOPMIN",
             "ZRANGE", "ZRANGEBYLEX", "ZRANGEBYSCORE", "ZRANK", "ZREM", "ZREMRANGEBYLEX",
             "ZREMRANGEBYRANK", "ZREMRANGEBYSCORE", "ZREVRANGE", "ZREVRANGEBYLEX",
