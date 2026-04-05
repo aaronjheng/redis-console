@@ -21,7 +21,7 @@ build-app: build-release
     @mkdir -p '{{ app_bundle }}/Contents/MacOS'
     @mkdir -p '{{ app_bundle }}/Contents/Resources'
     @cp '{{ build_dir }}/RedisConsole' '{{ app_bundle }}/Contents/MacOS/'
-    @cp build/Info.plist '{{ app_bundle }}/Contents/Info.plist'
+    @cp build/bundle/Info.plist '{{ app_bundle }}/Contents/Info.plist'
     @cp assets/redis-console.icns '{{ app_bundle }}/Contents/Resources/'
     @echo 'Done: {{ app_bundle }}'
 
