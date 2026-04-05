@@ -21,16 +21,11 @@ struct ShellView: View {
             // History list
             if app.shellHistory.isEmpty {
                 Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "terminal")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("Enter Redis commands below")
-                        .foregroundStyle(.secondary)
-                    Text("Supports auto-complete, press Tab to complete")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
+                EmptyStateView(
+                    icon: "terminal",
+                    title: "Enter Redis commands below",
+                    subtitle: "Supports auto-complete, press Tab to complete"
+                )
                 Spacer()
             } else {
                 ScrollViewReader { proxy in

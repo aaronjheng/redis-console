@@ -420,7 +420,7 @@ struct TabSidebarView: View {
                 }
                 .listStyle(.sidebar)
                 .scrollContentBackground(.hidden)
-                .background(Color(white: 0.95))
+                .background(AppTheme.sidebarBackground)
             } else {
                 HStack {
                     Text("Connections")
@@ -477,10 +477,10 @@ struct TabSidebarView: View {
                 }
                 .listStyle(.sidebar)
                 .scrollContentBackground(.hidden)
-                .background(Color(white: 0.95))
+                .background(AppTheme.sidebarBackground)
             }
         }
-        .background(Color(white: 0.95))
+        .background(AppTheme.sidebarBackground)
     }
 }
 

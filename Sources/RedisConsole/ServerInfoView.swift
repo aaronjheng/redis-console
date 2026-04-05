@@ -24,16 +24,12 @@ struct ServerInfoView: View {
 
             if app.serverInfo.isEmpty {
                 Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("No server info loaded")
-                        .foregroundStyle(.secondary)
-                    Button("Load Info") {
-                        Task { await app.loadServerInfo() }
-                    }
-                }
+                EmptyStateView(
+                    icon: "info.circle",
+                    title: "No server info loaded",
+                    actionTitle: "Load Info",
+                    action: { Task { await app.loadServerInfo() } }
+                )
                 Spacer()
             } else {
                 List {

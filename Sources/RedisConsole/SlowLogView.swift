@@ -20,19 +20,13 @@ struct SlowLogView: View {
 
             if app.slowLogEntries.isEmpty {
                 Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "clock.badge.exclamationmark")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("No slow log entries")
-                        .foregroundStyle(.secondary)
-                    Text("Slow operations will appear here")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    Button("Load Slow Log") {
-                        Task { await app.loadSlowLog() }
-                    }
-                }
+                EmptyStateView(
+                    icon: "clock.badge.exclamationmark",
+                    title: "No slow log entries",
+                    subtitle: "Slow operations will appear here",
+                    actionTitle: "Load Slow Log",
+                    action: { Task { await app.loadSlowLog() } }
+                )
                 Spacer()
             } else {
                 Table(app.slowLogEntries) {

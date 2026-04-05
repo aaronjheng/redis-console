@@ -52,13 +52,10 @@ struct BrowserView: View {
                         Spacer()
                     } else if app.keys.isEmpty {
                         Spacer()
-                        VStack(spacing: 8) {
-                            Image(systemName: "key.slash")
-                                .font(.largeTitle)
-                                .foregroundStyle(.secondary)
-                            Text(searchText.isEmpty ? "No keys found" : "No matching keys")
-                                .foregroundStyle(.secondary)
-                        }
+                        EmptyStateView(
+                            icon: "key.slash",
+                            title: searchText.isEmpty ? "No keys found" : "No matching keys"
+                        )
                         Spacer()
                     } else {
                         List(app.keys, selection: $app.selectedKey) { entry in
@@ -102,7 +99,7 @@ struct BrowserView: View {
 
                         Spacer()
 
-                        Text("\(app.keys.count)/\(app.keys.count) keys")
+                        Text("\(app.keys.count) keys")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -171,28 +168,28 @@ struct KeyRow: View {
                 HStack(spacing: 8) {
                     if !entry.type.isEmpty {
                         Text(entry.type)
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal, AppTheme.spacingSmall)
                             .padding(.vertical, 1)
                             .background(.quaternary)
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
                     }
                     if let size = entry.size {
                         Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory))
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     if entry.ttl != nil {
                         Text(entry.ttlText)
-                            .font(.caption2)
-                            .foregroundStyle(Color.orange)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
                     }
                 }
             }
             Spacer()
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, AppTheme.spacingSmall)
     }
 }
 
@@ -385,13 +382,10 @@ struct KeyDetailView: View {
                 }
             } else {
                 Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "sidebar.left")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("Select a key to view its value")
-                        .foregroundStyle(.secondary)
-                }
+                EmptyStateView(
+                    icon: "sidebar.left",
+                    title: "Select a key to view its value"
+                )
                 Spacer()
             }
         }
@@ -414,7 +408,7 @@ struct KeyDetailView: View {
                         .foregroundStyle(.secondary)
                     }
                     Label(key.ttlText, systemImage: "clock")
-                        .foregroundStyle(key.ttl == nil ? Color.secondary : Color.orange)
+                        .foregroundStyle(key.ttl == nil ? .secondary : Color.orange)
                 }
                 .font(.caption)
             }
@@ -609,7 +603,7 @@ struct HashDetailView: View {
                 }
 
                 TableColumn("Actions") { row in
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppTheme.spacing) {
                         Button {
                             editingField = row.field
                             editValue = row.value
@@ -619,14 +613,10 @@ struct HashDetailView: View {
                         .buttonStyle(.borderless)
                         .help("Edit field")
 
-                        Button {
-                            onDeleteField(row.field)
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.red)
-                        .help("Delete field")
+                        DeleteIconButton(
+                            action: { onDeleteField(row.field) },
+                            helpText: "Delete field"
+                        )
                     }
                 }
                 .width(80)
@@ -645,17 +635,12 @@ struct HashDetailView: View {
 
                 Spacer()
 
-                HStack(spacing: 4) {
-                    Text("\(rows.count) fields")
-                    if let valueSize {
-                        Text("\u{00B7}")
-                        Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                StatusFooterView(
+                    countText: "\(rows.count) fields",
+                    sizeText: valueSize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                )
             }
-            .padding(8)
+            .padding(AppTheme.spacing)
         }
     }
 }
@@ -814,7 +799,7 @@ struct ListDetailView: View {
                 }
 
                 TableColumn("Actions") { row in
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppTheme.spacing) {
                         Button {
                             editingIndex = row.index
                             editValue = row.value
@@ -824,14 +809,10 @@ struct ListDetailView: View {
                         .buttonStyle(.borderless)
                         .help("Edit element")
 
-                        Button {
-                            onDeleteElement(row.index, row.value)
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.red)
-                        .help("Delete element")
+                        DeleteIconButton(
+                            action: { onDeleteElement(row.index, row.value) },
+                            helpText: "Delete element"
+                        )
                     }
                 }
                 .width(80)
@@ -850,17 +831,12 @@ struct ListDetailView: View {
 
                 Spacer()
 
-                HStack(spacing: 4) {
-                    Text("\(rows.count) elements")
-                    if let valueSize {
-                        Text("\u{00B7}")
-                        Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                StatusFooterView(
+                    countText: "\(rows.count) elements",
+                    sizeText: valueSize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                )
             }
-            .padding(8)
+            .padding(AppTheme.spacing)
         }
     }
 }
@@ -892,14 +868,10 @@ struct SetDetailView: View {
                 }
 
                 TableColumn("Actions") { row in
-                    Button {
-                        onDeleteMember(row.member)
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.red)
-                    .help("Delete member")
+                    DeleteIconButton(
+                        action: { onDeleteMember(row.member) },
+                        helpText: "Delete member"
+                    )
                 }
                 .width(60)
             }
@@ -917,17 +889,12 @@ struct SetDetailView: View {
 
                 Spacer()
 
-                HStack(spacing: 4) {
-                    Text("\(rows.count) members")
-                    if let valueSize {
-                        Text("\u{00B7}")
-                        Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                StatusFooterView(
+                    countText: "\(rows.count) members",
+                    sizeText: valueSize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                )
             }
-            .padding(8)
+            .padding(AppTheme.spacing)
         }
     }
 }
@@ -975,7 +942,7 @@ struct ZSetDetailView: View {
                 }
 
                 TableColumn("Actions") { row in
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppTheme.spacing) {
                         Button {
                             editingMember = row.member
                             editScore = row.score
@@ -985,14 +952,10 @@ struct ZSetDetailView: View {
                         .buttonStyle(.borderless)
                         .help("Edit score")
 
-                        Button {
-                            onDeleteMember(row.member)
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.red)
-                        .help("Delete member")
+                        DeleteIconButton(
+                            action: { onDeleteMember(row.member) },
+                            helpText: "Delete member"
+                        )
                     }
                 }
                 .width(80)
@@ -1011,17 +974,12 @@ struct ZSetDetailView: View {
 
                 Spacer()
 
-                HStack(spacing: 4) {
-                    Text("\(rows.count) members")
-                    if let valueSize {
-                        Text("\u{00B7}")
-                        Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                StatusFooterView(
+                    countText: "\(rows.count) members",
+                    sizeText: valueSize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                )
             }
-            .padding(8)
+            .padding(AppTheme.spacing)
         }
     }
 }
@@ -1060,27 +1018,19 @@ struct AddHashFieldSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Add Hash Field")
-                .font(.headline)
-
+        SheetLayout(
+            title: "Add Hash Field",
+            cancelAction: onCancel,
+            primaryActionTitle: "Add",
+            isPrimaryDisabled: field.isEmpty,
+            primaryAction: { onSave(field, value) }
+        ) {
             Form {
                 TextField("Field name", text: $field)
                 TextField("Value", text: $value, axis: .vertical)
                     .lineLimit(3...6)
             }
-            .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { onCancel() }
-                Spacer()
-                Button("Add") { onSave(field, value) }
-                    .disabled(field.isEmpty)
-                    .keyboardShortcut(.defaultAction)
-            }
         }
-        .padding()
-        .frame(width: 400)
     }
 }
 
@@ -1092,10 +1042,13 @@ struct AddListElementSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Add List Element")
-                .font(.headline)
-
+        SheetLayout(
+            title: "Add List Element",
+            cancelAction: onCancel,
+            primaryActionTitle: "Add",
+            isPrimaryDisabled: value.isEmpty,
+            primaryAction: { onSave(value, position) }
+        ) {
             Form {
                 TextField("Value", text: $value, axis: .vertical)
                     .lineLimit(3...6)
@@ -1104,17 +1057,7 @@ struct AddListElementSheet: View {
                     Text("Tail (RPUSH)").tag(KeyDetailView.ListPosition.tail)
                 }
             }
-            .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { onCancel() }
-                Spacer()
-                Button("Add") { onSave(value, position) }
-                    .disabled(value.isEmpty)
-            }
         }
-        .padding()
-        .frame(width: 400)
     }
 }
 
@@ -1125,25 +1068,18 @@ struct AddSetMemberSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Add Set Member")
-                .font(.headline)
-
+        SheetLayout(
+            title: "Add Set Member",
+            cancelAction: onCancel,
+            primaryActionTitle: "Add",
+            isPrimaryDisabled: member.isEmpty,
+            primaryAction: { onSave(member) }
+        ) {
             Form {
                 TextField("Member value", text: $member, axis: .vertical)
                     .lineLimit(3...6)
             }
-            .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { onCancel() }
-                Spacer()
-                Button("Add") { onSave(member) }
-                    .disabled(member.isEmpty)
-            }
         }
-        .padding()
-        .frame(width: 400)
     }
 }
 
@@ -1155,25 +1091,18 @@ struct AddZSetMemberSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Add Sorted Set Member")
-                .font(.headline)
-
+        SheetLayout(
+            title: "Add Sorted Set Member",
+            cancelAction: onCancel,
+            primaryActionTitle: "Add",
+            isPrimaryDisabled: member.isEmpty || score.isEmpty,
+            primaryAction: { onSave(member, score) }
+        ) {
             Form {
                 TextField("Member", text: $member)
                 TextField("Score", text: $score)
             }
-            .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { onCancel() }
-                Spacer()
-                Button("Add") { onSave(member, score) }
-                    .disabled(member.isEmpty || score.isEmpty)
-            }
         }
-        .padding()
-        .frame(width: 400)
     }
 }
 
@@ -1205,10 +1134,22 @@ struct AddKeySheet: View {
     @State private var zsetScore = ""
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Add New Key")
-                .font(.headline)
-
+        SheetLayout(
+            title: "Add New Key",
+            cancelAction: onCancel,
+            primaryActionTitle: "Add",
+            isPrimaryDisabled: keyName.isEmpty,
+            primaryAction: {
+                switch keyType {
+                case "hash":
+                    onSave(keyName, keyType, "\(hashField):\(hashValue)")
+                case "zset":
+                    onSave(keyName, keyType, "\(zsetScore):\(zsetMember)")
+                default:
+                    onSave(keyName, keyType, keyValue)
+                }
+            }
+        ) {
             Form {
                 TextField("Key name", text: $keyName)
                 Picker("Type", selection: $keyType) {
@@ -1232,25 +1173,6 @@ struct AddKeySheet: View {
                         .lineLimit(3...6)
                 }
             }
-            .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { onCancel() }
-                Spacer()
-                Button("Add") {
-                    switch keyType {
-                    case "hash":
-                        onSave(keyName, keyType, "\(hashField):\(hashValue)")
-                    case "zset":
-                        onSave(keyName, keyType, "\(zsetScore):\(zsetMember)")
-                    default:
-                        onSave(keyName, keyType, keyValue)
-                    }
-                }
-                .disabled(keyName.isEmpty)
-            }
         }
-        .padding()
-        .frame(width: 400)
     }
 }
