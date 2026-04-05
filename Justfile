@@ -8,10 +8,10 @@ lint-fix:
     swiftlint lint --fix Sources
 
 format:
-    swift-format format -i -r Sources
+    swift-format format -i --recursive Sources
 
 format-check:
-    swift-format lint -r Sources
+    swift-format lint --recursive Sources
 
 build-release:
     swift build -c release
