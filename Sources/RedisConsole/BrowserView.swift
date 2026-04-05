@@ -203,8 +203,6 @@ struct KeyDetailView: View {
     @State private var showingAddHashField = false
     @State private var newHashField = ""
     @State private var newHashValue = ""
-    @State private var editingHashField: String?
-    @State private var editingHashValue = ""
     @State private var showingAddListElement = false
     @State private var newListElement = ""
     @State private var newListPosition: ListPosition = .head
@@ -239,9 +237,11 @@ struct KeyDetailView: View {
                             rows: app.keyDetailRows,
                             valueSize: app.valueSize,
                             onAddField: { showingAddHashField = true },
-                            onEditField: { field, value in
-                                editingHashField = field
-                                editingHashValue = value
+                            onSaveField: { field, value in
+                                Task {
+                                    await app.updateHashField(key: key.key, field: field, value: value)
+                                    await app.refreshSelectedKey()
+                                }
                             },
                             onDeleteField: { field in
                                 Task {
@@ -263,26 +263,6 @@ struct KeyDetailView: View {
                                     showingAddHashField = false
                                 },
                                 onCancel: { showingAddHashField = false }
-                            )
-                        }
-                        .sheet(
-                            item: $editingHashField,
-                            onDismiss: {
-                                editingHashField = nil
-                            }
-                        ) { field in
-                            EditHashFieldSheet(
-                                key: key.key,
-                                field: field,
-                                value: $editingHashValue,
-                                onSave: { field, value in
-                                    Task {
-                                        await app.updateHashField(key: key.key, field: field, value: value)
-                                        await app.refreshSelectedKey()
-                                    }
-                                    editingHashField = nil
-                                },
-                                onCancel: { editingHashField = nil }
                             )
                         }
 
@@ -619,8 +599,11 @@ struct HashDetailView: View {
     let rows: [(String, String)]
     let valueSize: Int?
     let onAddField: () -> Void
-    let onEditField: (String, String) -> Void
+    let onSaveField: (String, String) -> Void
     let onDeleteField: (String) -> Void
+
+    @State private var editingField: String?
+    @State private var editValue = ""
 
     private var hashRows: [HashRow] {
         rows.map { HashRow(field: $0.0, value: $0.1) }
@@ -636,15 +619,19 @@ struct HashDetailView: View {
                 .width(min: 100, ideal: 150, max: 300)
 
                 TableColumn("Value") { row in
-                    Text(row.value)
-                        .font(.system(.body, design: .monospaced))
-                        .lineLimit(2)
+                    EditableHashCell(
+                        row: row,
+                        editingField: $editingField,
+                        editValue: $editValue,
+                        onSaveField: onSaveField
+                    )
                 }
 
                 TableColumn("Actions") { row in
                     HStack(spacing: 8) {
                         Button {
-                            onEditField(row.field, row.value)
+                            editingField = row.field
+                            editValue = row.value
                         } label: {
                             Image(systemName: "pencil")
                         }
@@ -688,6 +675,31 @@ struct HashDetailView: View {
                 .foregroundStyle(.secondary)
             }
             .padding(8)
+        }
+    }
+}
+
+struct EditableHashCell: View {
+    let row: HashRow
+    @Binding var editingField: String?
+    @Binding var editValue: String
+    let onSaveField: (String, String) -> Void
+
+    var body: some View {
+        if editingField == row.field {
+            InlineTextField(
+                text: $editValue,
+                onSubmit: { onSaveField(row.field, editValue) },
+                onCancel: { editingField = nil }
+            )
+        } else {
+            Text(row.value)
+                .font(.system(.body, design: .monospaced))
+                .lineLimit(2)
+                .onTapGesture(count: 2) {
+                    editingField = row.field
+                    editValue = row.value
+                }
         }
     }
 }
@@ -1051,42 +1063,7 @@ struct AddHashFieldSheet: View {
                 Spacer()
                 Button("Add") { onSave(field, value) }
                     .disabled(field.isEmpty)
-            }
-        }
-        .padding()
-        .frame(width: 400)
-    }
-}
-
-struct EditHashFieldSheet: View {
-    let key: String
-    let field: String
-    @Binding var value: String
-    let onSave: (String, String) -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Edit Hash Field")
-                .font(.headline)
-
-            Form {
-                HStack {
-                    Text("Field")
-                    Spacer()
-                    Text(field)
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                TextField("Value", text: $value, axis: .vertical)
-                    .lineLimit(3...6)
-            }
-            .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { onCancel() }
-                Spacer()
-                Button("Save") { onSave(field, value) }
+                    .keyboardShortcut(.defaultAction)
             }
         }
         .padding()
