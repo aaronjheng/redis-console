@@ -211,8 +211,6 @@ struct KeyDetailView: View {
     @State private var showingAddZSetMember = false
     @State private var newZSetMember = ""
     @State private var newZSetScore = ""
-    @State private var editingZSetMember: ZSetMemberEdit?
-
 
     enum ListPosition {
         case head, tail
@@ -335,8 +333,11 @@ struct KeyDetailView: View {
                             rows: app.keyDetailRows,
                             valueSize: app.valueSize,
                             onAddMember: { showingAddZSetMember = true },
-                            onEditMember: { member, score in
-                                editingZSetMember = ZSetMemberEdit(member: member, score: score)
+                            onSaveMember: { member, score in
+                                Task {
+                                    await app.updateZSetScore(key: key.key, member: member, score: score)
+                                    await app.refreshSelectedKey()
+                                }
                             },
                             onDeleteMember: { member in
                                 Task {
@@ -358,26 +359,6 @@ struct KeyDetailView: View {
                                     showingAddZSetMember = false
                                 },
                                 onCancel: { showingAddZSetMember = false }
-                            )
-                        }
-                        .sheet(
-                            item: $editingZSetMember,
-                            onDismiss: {
-                                editingZSetMember = nil
-                            }
-                        ) { zsetEntry in
-                            EditZSetMemberSheet(
-                                key: key.key,
-                                member: zsetEntry.member,
-                                score: zsetEntry.score,
-                                onSave: { member, score in
-                                    Task {
-                                        await app.updateZSetScore(key: key.key, member: member, score: score)
-                                        await app.refreshSelectedKey()
-                                    }
-                                    editingZSetMember = nil
-                                },
-                                onCancel: { editingZSetMember = nil }
                             )
                         }
 
@@ -964,8 +945,11 @@ struct ZSetDetailView: View {
     let rows: [(String, String)]
     let valueSize: Int?
     let onAddMember: () -> Void
-    let onEditMember: (String, String) -> Void
+    let onSaveMember: (String, String) -> Void
     let onDeleteMember: (String) -> Void
+
+    @State private var editingMember: String?
+    @State private var editScore = ""
 
     private var zsetRows: [ZSetRow] {
         rows.map { ZSetRow(score: $0.0, member: $0.1) }
@@ -975,8 +959,12 @@ struct ZSetDetailView: View {
         VStack(spacing: 0) {
             Table(zsetRows) {
                 TableColumn("Score") { row in
-                    Text(row.score)
-                        .font(.system(.body, design: .monospaced))
+                    EditableZSetCell(
+                        row: row,
+                        editingMember: $editingMember,
+                        editScore: $editScore,
+                        onSaveMember: onSaveMember
+                    )
                 }
                 .width(100)
 
@@ -989,7 +977,8 @@ struct ZSetDetailView: View {
                 TableColumn("Actions") { row in
                     HStack(spacing: 8) {
                         Button {
-                            onEditMember(row.member, row.score)
+                            editingMember = row.member
+                            editScore = row.score
                         } label: {
                             Image(systemName: "pencil")
                         }
@@ -1033,6 +1022,30 @@ struct ZSetDetailView: View {
                 .foregroundStyle(.secondary)
             }
             .padding(8)
+        }
+    }
+}
+
+struct EditableZSetCell: View {
+    let row: ZSetRow
+    @Binding var editingMember: String?
+    @Binding var editScore: String
+    let onSaveMember: (String, String) -> Void
+
+    var body: some View {
+        if editingMember == row.member {
+            InlineTextField(
+                text: $editScore,
+                onSubmit: { onSaveMember(row.member, editScore) },
+                onCancel: { editingMember = nil }
+            )
+        } else {
+            Text(row.score)
+                .font(.system(.body, design: .monospaced))
+                .onTapGesture(count: 2) {
+                    editingMember = row.member
+                    editScore = row.score
+                }
         }
     }
 }
@@ -1164,51 +1177,6 @@ struct AddZSetMemberSheet: View {
     }
 }
 
-struct EditZSetMemberSheet: View {
-    let key: String
-    let member: String
-    let score: String
-    @State private var editScore: String
-    let onSave: (String, String) -> Void
-    let onCancel: () -> Void
-
-    init(key: String, member: String, score: String, onSave: @escaping (String, String) -> Void, onCancel: @escaping () -> Void) {
-        self.key = key
-        self.member = member
-        self.score = score
-        self._editScore = State(initialValue: score)
-        self.onSave = onSave
-        self.onCancel = onCancel
-    }
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Edit ZSet Score")
-                .font(.headline)
-
-            Form {
-                HStack {
-                    Text("Member")
-                    Spacer()
-                    Text(member)
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                TextField("Score", text: $editScore)
-            }
-            .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { onCancel() }
-                Spacer()
-                Button("Save") { onSave(member, editScore) }
-            }
-        }
-        .padding()
-        .frame(width: 400)
-    }
-}
-
 // MARK: - Editable Identifiers
 
 extension String: @retroactive Identifiable {
@@ -1222,12 +1190,6 @@ extension KeyDetailView.ListPosition: Identifiable {
         case .tail: return 1
         }
     }
-}
-
-struct ZSetMemberEdit: Identifiable {
-    let id = UUID()
-    let member: String
-    let score: String
 }
 
 struct AddKeySheet: View {
