@@ -43,8 +43,8 @@ struct BrowserView: View {
                     }
                     .padding(8)
 
-                    HStack(spacing: 6) {
-                        Picker("Type", selection: $typeFilter) {
+                    HStack {
+                        Picker("", selection: $typeFilter) {
                             Text("All Types").tag("")
                             Text("String").tag("string")
                             Text("List").tag("list")
@@ -53,9 +53,11 @@ struct BrowserView: View {
                             Text("Sorted Set").tag("zset")
                             Text("Stream").tag("stream")
                         }
+                        .labelsHidden()
                         .onChange(of: typeFilter) { _, newValue in
                             app.keyTypeFilter = newValue
                         }
+                        Spacer()
                     }
                     .padding(.horizontal, 8)
                     .padding(.bottom, 8)
