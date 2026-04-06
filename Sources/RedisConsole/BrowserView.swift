@@ -50,7 +50,6 @@ struct BrowserView: View {
                             Text("Hash").tag("hash")
                             Text("Set").tag("set")
                             Text("Sorted Set").tag("zset")
-                            Text("Stream").tag("stream")
                         }
                         .labelsHidden()
                         .onChange(of: typeFilter) { _, newValue in
