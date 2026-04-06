@@ -14,8 +14,6 @@ struct BrowserView: View {
                 // Key List
                 VStack(spacing: 0) {
                     HStack(spacing: 6) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
                         TextField("Pattern (e.g. user:* or *)", text: $searchText)
                             .textFieldStyle(.roundedBorder)
                             .onSubmit {
