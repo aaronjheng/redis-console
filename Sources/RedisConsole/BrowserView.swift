@@ -3,6 +3,7 @@ import SwiftUI
 struct BrowserView: View {
     @EnvironmentObject var app: ConnectionState
     @State private var searchText = ""
+    @State private var typeFilter = ""
     @State private var showingAddKey = false
     @State private var newKeyName = ""
     @State private var newKeyType = "string"
@@ -42,7 +43,26 @@ struct BrowserView: View {
                     }
                     .padding(8)
 
+                    HStack(spacing: 6) {
+                        Picker("Type", selection: $typeFilter) {
+                            Text("All Types").tag("")
+                            Text("String").tag("string")
+                            Text("List").tag("list")
+                            Text("Hash").tag("hash")
+                            Text("Set").tag("set")
+                            Text("Sorted Set").tag("zset")
+                            Text("Stream").tag("stream")
+                        }
+                        .onChange(of: typeFilter) { _, newValue in
+                            app.keyTypeFilter = newValue
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 8)
+
                     Divider()
+
+                    let filteredKeys = app.keys.filter { app.keyTypeFilter.isEmpty || $0.type == app.keyTypeFilter }
 
                     if app.isLoadingKeys && app.keys.isEmpty {
                         Spacer()
@@ -55,8 +75,15 @@ struct BrowserView: View {
                             title: searchText.isEmpty ? "No keys found" : "No matching keys"
                         )
                         Spacer()
+                    } else if filteredKeys.isEmpty {
+                        Spacer()
+                        EmptyStateView(
+                            icon: "key.slash",
+                            title: "No matching keys"
+                        )
+                        Spacer()
                     } else {
-                        List(app.keys, selection: $app.selectedKey) { entry in
+                        List(filteredKeys, selection: $app.selectedKey) { entry in
                             KeyRow(entry: entry)
                                 .contextMenu {
                                     Button("View") {

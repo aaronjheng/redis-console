@@ -240,6 +240,7 @@ class ConnectionState: ObservableObject {
     @Published var scanCursor: String = "0"
     @Published var hasMoreKeys = true
     @Published var keyFilter: String = "*"
+    @Published var keyTypeFilter: String = ""
 
     @Published var shellHistory: [ShellHistoryEntry] = []
     @Published var shellInput: String = ""
