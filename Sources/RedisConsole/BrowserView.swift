@@ -15,22 +15,29 @@ struct BrowserView: View {
                 // Key List
                 VStack(spacing: 0) {
                     HStack(spacing: 6) {
-                        TextField("Pattern (e.g. user:* or *)", text: $searchText)
-                            .textFieldStyle(.roundedBorder)
-                            .onSubmit {
-                                app.keyFilter = searchText.isEmpty ? "*" : searchText
-                                Task { await app.scanKeys(reset: true) }
+                        ZStack(alignment: .trailing) {
+                            TextField("Pattern (e.g. user:* or *)", text: $searchText)
+                                .textFieldStyle(.roundedBorder)
+                                .onSubmit {
+                                    app.keyFilter = searchText.isEmpty ? "*" : searchText
+                                    Task { await app.scanKeys(reset: true) }
+                                }
+                            HStack(spacing: 4) {
+                                if !searchText.isEmpty {
+                                    Button {
+                                        searchText = ""
+                                        app.keyFilter = "*"
+                                        Task { await app.scanKeys(reset: true) }
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .foregroundStyle(.secondary)
+                                }
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundStyle(.secondary)
+                                    .padding(.trailing, 8)
                             }
-                        if !searchText.isEmpty {
-                            Button {
-                                searchText = ""
-                                app.keyFilter = "*"
-                                Task { await app.scanKeys(reset: true) }
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                            }
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(.secondary)
                         }
                     }
                     .padding(8)
