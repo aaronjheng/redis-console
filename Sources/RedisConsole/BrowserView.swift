@@ -32,14 +32,6 @@ struct BrowserView: View {
                             .buttonStyle(.borderless)
                             .foregroundStyle(.secondary)
                         }
-                        Button {
-                            Task { await app.scanKeys(reset: true) }
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .buttonStyle(.borderless)
-                        .disabled(app.isLoadingKeys)
-                        .help("Refresh")
                     }
                     .padding(8)
 
@@ -58,6 +50,14 @@ struct BrowserView: View {
                             app.keyTypeFilter = newValue
                         }
                         Spacer()
+                        Button {
+                            Task { await app.scanKeys(reset: true) }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(app.isLoadingKeys)
+                        .help("Refresh")
                     }
                     .padding(.horizontal, 8)
                     .padding(.bottom, 8)
