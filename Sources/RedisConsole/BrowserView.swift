@@ -636,6 +636,12 @@ struct StringDetailView: View {
             }
             .padding(8)
         }
+        .onAppear {
+            isBeautified = isJson
+        }
+        .onChange(of: value) { _, _ in
+            isBeautified = isJson
+        }
     }
 }
 
