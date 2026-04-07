@@ -775,7 +775,7 @@ struct ConnectionDetailView: View {
         }
     }
 
-    private func testConnection() async {
+    func testConnection() async {
         AppLogger.info(
             "test connection requested redis=\(host):\(port) sshEnabled=\(sshEnabled) ssh=\(sshHost):\(sshPort) user=\(sshUser)",
             category: "ConnectionTest"

@@ -234,7 +234,7 @@ class ConnectionState: ObservableObject {
     @Published var keyDetail: String = ""
     @Published var keyDetailRows: [(String, String)] = []
     @Published var keyType: String = ""
-    @Published var valueSize: Int? = nil
+    @Published var valueSize: Int?
     @Published var isLoadingKeys = false
     @Published var isLoadingDetail = false
     @Published var scanCursor: String = "0"

@@ -524,6 +524,28 @@ struct StringDetailView: View {
 
     @State private var isEditing = false
     @State private var editValue = ""
+    @State private var isBeautified = false
+
+    private var isJson: Bool {
+        guard let data = value.data(using: .utf8) else { return false }
+        return (try? JSONSerialization.jsonObject(with: data)) != nil
+    }
+
+    private var beautifiedValue: String {
+        guard
+            let data = value.data(using: .utf8),
+            let object = try? JSONSerialization.jsonObject(with: data),
+            let prettyData = try? JSONSerialization.data(withJSONObject: object, options: .prettyPrinted),
+            let prettyString = String(data: prettyData, encoding: .utf8)
+        else {
+            return value
+        }
+        return prettyString
+    }
+
+    private var displayedValue: String {
+        isBeautified ? beautifiedValue : value
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -556,7 +578,7 @@ struct StringDetailView: View {
             } else {
                 ZStack(alignment: .topTrailing) {
                     ScrollView {
-                        Text(value)
+                        Text(displayedValue)
                             .font(.system(.body, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding()
@@ -566,15 +588,27 @@ struct StringDetailView: View {
                         isEditing = true
                     }
 
-                    Button {
-                        editValue = value
-                        isEditing = true
-                    } label: {
-                        Image(systemName: "pencil")
+                    HStack(spacing: 4) {
+                        if isJson {
+                            Button {
+                                isBeautified.toggle()
+                            } label: {
+                                Image(systemName: isBeautified ? "text.alignleft" : "curlybraces")
+                            }
+                            .buttonStyle(.borderless)
+                            .help(isBeautified ? "Show original" : "Beautify JSON")
+                        }
+
+                        Button {
+                            editValue = value
+                            isEditing = true
+                        } label: {
+                            Image(systemName: "pencil")
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Edit value")
                     }
-                    .buttonStyle(.borderless)
                     .padding()
-                    .help("Edit value")
                 }
             }
 
