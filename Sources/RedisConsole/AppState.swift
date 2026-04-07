@@ -294,7 +294,10 @@ class AppStore: ObservableObject {
         } else if let encoded = try? JSONEncoder().encode(secrets),
             let payload = String(data: encoded, encoding: .utf8)
         {
-            KeychainStore.setPassword(payload, account: keychainAccount(for: config.id))
+            let saved = KeychainStore.setPassword(payload, account: keychainAccount(for: config.id))
+            if !saved {
+                AppLogger.error("failed to save secrets to keychain connectionId=\(config.id.uuidString)", category: "AppStore")
+            }
         }
     }
 
