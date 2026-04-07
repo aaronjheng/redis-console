@@ -3,6 +3,7 @@ import Security
 
 enum KeychainStore {
     private static let service = "redis.console"
+    private static let useDataProtectionKeychain = true
 
     @discardableResult
     static func setPassword(_ password: String, account: String) -> Bool {
@@ -18,6 +19,7 @@ enum KeychainStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecUseDataProtectionKeychain as String: useDataProtectionKeychain,
         ]
 
         SecItemDelete(query as CFDictionary)
@@ -26,6 +28,8 @@ enum KeychainStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecUseDataProtectionKeychain as String: useDataProtectionKeychain,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData as String: encoded,
         ]
 
@@ -38,6 +42,7 @@ enum KeychainStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecUseDataProtectionKeychain as String: useDataProtectionKeychain,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
@@ -55,6 +60,7 @@ enum KeychainStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecUseDataProtectionKeychain as String: useDataProtectionKeychain,
         ]
         SecItemDelete(query as CFDictionary)
     }

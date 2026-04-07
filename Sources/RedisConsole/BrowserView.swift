@@ -1004,7 +1004,7 @@ struct ListDetailView: View {
         VStack(spacing: 0) {
             Table(listRows) {
                 TableColumn("Index") { row in
-                    Text("[\(row.index)]")
+                    Text("\(row.index)")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }

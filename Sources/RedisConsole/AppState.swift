@@ -31,9 +31,9 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         case sshPort
         case sshUser
         case sshPrivateKeyPath
-        case legacyPassword = "password"
-        case legacySSHPassword = "sshPassword"
-        case legacySSHPrivateKeyPassphrase = "sshPrivateKeyPassphrase"
+        case password
+        case sshPassword
+        case sshPrivateKeyPassphrase
     }
 
     static let `default` = RedisConnectionConfig(name: "localhost", host: "127.0.0.1")
@@ -105,15 +105,14 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         host = try container.decode(String.self, forKey: .host)
         port = try container.decodeIfPresent(UInt16.self, forKey: .port) ?? 6379
         username = try container.decodeIfPresent(String.self, forKey: .username) ?? ""
-        password = try container.decodeIfPresent(String.self, forKey: .legacyPassword) ?? ""
+        password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
         sshEnabled = try container.decodeIfPresent(Bool.self, forKey: .sshEnabled) ?? false
         sshHost = try container.decodeIfPresent(String.self, forKey: .sshHost) ?? ""
         sshPort = try container.decodeIfPresent(UInt16.self, forKey: .sshPort) ?? 22
         sshUser = try container.decodeIfPresent(String.self, forKey: .sshUser) ?? ""
-        sshPassword = try container.decodeIfPresent(String.self, forKey: .legacySSHPassword) ?? ""
+        sshPassword = try container.decodeIfPresent(String.self, forKey: .sshPassword) ?? ""
         sshPrivateKeyPath = try container.decodeIfPresent(String.self, forKey: .sshPrivateKeyPath) ?? ""
-        sshPrivateKeyPassphrase =
-            try container.decodeIfPresent(String.self, forKey: .legacySSHPrivateKeyPassphrase) ?? ""
+        sshPrivateKeyPassphrase = try container.decodeIfPresent(String.self, forKey: .sshPrivateKeyPassphrase) ?? ""
     }
 
     func encode(to encoder: Encoder) throws {
@@ -214,10 +213,16 @@ class AppStore: ObservableObject {
 
     @Published var connections: [RedisConnectionConfig] = []
     private let storeURL: URL
-    private enum SecretField: String {
-        case redisPassword = "redis-password"
-        case sshPassword = "ssh-password"
-        case sshPrivateKeyPassphrase = "ssh-private-key-passphrase"
+    private let secretsAccountSuffix = "secrets"
+
+    private struct ConnectionSecrets: Codable {
+        let redisPassword: String
+        let sshPassword: String
+        let sshPrivateKeyPassphrase: String
+
+        var isEmpty: Bool {
+            redisPassword.isEmpty && sshPassword.isEmpty && sshPrivateKeyPassphrase.isEmpty
+        }
     }
 
     private init() {
@@ -236,17 +241,10 @@ class AppStore: ObservableObject {
         if let data = try? Data(contentsOf: storeURL) {
             let decoded = try? JSONDecoder().decode([RedisConnectionConfig].self, from: data)
             if let decoded {
-                var migratedAnySecret = false
                 connections = decoded.map { config in
                     var resolved = config
-                    if migrateLegacySecrets(from: &resolved) {
-                        migratedAnySecret = true
-                    }
                     loadSecretsFromKeychain(into: &resolved)
                     return resolved
-                }
-                if migratedAnySecret {
-                    saveConnections()
                 }
             }
         }
@@ -281,50 +279,42 @@ class AppStore: ObservableObject {
         saveConnections()
     }
 
-    private func keychainAccount(for id: UUID, field: SecretField) -> String {
-        "connection.\(id.uuidString).\(field.rawValue)"
+    private func keychainAccount(for id: UUID) -> String {
+        "connection.\(id.uuidString).\(secretsAccountSuffix)"
     }
 
     private func saveSecretsToKeychain(for config: RedisConnectionConfig) {
-        KeychainStore.setPassword(
-            config.password,
-            account: keychainAccount(for: config.id, field: .redisPassword)
+        let secrets = ConnectionSecrets(
+            redisPassword: config.password,
+            sshPassword: config.sshPassword,
+            sshPrivateKeyPassphrase: config.sshPrivateKeyPassphrase
         )
-        KeychainStore.setPassword(
-            config.sshPassword,
-            account: keychainAccount(for: config.id, field: .sshPassword)
-        )
-        KeychainStore.setPassword(
-            config.sshPrivateKeyPassphrase,
-            account: keychainAccount(for: config.id, field: .sshPrivateKeyPassphrase)
-        )
+        if secrets.isEmpty {
+            KeychainStore.deletePassword(account: keychainAccount(for: config.id))
+        } else if let encoded = try? JSONEncoder().encode(secrets),
+            let payload = String(data: encoded, encoding: .utf8)
+        {
+            KeychainStore.setPassword(payload, account: keychainAccount(for: config.id))
+        }
     }
 
     private func loadSecretsFromKeychain(into config: inout RedisConnectionConfig) {
-        config.password =
-            KeychainStore.getPassword(account: keychainAccount(for: config.id, field: .redisPassword)) ?? ""
-        config.sshPassword =
-            KeychainStore.getPassword(account: keychainAccount(for: config.id, field: .sshPassword)) ?? ""
-        config.sshPrivateKeyPassphrase =
-            KeychainStore.getPassword(account: keychainAccount(for: config.id, field: .sshPrivateKeyPassphrase))
-            ?? ""
-    }
-
-    private func deleteSecretsFromKeychain(for config: RedisConnectionConfig) {
-        KeychainStore.deletePassword(account: keychainAccount(for: config.id, field: .redisPassword))
-        KeychainStore.deletePassword(account: keychainAccount(for: config.id, field: .sshPassword))
-        KeychainStore.deletePassword(account: keychainAccount(for: config.id, field: .sshPrivateKeyPassphrase))
-    }
-
-    private func migrateLegacySecrets(from config: inout RedisConnectionConfig) -> Bool {
-        let hasLegacySecrets =
-            !config.password.isEmpty || !config.sshPassword.isEmpty || !config.sshPrivateKeyPassphrase.isEmpty
-        guard hasLegacySecrets else { return false }
-        saveSecretsToKeychain(for: config)
+        if let payload = KeychainStore.getPassword(account: keychainAccount(for: config.id)),
+            let data = payload.data(using: .utf8),
+            let decoded = try? JSONDecoder().decode(ConnectionSecrets.self, from: data)
+        {
+            config.password = decoded.redisPassword
+            config.sshPassword = decoded.sshPassword
+            config.sshPrivateKeyPassphrase = decoded.sshPrivateKeyPassphrase
+            return
+        }
         config.password = ""
         config.sshPassword = ""
         config.sshPrivateKeyPassphrase = ""
-        return true
+    }
+
+    private func deleteSecretsFromKeychain(for config: RedisConnectionConfig) {
+        KeychainStore.deletePassword(account: keychainAccount(for: config.id))
     }
 }
 
@@ -634,7 +624,7 @@ class ConnectionState: ObservableObject {
                 let value = try await client.send("LRANGE", entry.key, "0", "99")
                 let items = value.arrayValues.enumerated().compactMap { index, value -> (String, String)? in
                     guard let stringValue = value?.string else { return nil }
-                    return ("[\(index)]", stringValue)
+                    return ("\(index)", stringValue)
                 }
                 keyDetailRows = items
             case "hash":
