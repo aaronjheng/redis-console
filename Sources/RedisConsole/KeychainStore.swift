@@ -49,10 +49,24 @@ enum KeychainStore {
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else {
+        if status == errSecSuccess, let data = result as? Data {
+            return String(data: data, encoding: .utf8)
+        }
+
+        // Compatibility read for previously saved non-DataProtection entries.
+        let legacyQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var legacyResult: AnyObject?
+        let legacyStatus = SecItemCopyMatching(legacyQuery as CFDictionary, &legacyResult)
+        guard legacyStatus == errSecSuccess, let legacyData = legacyResult as? Data else {
             return nil
         }
-        return String(data: data, encoding: .utf8)
+        return String(data: legacyData, encoding: .utf8)
     }
 
     static func deletePassword(account: String) {
