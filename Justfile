@@ -1,5 +1,6 @@
-build_dir := ".build/release"
-app_bundle := build_dir / "Redis Console.app"
+derived_data := ".build/xcode-derived"
+configuration := "Release"
+app_bundle := derived_data / "Build/Products" / configuration / "RedisConsole.app"
 
 lint:
     swiftlint lint Sources
@@ -14,15 +15,9 @@ format-check:
     swift-format lint --recursive Sources
 
 build-release:
-    swift build -c release
+    xcodebuild -project RedisConsole.xcodeproj -scheme RedisConsole -configuration '{{ configuration }}' -destination 'platform=macOS' -derivedDataPath '{{ derived_data }}' build
 
 build-app: build-release
-    @rm -rf '{{ app_bundle }}'
-    @mkdir -p '{{ app_bundle }}/Contents/MacOS'
-    @mkdir -p '{{ app_bundle }}/Contents/Resources'
-    @cp '{{ build_dir }}/RedisConsole' '{{ app_bundle }}/Contents/MacOS/'
-    @cp build/bundle/Info.plist '{{ app_bundle }}/Contents/Info.plist'
-    @cp assets/redis-console.icns '{{ app_bundle }}/Contents/Resources/'
     @echo 'Done: {{ app_bundle }}'
 
 open: build-app
@@ -30,7 +25,7 @@ open: build-app
 
 install: build-app
     @rm -rf ~/Applications/Redis\ Console.app
-    @cp -R '{{ app_bundle }}' ~/Applications/
+    @cp -R '{{ app_bundle }}' ~/Applications/Redis\ Console.app
     @echo 'Installed to ~/Applications/Redis Console.app'
 
 clean:

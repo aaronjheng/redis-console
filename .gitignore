@@ -1,6 +1,6 @@
 .build/
 .swiftpm/
-*.xcodeproj/
-*.xcworkspace/
+/*.xcworkspace/
+*.xcuserdata/
 DS_Store
 .DS_Store
