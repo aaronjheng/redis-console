@@ -6,7 +6,7 @@ Redis Console is a native macOS Redis client written in Swift, with SSH tunnel s
 
 ## Tech Stack
 
-- **Language**: Swift 5.9+
+- **Language**: Swift 6.3+
 - **Platform**: macOS 14+
 - **UI Framework**: SwiftUI + AppKit (hybrid as needed)
 - **Dependency Management**: Swift Package Manager
