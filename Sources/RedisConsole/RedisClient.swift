@@ -4,6 +4,20 @@ import Network
 
 @available(macOS 14.0, *)
 class RedisClient: ObservableObject, @unchecked Sendable {
+    private final class ConnectContinuationState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var didResume = false
+
+        func tryMarkResumed() -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+
+            guard !didResume else { return false }
+            didResume = true
+            return true
+        }
+    }
+
     private var connection: NWConnection?
     private let queue = DispatchQueue(label: "redis.client.queue")
     private var pendingCompletions: [(Result<RESPValue, Error>) -> Void] = []
@@ -24,6 +38,8 @@ class RedisClient: ObservableObject, @unchecked Sendable {
 
     func connect() async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let continuationState = ConnectContinuationState()
+
             let params = NWParameters.tcp
             params.allowLocalEndpointReuse = true
             guard let nwPort = NWEndpoint.Port(rawValue: port) else {
@@ -55,11 +71,15 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                                 }
                             }
                         }
-                        continuation.resume()
+                        if continuationState.tryMarkResumed() {
+                            continuation.resume()
+                        }
                     case .failed(let error):
                         self?.isConnected = false
                         self?.lastError = error.localizedDescription
-                        continuation.resume(throwing: error)
+                        if continuationState.tryMarkResumed() {
+                            continuation.resume(throwing: error)
+                        }
                     case .waiting(let error):
                         self?.lastError = error.localizedDescription
                     default:
