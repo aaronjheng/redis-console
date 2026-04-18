@@ -24,21 +24,21 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		05662699AFF90DD439C2E9F5 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
-		05BE6CF64F60ACC797244A8A /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
-		192713478BAB4601F8037492 /* RESPParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RESPParser.swift; sourceTree = "<group>"; };
-		288450F3CEC2CFCC1BF4B8C8 /* ServerInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerInfoView.swift; sourceTree = "<group>"; };
+		05662699AFF90DD439C2E9F5 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Infrastructure/KeychainStore.swift; sourceTree = "<group>"; };
+		05BE6CF64F60ACC797244A8A /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppTheme.swift; sourceTree = "<group>"; };
+		192713478BAB4601F8037492 /* RESPParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redis/RESPParser.swift; sourceTree = "<group>"; };
+		288450F3CEC2CFCC1BF4B8C8 /* ServerInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ServerInfoView.swift; sourceTree = "<group>"; };
 		34157211EC112A834E4073C9 /* RedisConsole.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RedisConsole.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4A8D6099DE77854253F3FD15 /* ShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellView.swift; sourceTree = "<group>"; };
-		6AC6C4B80F017969CEB19B06 /* SSHTunnel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHTunnel.swift; sourceTree = "<group>"; };
-		6FC45097D404559C7802F7F8 /* RedisClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisClient.swift; sourceTree = "<group>"; };
-		89E8633A52269F80A7F6FDA1 /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
-		CC42194F4666517406FD3FC5 /* SlowLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlowLogView.swift; sourceTree = "<group>"; };
-		CF606A6964524077E9B2C2AC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		D620F14F7D75D74C01119464 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		E1202E9EAD648CAADB72313E /* AsyncTimeout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncTimeout.swift; sourceTree = "<group>"; };
+		4A8D6099DE77854253F3FD15 /* ShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ShellView.swift; sourceTree = "<group>"; };
+		6AC6C4B80F017969CEB19B06 /* SSHTunnel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSH/SSHTunnel.swift; sourceTree = "<group>"; };
+		6FC45097D404559C7802F7F8 /* RedisClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redis/RedisClient.swift; sourceTree = "<group>"; };
+		89E8633A52269F80A7F6FDA1 /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppLogger.swift; sourceTree = "<group>"; };
+		CC42194F4666517406FD3FC5 /* SlowLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/SlowLogView.swift; sourceTree = "<group>"; };
+		CF606A6964524077E9B2C2AC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ContentView.swift; sourceTree = "<group>"; };
+		D620F14F7D75D74C01119464 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppState.swift; sourceTree = "<group>"; };
+		E1202E9EAD648CAADB72313E /* AsyncTimeout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Infrastructure/AsyncTimeout.swift; sourceTree = "<group>"; };
 		EC5F6AF1EE8514832416133F /* swift-nio-ssh */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-nio-ssh"; path = "Vendor/swift-nio-ssh"; sourceTree = SOURCE_ROOT; };
-		FACEB586CD12D0873A8718B1 /* BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserView.swift; sourceTree = "<group>"; };
+		FACEB586CD12D0873A8718B1 /* BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/BrowserView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -254,7 +254,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_FILE = RedisConsole-Info.plist;
+				INFOPLIST_FILE = Resources/RedisConsole-Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -269,7 +269,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_FILE = RedisConsole-Info.plist;
+				INFOPLIST_FILE = Resources/RedisConsole-Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
