@@ -17,13 +17,10 @@ format-check:
 build-release:
     xcodebuild -project RedisConsole.xcodeproj -scheme RedisConsole -configuration '{{ configuration }}' -destination 'platform=macOS' -derivedDataPath '{{ derived_data }}' build
 
-build-app: build-release
-    @echo 'Done: {{ app_bundle }}'
-
-open: build-app
+open: build-release
     @open '{{ app_bundle }}'
 
-install: build-app
+install: build-release
     @rm -rf ~/Applications/Redis\ Console.app
     @cp -R '{{ app_bundle }}' ~/Applications/Redis\ Console.app
     @echo 'Installed to ~/Applications/Redis Console.app'
