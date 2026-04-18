@@ -259,6 +259,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				ARCHS = arm64;
 				SDKROOT = macosx;
 			};
 			name = Release;
