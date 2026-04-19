@@ -29,11 +29,21 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     let host: String
     let port: UInt16
     let password: String?
+    let preferredProtocolVersion: RESPProtocolVersion
 
-    init(host: String, port: UInt16, password: String? = nil) {
+    private(set) var negotiatedProtocolVersion: RESPProtocolVersion = .resp2
+    private(set) var serverCapabilities: [String: RESPValue] = [:]
+
+    init(
+        host: String,
+        port: UInt16,
+        password: String? = nil,
+        preferredProtocolVersion: RESPProtocolVersion = .resp3
+    ) {
         self.host = host
         self.port = port
         self.password = password
+        self.preferredProtocolVersion = preferredProtocolVersion
     }
 
     func connect() async throws {
@@ -59,20 +69,31 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                     case .ready:
                         self?.isConnected = true
                         self?.startReceiving()
-                        if let pw = self?.password, !pw.isEmpty {
-                            Task {
-                                do {
+
+                        Task {
+                            do {
+                                // Perform RESP3 handshake if preferred
+                                if self?.preferredProtocolVersion == .resp3 {
+                                    try await self?.performResp3Handshake()
+                                }
+
+                                // Authenticate if password provided
+                                if let pw = self?.password, !pw.isEmpty {
                                     let result = try await self?.send("AUTH", pw) ?? .null
                                     if case .error(let msg) = result {
                                         self?.lastError = msg
                                     }
-                                } catch {
-                                    self?.lastError = error.localizedDescription
+                                }
+
+                                if continuationState.tryMarkResumed() {
+                                    continuation.resume()
+                                }
+                            } catch {
+                                self?.lastError = error.localizedDescription
+                                if continuationState.tryMarkResumed() {
+                                    continuation.resume(throwing: error)
                                 }
                             }
-                        }
-                        if continuationState.tryMarkResumed() {
-                            continuation.resume()
                         }
                     case .failed(let error):
                         self?.isConnected = false
@@ -139,7 +160,8 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         }
 
         return try await withCheckedThrowingContinuation { continuation in
-            let data = RESPEncoder.encode(args)
+            // Use negotiated protocol version for encoding
+            let data = RESPEncoder.encode(args, version: negotiatedProtocolVersion)
 
             self.queue.async {
                 self.pendingCompletions.append { result in
@@ -165,6 +187,79 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                     })
             }
         }
+    }
+
+    // MARK: - RESP3 Handshake
+
+    private func performResp3Handshake() async throws {
+        // Send HELLO 3 command to negotiate RESP3
+        // HELLO 3 [AUTH username password] [SETNAME clientname]
+        let result = try await sendHelloCommand()
+
+        switch result {
+        case .map(let map):
+            // RESP3 HELLO response is a map with server info
+            serverCapabilities = map.reduce(into: [:]) { dict, pair in
+                if let keyString = pair.key.string {
+                    dict[keyString] = pair.value
+                }
+            }
+            negotiatedProtocolVersion = .resp3
+
+        case .error(let message):
+            // HELLO command failed, fall back to RESP2
+            AppLogger.debug("RESP3 handshake failed: \(message), falling back to RESP2")
+            negotiatedProtocolVersion = .resp2
+
+        default:
+            // Unexpected response, fall back to RESP2
+            AppLogger.debug("Unexpected HELLO response, falling back to RESP2")
+            negotiatedProtocolVersion = .resp2
+        }
+    }
+
+    private func sendHelloCommand() async throws -> RESPValue {
+        // Build and send HELLO 3 command
+        let data = buildHelloCommand()
+
+        return try await withCheckedThrowingContinuation { continuation in
+            self.queue.async {
+                self.pendingCompletions.append { result in
+                    switch result {
+                    case .success(let value):
+                        continuation.resume(returning: value)
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
+                }
+
+                self.connection?.send(
+                    content: data,
+                    completion: .contentProcessed { error in
+                        if let error = error {
+                            self.queue.async {
+                                if !self.pendingCompletions.isEmpty {
+                                    self.pendingCompletions.removeFirst()
+                                }
+                            }
+                            continuation.resume(throwing: error)
+                        }
+                    })
+            }
+        }
+    }
+
+    private func buildHelloCommand() -> Data {
+        // Build HELLO 3 command as RESP2 array
+        var data = Data()
+        data.append(contentsOf: "*2\r\n".utf8)
+        // First element: $5\r\nHELLO\r\n
+        data.append(contentsOf: "$5\r\n".utf8)
+        data.append(contentsOf: "HELLO\r\n".utf8)
+        // Second element: $1\r\n3\r\n
+        data.append(contentsOf: "$1\r\n".utf8)
+        data.append(contentsOf: "3\r\n".utf8)
+        return data
     }
 
     deinit {

@@ -1244,14 +1244,15 @@ struct AddHashFieldSheet: View {
             cancelAction: onCancel,
             primaryActionTitle: "Add",
             isPrimaryDisabled: field.isEmpty,
-            primaryAction: { onSave(field, value) }
-        ) {
-            Form {
-                TextField("Field name", text: $field)
-                TextField("Value", text: $value, axis: .vertical)
-                    .lineLimit(3...6)
+            primaryAction: { onSave(field, value) },
+            content: {
+                Form {
+                    TextField("Field name", text: $field)
+                    TextField("Value", text: $value, axis: .vertical)
+                        .lineLimit(3...6)
+                }
             }
-        }
+        )
     }
 }
 
@@ -1268,17 +1269,18 @@ struct AddListElementSheet: View {
             cancelAction: onCancel,
             primaryActionTitle: "Add",
             isPrimaryDisabled: value.isEmpty,
-            primaryAction: { onSave(value, position) }
-        ) {
-            Form {
-                TextField("Value", text: $value, axis: .vertical)
-                    .lineLimit(3...6)
-                Picker("Position", selection: $position) {
-                    Text("Head (LPUSH)").tag(KeyDetailView.ListPosition.head)
-                    Text("Tail (RPUSH)").tag(KeyDetailView.ListPosition.tail)
+            primaryAction: { onSave(value, position) },
+            content: {
+                Form {
+                    TextField("Value", text: $value, axis: .vertical)
+                        .lineLimit(3...6)
+                    Picker("Position", selection: $position) {
+                        Text("Head (LPUSH)").tag(KeyDetailView.ListPosition.head)
+                        Text("Tail (RPUSH)").tag(KeyDetailView.ListPosition.tail)
+                    }
                 }
             }
-        }
+        )
     }
 }
 
@@ -1294,13 +1296,14 @@ struct AddSetMemberSheet: View {
             cancelAction: onCancel,
             primaryActionTitle: "Add",
             isPrimaryDisabled: member.isEmpty,
-            primaryAction: { onSave(member) }
-        ) {
-            Form {
-                TextField("Member value", text: $member, axis: .vertical)
-                    .lineLimit(3...6)
+            primaryAction: { onSave(member) },
+            content: {
+                Form {
+                    TextField("Member value", text: $member, axis: .vertical)
+                        .lineLimit(3...6)
+                }
             }
-        }
+        )
     }
 }
 
@@ -1317,13 +1320,14 @@ struct AddZSetMemberSheet: View {
             cancelAction: onCancel,
             primaryActionTitle: "Add",
             isPrimaryDisabled: member.isEmpty || score.isEmpty,
-            primaryAction: { onSave(member, score) }
-        ) {
-            Form {
-                TextField("Member", text: $member)
-                TextField("Score", text: $score)
+            primaryAction: { onSave(member, score) },
+            content: {
+                Form {
+                    TextField("Member", text: $member)
+                    TextField("Score", text: $score)
+                }
             }
-        }
+        )
     }
 }
 
@@ -1369,31 +1373,32 @@ struct AddKeySheet: View {
                 default:
                     onSave(keyName, keyType, keyValue)
                 }
-            }
-        ) {
-            Form {
-                TextField("Key name", text: $keyName)
-                Picker("Type", selection: $keyType) {
-                    Text("String").tag("string")
-                    Text("List").tag("list")
-                    Text("Hash").tag("hash")
-                    Text("Set").tag("set")
-                    Text("Sorted Set").tag("zset")
-                }
+            },
+            content: {
+                Form {
+                    TextField("Key name", text: $keyName)
+                    Picker("Type", selection: $keyType) {
+                        Text("String").tag("string")
+                        Text("List").tag("list")
+                        Text("Hash").tag("hash")
+                        Text("Set").tag("set")
+                        Text("Sorted Set").tag("zset")
+                    }
 
-                switch keyType {
-                case "hash":
-                    TextField("Field", text: $hashField)
-                    TextField("Value", text: $hashValue, axis: .vertical)
-                        .lineLimit(3...6)
-                case "zset":
-                    TextField("Member", text: $zsetMember)
-                    TextField("Score", text: $zsetScore)
-                default:
-                    TextField("Value", text: $keyValue, axis: .vertical)
-                        .lineLimit(3...6)
+                    switch keyType {
+                    case "hash":
+                        TextField("Field", text: $hashField)
+                        TextField("Value", text: $hashValue, axis: .vertical)
+                            .lineLimit(3...6)
+                    case "zset":
+                        TextField("Member", text: $zsetMember)
+                        TextField("Score", text: $zsetScore)
+                    default:
+                        TextField("Value", text: $keyValue, axis: .vertical)
+                            .lineLimit(3...6)
+                    }
                 }
             }
-        }
+        )
     }
 }

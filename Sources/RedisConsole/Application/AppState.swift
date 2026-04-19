@@ -292,8 +292,7 @@ class AppStore: ObservableObject {
         if secrets.isEmpty {
             KeychainStore.deletePassword(account: keychainAccount(for: config.id))
         } else if let encoded = try? JSONEncoder().encode(secrets),
-            let payload = String(data: encoded, encoding: .utf8)
-        {
+                    let payload = String(data: encoded, encoding: .utf8) {
             let saved = KeychainStore.setPassword(payload, account: keychainAccount(for: config.id))
             if !saved {
                 AppLogger.error("failed to save secrets to keychain connectionId=\(config.id.uuidString)", category: "AppStore")
@@ -303,9 +302,8 @@ class AppStore: ObservableObject {
 
     private func loadSecretsFromKeychain(into config: inout RedisConnectionConfig) {
         if let payload = KeychainStore.getPassword(account: keychainAccount(for: config.id)),
-            let data = payload.data(using: .utf8),
-            let decoded = try? JSONDecoder().decode(ConnectionSecrets.self, from: data)
-        {
+           let data = payload.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode(ConnectionSecrets.self, from: data) {
             config.password = decoded.redisPassword
             config.sshPassword = decoded.sshPassword
             config.sshPrivateKeyPassphrase = decoded.sshPrivateKeyPassphrase
@@ -581,8 +579,7 @@ class ConnectionState: ObservableObject {
         guard let client = activeClient, client.isConnected else { return }
         let keyNames = keys.filter { $0.type.isEmpty }.map(\.key)
         Task {
-            let resolved = await withTaskGroup(of: (String, String)?.self, returning: [(String, String)].self) {
-                group in
+            let resolved = await withTaskGroup(of: (String, String)?.self, returning: [(String, String)].self) { group in
                 for keyName in keyNames {
                     group.addTask {
                         let typeResult = try? await client.send("TYPE", keyName)

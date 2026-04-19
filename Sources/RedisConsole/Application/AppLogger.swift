@@ -21,6 +21,12 @@ enum AppLogger {
         write(level: "ERROR", category: category, message: message)
     }
 
+    static func debug(_ message: String, category: String = "App") {
+        #if DEBUG
+        write(level: "DEBUG", category: category, message: message)
+        #endif
+    }
+
     private static func write(level: String, category: String, message: String) {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

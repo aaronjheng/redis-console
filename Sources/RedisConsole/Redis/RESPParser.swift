@@ -1,7 +1,21 @@
 import Foundation
 import Network
 
-// MARK: - RESP2 Protocol Parser
+// MARK: - RESP Protocol Version
+
+enum RESPProtocolVersion: Sendable {
+    case resp2
+    case resp3
+}
+
+// MARK: - RESP Map Entry (for RESP3 maps)
+
+struct RESPMapEntry: Sendable {
+    let key: RESPValue
+    let value: RESPValue
+}
+
+// MARK: - RESP2/RESP3 Protocol Parser
 
 enum RESPValue: CustomStringConvertible, Sendable {
     case simpleString(String)
@@ -9,7 +23,10 @@ enum RESPValue: CustomStringConvertible, Sendable {
     case integer(Int)
     case bulkString(String?)
     case array([RESPValue?])
+    case map([RESPMapEntry])  // RESP3 map type
     case null
+    case boolean(Bool)         // RESP3 boolean
+    case double(Double)        // RESP3 double
 
     var description: String {
         switch self {
@@ -21,7 +38,13 @@ enum RESPValue: CustomStringConvertible, Sendable {
             return values.enumerated().map { index, value in
                 "\(index + 1)) \(value?.description ?? "(nil)")"
             }.joined(separator: "\n")
+        case .map(let entries):
+            return entries.map { entry in
+                "\(entry.key.description): \(entry.value.description)"
+            }.joined(separator: "\n")
         case .null: return "(nil)"
+        case .boolean(let value): return value ? "true" : "false"
+        case .double(let value): return String(value)
         }
     }
 
@@ -36,7 +59,13 @@ enum RESPValue: CustomStringConvertible, Sendable {
                 let content = value?.displayString ?? "(nil)"
                 return "\(index + 1)) \(content)"
             }.joined(separator: "\n")
+        case .map(let entries):
+            return entries.map { entry in
+                "\(entry.key.displayString): \(entry.value.displayString)"
+            }.joined(separator: "\n")
         case .null: return "(nil)"
+        case .boolean(let value): return value ? "true" : "false"
+        case .double(let value): return String(value)
         }
     }
 
@@ -159,6 +188,11 @@ class RESPParser {
 
 struct RESPEncoder {
     static func encode(_ args: [String]) -> Data {
+        // Default to RESP2 encoding
+        encode(args, version: .resp2)
+    }
+
+    static func encode(_ args: [String], version: RESPProtocolVersion) -> Data {
         var data = Data()
         data.append(contentsOf: "*\(args.count)\r\n".utf8)
         for arg in args {
