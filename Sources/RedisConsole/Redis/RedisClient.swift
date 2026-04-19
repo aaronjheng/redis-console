@@ -197,11 +197,11 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         let result = try await sendHelloCommand()
 
         switch result {
-        case .map(let map):
+        case .map(let entries):
             // RESP3 HELLO response is a map with server info
-            serverCapabilities = map.reduce(into: [:]) { dict, pair in
-                if let keyString = pair.key.string {
-                    dict[keyString] = pair.value
+            serverCapabilities = entries.reduce(into: [:]) { dict, entry in
+                if let keyString = entry.key.string {
+                    dict[keyString] = entry.value
                 }
             }
             negotiatedProtocolVersion = .resp3

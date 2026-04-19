@@ -6,8 +6,8 @@
 	<string>Redis Console</string>
 	<key>CFBundleExecutable</key>
 	<string>RedisConsole</string>
-	<key>CFBundleIconFile</key>
-	<string>redis-console</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>redis.console</string>
 	<key>CFBundleName</key>
