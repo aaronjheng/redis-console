@@ -291,27 +291,49 @@ class AppStore: ObservableObject {
         )
         if secrets.isEmpty {
             KeychainStore.deletePassword(account: keychainAccount(for: config.id))
-        } else if let encoded = try? JSONEncoder().encode(secrets),
-                    let payload = String(data: encoded, encoding: .utf8) {
-            let saved = KeychainStore.setPassword(payload, account: keychainAccount(for: config.id))
-            if !saved {
-                AppLogger.error("failed to save secrets to keychain connectionId=\(config.id.uuidString)", category: "AppStore")
-            }
+            return
+        }
+
+        guard let encoded = try? JSONEncoder().encode(secrets) else {
+            AppLogger.error("saveSecretsToKeychain JSON encode failed connectionId=\(config.id.uuidString)", category: "AppStore")
+            return
+        }
+        guard let payload = String(data: encoded, encoding: .utf8) else {
+            AppLogger.error("saveSecretsToKeychain UTF-8 conversion failed connectionId=\(config.id.uuidString)", category: "AppStore")
+            return
+        }
+
+        let saved = KeychainStore.setPassword(payload, account: keychainAccount(for: config.id))
+        if !saved {
+            AppLogger.error("failed to save secrets to keychain connectionId=\(config.id.uuidString)", category: "AppStore")
         }
     }
 
     private func loadSecretsFromKeychain(into config: inout RedisConnectionConfig) {
-        if let payload = KeychainStore.getPassword(account: keychainAccount(for: config.id)),
-           let data = payload.data(using: .utf8),
-           let decoded = try? JSONDecoder().decode(ConnectionSecrets.self, from: data) {
-            config.password = decoded.redisPassword
-            config.sshPassword = decoded.sshPassword
-            config.sshPrivateKeyPassphrase = decoded.sshPrivateKeyPassphrase
+        let connectionId = config.id.uuidString
+        guard let payload = KeychainStore.getPassword(account: keychainAccount(for: config.id)) else {
+            config.password = ""
+            config.sshPassword = ""
+            config.sshPrivateKeyPassphrase = ""
             return
         }
-        config.password = ""
-        config.sshPassword = ""
-        config.sshPrivateKeyPassphrase = ""
+        guard let data = payload.data(using: .utf8) else {
+            AppLogger.error("loadSecretsFromKeychain payload not UTF-8 connectionId=\(connectionId)", category: "AppStore")
+            config.password = ""
+            config.sshPassword = ""
+            config.sshPrivateKeyPassphrase = ""
+            return
+        }
+        guard let decoded = try? JSONDecoder().decode(ConnectionSecrets.self, from: data) else {
+            AppLogger.error("loadSecretsFromKeychain JSON decode failed connectionId=\(connectionId)", category: "AppStore")
+            config.password = ""
+            config.sshPassword = ""
+            config.sshPrivateKeyPassphrase = ""
+            return
+        }
+        config.password = decoded.redisPassword
+        config.sshPassword = decoded.sshPassword
+        config.sshPrivateKeyPassphrase = decoded.sshPrivateKeyPassphrase
     }
 
     private func deleteSecretsFromKeychain(for config: RedisConnectionConfig) {

@@ -3,6 +3,7 @@ import Security
 
 enum KeychainStore {
     private static let service = "redis.console"
+    private static let dataProtectionKeychain = true
 
     @discardableResult
     static func setPassword(_ password: String, account: String) -> Bool {
@@ -11,6 +12,7 @@ enum KeychainStore {
             return true
         }
         guard let encoded = password.data(using: .utf8) else {
+            AppLogger.error("setPassword failed to UTF-8 encode payload account=\(account)", category: "Keychain")
             return false
         }
 
@@ -18,6 +20,7 @@ enum KeychainStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecUseDataProtectionKeychain as String: dataProtectionKeychain,
         ]
         let update: [String: Any] = [
             kSecValueData as String: encoded,
@@ -36,31 +39,24 @@ enum KeychainStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecUseDataProtectionKeychain as String: dataProtectionKeychain,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData as String: encoded,
         ]
         let addStatus = SecItemAdd(item as CFDictionary, nil)
-        if addStatus == errSecSuccess {
+        if addStatus == errSecDuplicateItem {
+            let retryUpdateStatus = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+            guard retryUpdateStatus == errSecSuccess else {
+                logStatus("setPassword retry update failed", status: retryUpdateStatus, account: account)
+                return false
+            }
             return true
         }
-
-        // Resolve conflicts from previously stored non-DataProtection entries.
-        if addStatus == errSecDuplicateItem {
-            let standardQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: service,
-                kSecAttrAccount as String: account,
-            ]
-            SecItemDelete(standardQuery as CFDictionary)
-            let retryStatus = SecItemAdd(item as CFDictionary, nil)
-            if retryStatus != errSecSuccess {
-                logStatus("setPassword retry add failed", status: retryStatus, account: account)
-            }
-            return retryStatus == errSecSuccess
+        guard addStatus == errSecSuccess else {
+            logStatus("setPassword add failed", status: addStatus, account: account)
+            return false
         }
-
-        logStatus("setPassword add failed", status: addStatus, account: account)
-        return false
+        return true
     }
 
     static func getPassword(account: String) -> String? {
@@ -68,6 +64,7 @@ enum KeychainStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecUseDataProtectionKeychain as String: dataProtectionKeychain,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
@@ -88,21 +85,11 @@ enum KeychainStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecUseDataProtectionKeychain as String: dataProtectionKeychain,
         ]
         let status = SecItemDelete(query as CFDictionary)
         if status != errSecSuccess, status != errSecItemNotFound {
             logStatus("deletePassword failed", status: status, account: account)
-        }
-
-        // Cleanup potential pre-existing standard keychain duplicates.
-        let standardQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
-        let standardStatus = SecItemDelete(standardQuery as CFDictionary)
-        if standardStatus != errSecSuccess, standardStatus != errSecItemNotFound {
-            logStatus("deletePassword standard cleanup failed", status: standardStatus, account: account)
         }
     }
 
