@@ -17,12 +17,12 @@ enum AppLogger {
 
     static var logFileURL: URL {
         guard let libraryDirectory = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else {
-            return FileManager.default.temporaryDirectory.appendingPathComponent("redis.console.log")
+            return FileManager.default.temporaryDirectory.appendingPathComponent("redis-console.log")
         }
         let logs = libraryDirectory.appendingPathComponent("Logs", isDirectory: true)
         let dir = logs.appendingPathComponent("redis.console", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("redis.console.log")
+        return dir.appendingPathComponent("redis-console.log")
     }
 
     /// Log info level message
