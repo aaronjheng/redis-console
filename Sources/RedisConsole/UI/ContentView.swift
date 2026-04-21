@@ -444,6 +444,7 @@ struct TabSidebarView: View {
                         .font(.headline)
                     Spacer()
                     Button {
+                        conn.selectedConnection = nil
                         conn.rightPanel = .newConnection
                     } label: {
                         Image(systemName: "plus")
@@ -780,8 +781,8 @@ struct ConnectionDetailView: View {
         case .newConnection:
             isCreatingNew = true
             cachedConfig = nil
-            name = ""
-            host = ""
+            name = "localhost"
+            host = "127.0.0.1"
             port = 6379
             username = ""
             password = ""
