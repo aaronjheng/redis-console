@@ -5,3 +5,10 @@ updates:
     schedule:
       interval: weekly
 
+  - package-ecosystem: swift
+    directory: /RedisConsole.xcodeproj/project.xcworkspace
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: deps
+    open-pull-requests-limit: 5
