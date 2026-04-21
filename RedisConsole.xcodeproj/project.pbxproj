@@ -42,7 +42,7 @@
 		E1202E9EAD648CAADB72313E /* Infrastructure/AsyncTimeout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Infrastructure/AsyncTimeout.swift; sourceTree = "<group>"; };
 		EC5F6AF1EE8514832416133F /* swift-nio-ssh */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-nio-ssh"; path = "Vendor/swift-nio-ssh"; sourceTree = SOURCE_ROOT; };
 		FACEB586CD12D0873A8718B1 /* UI/BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/BrowserView.swift; sourceTree = "<group>"; };
-		88C421BA492019C7EFFFFEC2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
+		88C421BA492019C7EFFFFEC2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,6 +106,7 @@
 			isa = PBXGroup;
 			children = (
 				0F2812CECCF9A2C39AD8DE80 /* RedisConsole */,
+				88C421BA492019C7EFFFFEC2 /* Assets.xcassets */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
