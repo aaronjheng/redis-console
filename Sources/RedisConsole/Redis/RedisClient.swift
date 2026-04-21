@@ -2,7 +2,6 @@ import Combine
 import Foundation
 import Network
 
-@available(macOS 14.0, *)
 class RedisClient: ObservableObject, @unchecked Sendable {
     private final class ConnectContinuationState: @unchecked Sendable {
         private let lock = NSLock()
