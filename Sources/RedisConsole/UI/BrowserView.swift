@@ -704,14 +704,15 @@ private enum JSONSyntaxHighlighter {
 
             if let keyword = keyword(at: index, chars: chars) {
                 let end = index + keyword.count
-                let color: Color = switch keyword {
-                case "true", "false":
-                    .orange
-                case "null":
-                    .red
-                default:
-                    .primary
-                }
+                let color: Color =
+                    switch keyword {
+                    case "true", "false":
+                        .orange
+                    case "null":
+                        .red
+                    default:
+                        .primary
+                    }
                 applyColor(to: &attributed, source: source, range: index..<end, color: color)
                 index = end
                 continue
@@ -729,8 +730,8 @@ private enum JSONSyntaxHighlighter {
 
     private static func applyColor(to attributed: inout AttributedString, source: String, range: Range<Int>, color: Color) {
         guard let lower = source.index(source.startIndex, offsetBy: range.lowerBound, limitedBy: source.endIndex),
-              let upper = source.index(source.startIndex, offsetBy: range.upperBound, limitedBy: source.endIndex),
-              let attributedRange = Range(lower..<upper, in: attributed)
+            let upper = source.index(source.startIndex, offsetBy: range.upperBound, limitedBy: source.endIndex),
+            let attributedRange = Range(lower..<upper, in: attributed)
         else {
             return
         }
@@ -943,9 +944,7 @@ struct InlineTextField: NSViewRepresentable {
         if nsView.stringValue != text {
             nsView.stringValue = text
         }
-        DispatchQueue.main.async {
-            nsView.window?.makeFirstResponder(nsView)
-        }
+        nsView.window?.makeFirstResponder(nsView)
     }
 
     func makeCoordinator() -> Coordinator {

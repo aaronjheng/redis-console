@@ -25,8 +25,8 @@ enum RESPValue: CustomStringConvertible, Sendable {
     case array([RESPValue?])
     case map([RESPMapEntry])  // RESP3 map type
     case null
-    case boolean(Bool)         // RESP3 boolean
-    case double(Double)        // RESP3 double
+    case boolean(Bool)  // RESP3 boolean
+    case double(Double)  // RESP3 double
 
     var description: String {
         switch self {

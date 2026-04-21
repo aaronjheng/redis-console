@@ -23,6 +23,28 @@ class TabManager: ObservableObject {
     }
 }
 
+// MARK: - Window Delegate Manager
+
+@MainActor
+final class WindowDelegateManager {
+    private var delegates: [ObjectIdentifier: WindowDelegate] = [:]
+    private let lock = NSLock()
+
+    func setDelegate(_ delegate: WindowDelegate, for window: NSWindow) {
+        let id = ObjectIdentifier(window)
+        lock.lock()
+        defer { lock.unlock() }
+        delegates[id] = delegate
+    }
+
+    func removeDelegate(for window: NSWindow) {
+        let id = ObjectIdentifier(window)
+        lock.lock()
+        defer { lock.unlock() }
+        delegates.removeValue(forKey: id)
+    }
+}
+
 // MARK: - AppDelegate
 
 @MainActor
@@ -31,6 +53,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var stateToWindow: [UUID: NSWindow] = [:]
     private let tabShortcutLimit = 9
     private var tabRefreshScheduled = false
+    private let delegateManager = WindowDelegateManager()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -123,9 +146,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         window.delegate = delegate
-
-        // Store delegate to prevent deallocation
-        objc_setAssociatedObject(window, "windowDelegate", delegate, .OBJC_ASSOCIATION_RETAIN)
+        delegateManager.setDelegate(delegate, for: window)
     }
 
     private func buildMenuBar() {

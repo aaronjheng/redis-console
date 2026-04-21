@@ -38,7 +38,7 @@ enum AppLogger {
     /// Log debug level message (only in DEBUG builds)
     static func debug(_ message: String, category: String = "App", fields: [String: String] = [:]) {
         #if DEBUG
-        write(level: .debug, category: category, message: message, fields: fields)
+            write(level: .debug, category: category, message: message, fields: fields)
         #endif
     }
 
@@ -47,7 +47,8 @@ enum AppLogger {
         // If value contains spaces, quotes, or equals signs, wrap in quotes
         if value.contains(" ") || value.contains("\"") || value.contains("=") || value.contains("\t") {
             // Escape existing quotes and backslashes
-            let escaped = value
+            let escaped =
+                value
                 .replacingOccurrences(of: "\\", with: "\\\\")
                 .replacingOccurrences(of: "\"", with: "\\\"")
             return "\"\(escaped)\""
