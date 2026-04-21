@@ -680,19 +680,18 @@ struct ConnectionDetailView: View {
 
             HStack {
                 if isNew {
+                    Button("Test Connection") {
+                        Task { await testConnection() }
+                    }
+                    .disabled(host.isEmpty || isTesting || (sshEnabled && sshHost.isEmpty))
+
                     Button("Save") {
                         let config = createConfig()
                         store.addConnection(config)
                         conn.selectedConnection = config
                         conn.rightPanel = .editConnection(config)
                     }
-                    .buttonStyle(.borderless)
                     .disabled(host.isEmpty)
-
-                    Button("Test Connection") {
-                        Task { await testConnection() }
-                    }
-                    .disabled(host.isEmpty || isTesting || (sshEnabled && sshHost.isEmpty))
                 } else if let config = editingConfig {
                     Button("Delete", role: .destructive) {
                         store.deleteConnection(config)
