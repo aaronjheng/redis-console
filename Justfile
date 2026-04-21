@@ -20,6 +20,9 @@ build-release:
 clean:
     rm -rf .build
 
+update-deps:
+    xcodebuild -resolvePackageDependencies -project RedisConsole.xcodeproj
+
 open: build-release
     @open '{{ app_bundle }}'
 
