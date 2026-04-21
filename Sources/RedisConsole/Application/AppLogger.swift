@@ -22,7 +22,7 @@ enum AppLogger {
         let logs = libraryDirectory.appendingPathComponent("Logs", isDirectory: true)
         let dir = logs.appendingPathComponent("redis.console", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("app.log")
+        return dir.appendingPathComponent("redis.console.log")
     }
 
     /// Log info level message
