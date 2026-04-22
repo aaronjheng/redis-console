@@ -37,7 +37,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         host: String,
         port: UInt16,
         password: String? = nil,
-        preferredProtocolVersion: RESPProtocolVersion = .resp3
+        preferredProtocolVersion: RESPProtocolVersion = .resp2
     ) {
         self.host = host
         self.port = port
