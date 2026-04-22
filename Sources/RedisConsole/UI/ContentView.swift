@@ -489,6 +489,23 @@ struct TabSidebarView: View {
                                         conn.rightPanel = .welcome
                                     }
                                 }
+                                Divider()
+                                Button("Copy URI") {
+                                    var uri = "redis://"
+                                    if !config.username.isEmpty || !config.password.isEmpty {
+                                        if !config.username.isEmpty {
+                                            uri += config.username
+                                        }
+                                        if !config.password.isEmpty {
+                                            uri += ":\(config.password)"
+                                        }
+                                        uri += "@"
+                                    }
+                                    uri += "\(config.host):\(config.port)"
+                                    let pasteboard = NSPasteboard.general
+                                    pasteboard.clearContents()
+                                    pasteboard.setString(uri, forType: .string)
+                                }
                             }
                     }
                 }
