@@ -694,11 +694,6 @@ struct ConnectionDetailView: View {
                     }
                     .disabled(host.isEmpty || isTesting || (sshEnabled && sshHost.isEmpty))
                 } else if let config = editingConfig {
-                    Button("Delete") {
-                        store.deleteConnection(config)
-                        conn.rightPanel = .welcome
-                    }
-
                     Button("Save") {
                         var updated = config
                         updated.name = name
