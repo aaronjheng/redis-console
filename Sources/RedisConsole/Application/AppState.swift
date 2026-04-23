@@ -255,6 +255,24 @@ class AppStore: ObservableObject {
         saveConnections()
     }
 
+    func exportConnections(_ configs: [RedisConnectionConfig]) -> Data? {
+        try? JSONEncoder().encode(configs)
+    }
+
+    func importConnections(from data: Data) -> [RedisConnectionConfig]? {
+        try? JSONDecoder().decode([RedisConnectionConfig].self, from: data)
+    }
+
+    func addImportedConnections(_ configs: [RedisConnectionConfig]) {
+        for config in configs {
+            var newConfig = config
+            newConfig.id = UUID()
+            connections.append(newConfig)
+            saveSecretsToKeychain(for: newConfig)
+        }
+        saveConnections()
+    }
+
     private func keychainAccount(for id: UUID) -> String {
         "connection.\(id.uuidString).\(secretsAccountSuffix)"
     }

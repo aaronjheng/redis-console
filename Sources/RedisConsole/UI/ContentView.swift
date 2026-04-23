@@ -444,6 +444,20 @@ struct TabSidebarView: View {
                         .font(.headline)
                     Spacer()
                     Button {
+                        importConnections()
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Import Connections")
+                    Button {
+                        exportConnections(store.connections)
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Export All Connections")
+                    Button {
                         conn.selectedConnection = nil
                         conn.rightPanel = .newConnection
                     } label: {
@@ -506,11 +520,42 @@ struct TabSidebarView: View {
                                     pasteboard.clearContents()
                                     pasteboard.setString(uri, forType: .string)
                                 }
+                                Divider()
+                                Button("Export...") {
+                                    exportConnections([config])
+                                }
                             }
                     }
                 }
                 .listStyle(.sidebar)
             }
+        }
+    }
+
+    private func exportConnections(_ configs: [RedisConnectionConfig]) {
+        guard let data = store.exportConnections(configs) else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue =
+            configs.count == 1
+            ? "\(configs[0].name).json"
+            : "redis-connections.json"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            try? data.write(to: url)
+        }
+    }
+
+    private func importConnections() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            guard let data = try? Data(contentsOf: url),
+                let configs = store.importConnections(from: data)
+            else { return }
+            store.addImportedConnections(configs)
         }
     }
 }
