@@ -583,12 +583,7 @@ struct ConnectionDetailView: View {
     @State private var testResult: String?
     @State private var isTesting = false
 
-    @State private var sshEnabled = false
-    @State private var sshHost = ""
-    @State private var sshPort: UInt16 = 22
-    @State private var sshUser = ""
-    @State private var sshPassword = ""
-    @State private var sshPrivateKeyPath = ""
+    @State private var ssh = SSHConfig()
     @State private var uriInput = ""
     @State private var isCreatingNew = false
     @State private var cachedConfig: RedisConnectionConfig?
@@ -645,28 +640,28 @@ struct ConnectionDetailView: View {
                     }
 
                     Section("SSH Tunnel") {
-                        Toggle("Enable SSH Tunnel", isOn: $sshEnabled)
-                        if sshEnabled {
-                            TextField("Host", text: $sshHost)
+                        Toggle("Enable SSH Tunnel", isOn: $ssh.enabled)
+                        if ssh.enabled {
+                            TextField("Host", text: $ssh.host)
                             HStack {
                                 Text("Port")
                                 Spacer()
                                 TextField(
                                     "",
                                     text: Binding(
-                                        get: { "\(sshPort)" },
+                                        get: { "\(ssh.port)" },
                                         set: {
                                             if let parsedPort = UInt16($0) {
-                                                sshPort = parsedPort
+                                                ssh.port = parsedPort
                                             }
                                         }
                                     )
                                 )
                                 .frame(width: 80)
                             }
-                            TextField("User (optional)", text: $sshUser)
-                            SecureField("Password (optional)", text: $sshPassword)
-                            TextField("Private Key Path (optional)", text: $sshPrivateKeyPath)
+                            TextField("User (optional)", text: $ssh.user)
+                            SecureField("Password (optional)", text: $ssh.password)
+                            TextField("Private Key Path (optional)", text: $ssh.privateKeyPath)
                             Text("Provide a password or a private key file path")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -709,7 +704,7 @@ struct ConnectionDetailView: View {
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
-                    .disabled(host.isEmpty || isTesting || (sshEnabled && sshHost.isEmpty))
+                    .disabled(host.isEmpty || isTesting || (ssh.enabled && ssh.host.isEmpty))
                 } else if let config = editingConfig {
                     Button("Save") {
                         var updated = config
@@ -718,12 +713,7 @@ struct ConnectionDetailView: View {
                         updated.port = port
                         updated.username = username
                         updated.password = password
-                        updated.sshEnabled = sshEnabled
-                        updated.sshHost = sshHost
-                        updated.sshPort = sshPort
-                        updated.sshUser = sshUser
-                        updated.sshPassword = sshPassword
-                        updated.sshPrivateKeyPath = sshPrivateKeyPath
+                        updated.ssh = ssh
                         store.updateConnection(updated)
                         conn.selectedConnection = updated
                     }
@@ -732,7 +722,7 @@ struct ConnectionDetailView: View {
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
-                    .disabled(host.isEmpty || isTesting || (sshEnabled && sshHost.isEmpty))
+                    .disabled(host.isEmpty || isTesting || (ssh.enabled && ssh.host.isEmpty))
                 }
 
                 Spacer()
@@ -749,7 +739,7 @@ struct ConnectionDetailView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(host.isEmpty || (sshEnabled && sshHost.isEmpty))
+                .disabled(host.isEmpty || (ssh.enabled && ssh.host.isEmpty))
             }
             .padding()
         }
@@ -763,12 +753,7 @@ struct ConnectionDetailView: View {
             username: username
         )
         config.password = password
-        config.sshEnabled = sshEnabled
-        config.sshHost = sshHost
-        config.sshPort = sshPort
-        config.sshUser = sshUser
-        config.sshPassword = sshPassword
-        config.sshPrivateKeyPath = sshPrivateKeyPath
+        config.ssh = ssh
         return config
     }
 
@@ -783,12 +768,7 @@ struct ConnectionDetailView: View {
             port = config.port
             username = config.username
             password = config.password
-            sshEnabled = config.sshEnabled
-            sshHost = config.sshHost
-            sshPort = config.sshPort
-            sshUser = config.sshUser
-            sshPassword = config.sshPassword
-            sshPrivateKeyPath = config.sshPrivateKeyPath
+            ssh = config.ssh
         case .newConnection:
             isCreatingNew = true
             cachedConfig = nil
@@ -797,19 +777,14 @@ struct ConnectionDetailView: View {
             port = 6379
             username = ""
             password = ""
-            sshEnabled = false
-            sshHost = ""
-            sshPort = 22
-            sshUser = ""
-            sshPassword = ""
-            sshPrivateKeyPath = ""
+            ssh = SSHConfig()
         default: break
         }
     }
 
     func testConnection() async {
         AppLogger.info(
-            "test connection requested redis=\(host):\(port) sshEnabled=\(sshEnabled) ssh=\(sshHost):\(sshPort) user=\(sshUser)",
+            "test connection requested redis=\(host):\(port) sshEnabled=\(ssh.enabled) ssh=\(ssh.host):\(ssh.port) user=\(ssh.user)",
             category: "ConnectionTest"
         )
         isTesting = true
@@ -825,9 +800,9 @@ struct ConnectionDetailView: View {
         var connectHost = host
         var connectPort = port
 
-        if sshEnabled {
-            let trimmedSSHHost = sshHost.trimmingCharacters(in: .whitespacesAndNewlines)
-            let trimmedSSHUser = sshUser.trimmingCharacters(in: .whitespacesAndNewlines)
+        if ssh.enabled {
+            let trimmedSSHHost = ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedSSHUser = ssh.user.trimmingCharacters(in: .whitespacesAndNewlines)
             let effectiveSSHUser = trimmedSSHUser.isEmpty ? NSUserName() : trimmedSSHUser
             guard !trimmedSSHHost.isEmpty else {
                 testResult = "Failed — SSH host is required"
@@ -841,10 +816,10 @@ struct ConnectionDetailView: View {
                 try await withTimeout(12, context: "SSH tunnel setup") {
                     try await createdTunnel.start(
                         sshHost: trimmedSSHHost,
-                        sshPort: sshPort,
+                        sshPort: ssh.port,
                         sshUser: effectiveSSHUser,
-                        sshPassword: sshPassword.isEmpty ? nil : sshPassword,
-                        privateKeyPath: sshPrivateKeyPath.isEmpty ? nil : sshPrivateKeyPath,
+                        sshPassword: ssh.password.isEmpty ? nil : ssh.password,
+                        privateKeyPath: ssh.privateKeyPath.isEmpty ? nil : ssh.privateKeyPath,
                         remoteHost: host,
                         remotePort: port
                     )

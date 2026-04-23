@@ -3,6 +3,16 @@ import SwiftUI
 
 // MARK: - Connection Config
 
+struct SSHConfig: Codable, Hashable {
+    var enabled: Bool = false
+    var host: String = ""
+    var port: UInt16 = 22
+    var user: String = ""
+    var password: String = ""
+    var privateKeyPath: String = ""
+    var privateKeyPassphrase: String = ""
+}
+
 struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var id = UUID()
     var name: String
@@ -12,13 +22,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var username: String = ""
     var password: String = ""
 
-    var sshEnabled: Bool = false
-    var sshHost: String = ""
-    var sshPort: UInt16 = 22
-    var sshUser: String = ""
-    var sshPassword: String = ""
-    var sshPrivateKeyPath: String = ""
-    var sshPrivateKeyPassphrase: String = ""
+    var ssh: SSHConfig = SSHConfig()
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -26,14 +30,8 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         case host
         case port
         case username
-        case sshEnabled
-        case sshHost
-        case sshPort
-        case sshUser
-        case sshPrivateKeyPath
+        case ssh
         case password
-        case sshPassword
-        case sshPrivateKeyPassphrase
     }
 
     static let `default` = RedisConnectionConfig(name: "localhost", host: "127.0.0.1")
@@ -47,13 +45,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         port: UInt16 = 6379,
         username: String = "",
         password: String = "",
-        sshEnabled: Bool = false,
-        sshHost: String = "",
-        sshPort: UInt16 = 22,
-        sshUser: String = "",
-        sshPassword: String = "",
-        sshPrivateKeyPath: String = "",
-        sshPrivateKeyPassphrase: String = ""
+        ssh: SSHConfig = SSHConfig()
     ) {
         self.id = id
         self.name = name
@@ -61,13 +53,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         self.port = port
         self.username = username
         self.password = password
-        self.sshEnabled = sshEnabled
-        self.sshHost = sshHost
-        self.sshPort = sshPort
-        self.sshUser = sshUser
-        self.sshPassword = sshPassword
-        self.sshPrivateKeyPath = sshPrivateKeyPath
-        self.sshPrivateKeyPassphrase = sshPrivateKeyPassphrase
+        self.ssh = ssh
     }
 
     static func parseURI(_ uri: String) -> RedisConnectionConfig? {
@@ -106,13 +92,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         port = try container.decodeIfPresent(UInt16.self, forKey: .port) ?? 6379
         username = try container.decodeIfPresent(String.self, forKey: .username) ?? ""
         password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
-        sshEnabled = try container.decodeIfPresent(Bool.self, forKey: .sshEnabled) ?? false
-        sshHost = try container.decodeIfPresent(String.self, forKey: .sshHost) ?? ""
-        sshPort = try container.decodeIfPresent(UInt16.self, forKey: .sshPort) ?? 22
-        sshUser = try container.decodeIfPresent(String.self, forKey: .sshUser) ?? ""
-        sshPassword = try container.decodeIfPresent(String.self, forKey: .sshPassword) ?? ""
-        sshPrivateKeyPath = try container.decodeIfPresent(String.self, forKey: .sshPrivateKeyPath) ?? ""
-        sshPrivateKeyPassphrase = try container.decodeIfPresent(String.self, forKey: .sshPrivateKeyPassphrase) ?? ""
+        ssh = try container.decodeIfPresent(SSHConfig.self, forKey: .ssh) ?? SSHConfig()
     }
 
     func encode(to encoder: Encoder) throws {
@@ -122,11 +102,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         try container.encode(host, forKey: .host)
         try container.encode(port, forKey: .port)
         try container.encode(username, forKey: .username)
-        try container.encode(sshEnabled, forKey: .sshEnabled)
-        try container.encode(sshHost, forKey: .sshHost)
-        try container.encode(sshPort, forKey: .sshPort)
-        try container.encode(sshUser, forKey: .sshUser)
-        try container.encode(sshPrivateKeyPath, forKey: .sshPrivateKeyPath)
+        try container.encode(ssh, forKey: .ssh)
     }
 }
 
@@ -286,8 +262,8 @@ class AppStore: ObservableObject {
     private func saveSecretsToKeychain(for config: RedisConnectionConfig) {
         let secrets = ConnectionSecrets(
             redisPassword: config.password,
-            sshPassword: config.sshPassword,
-            sshPrivateKeyPassphrase: config.sshPrivateKeyPassphrase
+            sshPassword: config.ssh.password,
+            sshPrivateKeyPassphrase: config.ssh.privateKeyPassphrase
         )
         if secrets.isEmpty {
             KeychainStore.deletePassword(account: keychainAccount(for: config.id))
@@ -313,27 +289,27 @@ class AppStore: ObservableObject {
         let connectionId = config.id.uuidString
         guard let payload = KeychainStore.getPassword(account: keychainAccount(for: config.id)) else {
             config.password = ""
-            config.sshPassword = ""
-            config.sshPrivateKeyPassphrase = ""
+            config.ssh.password = ""
+            config.ssh.privateKeyPassphrase = ""
             return
         }
         guard let data = payload.data(using: .utf8) else {
             AppLogger.error("loadSecretsFromKeychain payload not UTF-8 connectionId=\(connectionId)", category: "AppStore")
             config.password = ""
-            config.sshPassword = ""
-            config.sshPrivateKeyPassphrase = ""
+            config.ssh.password = ""
+            config.ssh.privateKeyPassphrase = ""
             return
         }
         guard let decoded = try? JSONDecoder().decode(ConnectionSecrets.self, from: data) else {
             AppLogger.error("loadSecretsFromKeychain JSON decode failed connectionId=\(connectionId)", category: "AppStore")
             config.password = ""
-            config.sshPassword = ""
-            config.sshPrivateKeyPassphrase = ""
+            config.ssh.password = ""
+            config.ssh.privateKeyPassphrase = ""
             return
         }
         config.password = decoded.redisPassword
-        config.sshPassword = decoded.sshPassword
-        config.sshPrivateKeyPassphrase = decoded.sshPrivateKeyPassphrase
+        config.ssh.password = decoded.sshPassword
+        config.ssh.privateKeyPassphrase = decoded.sshPrivateKeyPassphrase
     }
 
     private func deleteSecretsFromKeychain(for config: RedisConnectionConfig) {
@@ -426,7 +402,7 @@ class ConnectionState: ObservableObject {
         let resolvedConfig = config
         AppLogger.info(
             "connect requested name=\(resolvedConfig.name) "
-                + "redis=\(resolvedConfig.host):\(resolvedConfig.port) sshEnabled=\(resolvedConfig.sshEnabled)",
+                + "redis=\(resolvedConfig.host):\(resolvedConfig.port) sshEnabled=\(resolvedConfig.ssh.enabled)",
             category: "Connection"
         )
         connectTask?.cancel()
@@ -444,9 +420,9 @@ class ConnectionState: ObservableObject {
             var client: RedisClient?
 
             do {
-                if resolvedConfig.sshEnabled {
-                    let sshHost = resolvedConfig.sshHost.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let sshUser = resolvedConfig.sshUser.trimmingCharacters(in: .whitespacesAndNewlines)
+                if resolvedConfig.ssh.enabled {
+                    let sshHost = resolvedConfig.ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let sshUser = resolvedConfig.ssh.user.trimmingCharacters(in: .whitespacesAndNewlines)
                     let effectiveSSHUser = sshUser.isEmpty ? NSUserName() : sshUser
                     guard !sshHost.isEmpty else {
                         throw SSHTunnelError.connectionFailed("SSH host is required")
@@ -455,17 +431,17 @@ class ConnectionState: ObservableObject {
                     let tunnel = SSHTunnel()
                     sshTunnel = tunnel
                     AppLogger.info(
-                        "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.sshPort) "
+                        "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.ssh.port) "
                             + "user=\(effectiveSSHUser) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
                         category: "Connection"
                     )
                     try await withTimeout(12, context: "SSH tunnel setup") {
                         try await tunnel.start(
                             sshHost: sshHost,
-                            sshPort: resolvedConfig.sshPort,
+                            sshPort: resolvedConfig.ssh.port,
                             sshUser: effectiveSSHUser,
-                            sshPassword: resolvedConfig.sshPassword.isEmpty ? nil : resolvedConfig.sshPassword,
-                            privateKeyPath: resolvedConfig.sshPrivateKeyPath.isEmpty ? nil : resolvedConfig.sshPrivateKeyPath,
+                            sshPassword: resolvedConfig.ssh.password.isEmpty ? nil : resolvedConfig.ssh.password,
+                            privateKeyPath: resolvedConfig.ssh.privateKeyPath.isEmpty ? nil : resolvedConfig.ssh.privateKeyPath,
                             remoteHost: resolvedConfig.host,
                             remotePort: resolvedConfig.port
                         )
