@@ -1,0 +1,47 @@
+name: UI Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Redis
+        run: brew install redis
+
+      - name: Start Redis test instances
+        run: |
+          redis-server --port 6376 --daemonize yes --save "" --appendonly no
+          redis-server --port 6377 --daemonize yes --save "" --appendonly no
+          redis-server --port 6378 --daemonize yes --save "" --appendonly no
+          sleep 2
+          redis-cli -p 6376 PING
+          redis-cli -p 6377 PING
+          redis-cli -p 6378 PING
+
+      - name: Build and run UI tests
+        run: |
+          xcodebuild test \
+            -project RedisConsole.xcodeproj \
+            -scheme RedisConsole \
+            -destination 'platform=macOS' \
+            -only-testing:RedisConsoleUITests \
+            -derivedDataPath .build/xcode-derived \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=YES \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            ENABLE_HARDENED_RUNTIME=NO \
+            SWIFT_VERSION=6.0
+
+      - name: Stop Redis test instances
+        if: always()
+        run: |
+          redis-cli -p 6376 SHUTDOWN NOSAVE || true
+          redis-cli -p 6377 SHUTDOWN NOSAVE || true
+          redis-cli -p 6378 SHUTDOWN NOSAVE || true

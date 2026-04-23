@@ -25,6 +25,20 @@
                ReferencedContainer = "container:RedisConsole.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DB8A8A44787AE2CB803B6C37"
+               BuildableName = "RedisConsoleUITests.xctest"
+               BlueprintName = "RedisConsoleUITests"
+               ReferencedContainer = "container:RedisConsole.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -43,6 +57,17 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DB8A8A44787AE2CB803B6C37"
+               BuildableName = "RedisConsoleUITests.xctest"
+               BlueprintName = "RedisConsoleUITests"
+               ReferencedContainer = "container:RedisConsole.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

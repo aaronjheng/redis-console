@@ -15,6 +15,7 @@ struct SlowLogView: View {
                     Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.borderless)
+                .accessibilityIdentifier("refreshSlowLogButton")
             }
             .padding()
 

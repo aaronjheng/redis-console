@@ -18,6 +18,7 @@ struct BrowserView: View {
                         ZStack(alignment: .trailing) {
                             TextField("Pattern (e.g. user:* or *)", text: $searchText)
                                 .textFieldStyle(.roundedBorder)
+                                .accessibilityIdentifier("keySearchField")
                                 .onSubmit {
                                     app.keyFilter = searchText.isEmpty ? "*" : searchText
                                     Task { await app.scanKeys(reset: true) }
@@ -104,6 +105,7 @@ struct BrowserView: View {
                                 .tag(entry)
                         }
                         .listStyle(.plain)
+                        .accessibilityIdentifier("keyList")
                         .onChange(of: app.selectedKey) { _, newValue in
                             if let key = newValue {
                                 Task { await app.selectKey(key) }
@@ -129,6 +131,7 @@ struct BrowserView: View {
                         }
                         .buttonStyle(.borderless)
                         .help("Add key")
+                        .accessibilityIdentifier("addKeyButton")
 
                         Spacer()
 
@@ -453,6 +456,7 @@ struct KeyDetailView: View {
             }
             .buttonStyle(.borderless)
             .help("Refresh")
+            .accessibilityIdentifier("refreshKeyDetailButton")
 
             Button {
                 Task {
@@ -464,6 +468,7 @@ struct KeyDetailView: View {
             }
             .buttonStyle(.borderless)
             .help("Set 1h TTL")
+            .accessibilityIdentifier("setTTLButton")
 
             Button(role: .destructive) {
                 Task { await app.deleteKey(key) }
@@ -472,6 +477,7 @@ struct KeyDetailView: View {
             }
             .buttonStyle(.borderless)
             .help("Delete key")
+            .accessibilityIdentifier("deleteKeyButton")
         }
         .padding()
     }
@@ -1376,6 +1382,7 @@ struct AddKeySheet: View {
             content: {
                 Form {
                     TextField("Key name", text: $keyName)
+                        .accessibilityIdentifier("newKeyNameField")
                     Picker("Type", selection: $keyType) {
                         Text("String").tag("string")
                         Text("List").tag("list")
@@ -1387,14 +1394,19 @@ struct AddKeySheet: View {
                     switch keyType {
                     case "hash":
                         TextField("Field", text: $hashField)
+                            .accessibilityIdentifier("newKeyHashField")
                         TextField("Value", text: $hashValue, axis: .vertical)
                             .lineLimit(3...6)
+                            .accessibilityIdentifier("newKeyHashValueField")
                     case "zset":
                         TextField("Member", text: $zsetMember)
+                            .accessibilityIdentifier("newKeyZSetMemberField")
                         TextField("Score", text: $zsetScore)
+                            .accessibilityIdentifier("newKeyZSetScoreField")
                     default:
                         TextField("Value", text: $keyValue, axis: .vertical)
                             .lineLimit(3...6)
+                            .accessibilityIdentifier("newKeyValueField")
                     }
                 }
             }
