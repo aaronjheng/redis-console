@@ -444,19 +444,19 @@ struct TabSidebarView: View {
                         .font(.headline)
                     Spacer()
                     Button {
-                        importConnections()
-                    } label: {
-                        Image(systemName: "square.and.arrow.down")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Import Connections")
-                    Button {
                         exportConnections(store.connections)
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                     }
                     .buttonStyle(.borderless)
                     .help("Export All Connections")
+                    Button {
+                        importConnections()
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Import Connections")
                     Button {
                         conn.selectedConnection = nil
                         conn.rightPanel = .newConnection
