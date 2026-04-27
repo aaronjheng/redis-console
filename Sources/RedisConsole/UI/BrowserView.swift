@@ -123,6 +123,9 @@ struct BrowserView: View {
 
                     HStack {
                         Button {
+                            newKeyName = ""
+                            newKeyType = "string"
+                            newKeyValue = ""
                             showingAddKey = true
                         } label: {
                             Image(systemName: "plus")
@@ -1455,6 +1458,9 @@ struct AddKeySheet: View {
                 }
             }
         )
+        .onAppear {
+            resetArrays(for: keyType)
+        }
     }
 
     @ViewBuilder
