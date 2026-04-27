@@ -165,7 +165,10 @@ struct BrowserView: View {
         case "string":
             _ = try? await client.send("SET", name, value)
         case "list":
-            _ = try? await client.send("LPUSH", name, value)
+            let values = value.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+            if !values.isEmpty {
+                _ = try? await client.send(["RPUSH", name] + values)
+            }
         case "hash":
             let parts = value.split(separator: ":", maxSplits: 1)
             if parts.count == 2 {
@@ -1356,6 +1359,7 @@ struct AddKeySheet: View {
     @State private var hashValue = ""
     @State private var zsetMember = ""
     @State private var zsetScore = ""
+    @State private var listValues: [String] = [""]
 
     var body: some View {
         SheetLayout(
@@ -1369,6 +1373,8 @@ struct AddKeySheet: View {
                     onSave(keyName, keyType, "\(hashField):\(hashValue)")
                 case "zset":
                     onSave(keyName, keyType, "\(zsetScore):\(zsetMember)")
+                case "list":
+                    onSave(keyName, keyType, listValues.joined(separator: "\n"))
                 default:
                     onSave(keyName, keyType, keyValue)
                 }
@@ -1383,6 +1389,11 @@ struct AddKeySheet: View {
                         Text("Set").tag("set")
                         Text("Sorted Set").tag("zset")
                     }
+                    .onChange(of: keyType) { _, newValue in
+                        if newValue == "list" {
+                            listValues = [""]
+                        }
+                    }
 
                     switch keyType {
                     case "hash":
@@ -1392,6 +1403,34 @@ struct AddKeySheet: View {
                     case "zset":
                         TextField("Member", text: $zsetMember)
                         TextField("Score", text: $zsetScore)
+                    case "list":
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array(listValues.enumerated()), id: \.offset) { index, _ in
+                                HStack {
+                                    TextField(
+                                        "Value \(index + 1)",
+                                        text: Binding(
+                                            get: { listValues[index] },
+                                            set: { listValues[index] = $0 }
+                                        ))
+                                    if listValues.count > 1 {
+                                        Button {
+                                            listValues.remove(at: index)
+                                        } label: {
+                                            Image(systemName: "minus.circle.fill")
+                                                .foregroundStyle(.red)
+                                        }
+                                        .buttonStyle(.borderless)
+                                    }
+                                }
+                            }
+                            Button {
+                                listValues.append("")
+                            } label: {
+                                Label("Add Value", systemImage: "plus")
+                            }
+                            .buttonStyle(.borderless)
+                        }
                     default:
                         TextField("Value", text: $keyValue, axis: .vertical)
                             .lineLimit(3...6)
