@@ -888,11 +888,13 @@ struct ConnectionDetailView: View {
             try await withTimeout(10, context: "Redis connection") {
                 try await createdClient.connect()
             }
+            let start = Date()
             let pong = try await withTimeout(5, context: "Redis PING") {
                 try await createdClient.send("PING")
             }
-            testResult = "OK — \(pong.string ?? "PONG")"
-            AppLogger.info("test succeeded result=\(pong.string ?? "PONG")", category: "ConnectionTest")
+            let elapsed = Date().timeIntervalSince(start) * 1000
+            testResult = "OK — \(pong.string ?? "PONG") (\(String(format: "%.2f", elapsed)) ms)"
+            AppLogger.info("test succeeded result=\(pong.string ?? "PONG") elapsed=\(elapsed)ms", category: "ConnectionTest")
         } catch {
             testResult = "Failed — \(error.localizedDescription)"
             AppLogger.error("test redis failed error=\(error)", category: "ConnectionTest")
