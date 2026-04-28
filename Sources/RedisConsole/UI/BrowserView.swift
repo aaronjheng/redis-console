@@ -83,11 +83,21 @@ struct BrowserView: View {
                             title: searchText.isEmpty ? "No keys found" : "No matching keys"
                         )
                         if app.hasMoreKeys {
-                            Button("Load more") {
-                                Task { await app.scanKeys() }
+                            if app.isLoadingKeys {
+                                HStack(spacing: 6) {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    Text("Scanning...")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(8)
+                            } else {
+                                Button("Load more") {
+                                    Task { await app.scanKeys() }
+                                }
+                                .padding(8)
                             }
-                            .padding(8)
-                            .disabled(app.isLoadingKeys)
                         }
                         Spacer()
                     } else if filteredKeys.isEmpty {
@@ -97,11 +107,21 @@ struct BrowserView: View {
                             title: "No matching keys"
                         )
                         if app.hasMoreKeys {
-                            Button("Load more") {
-                                Task { await app.scanKeys() }
+                            if app.isLoadingKeys {
+                                HStack(spacing: 6) {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    Text("Scanning...")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(8)
+                            } else {
+                                Button("Load more") {
+                                    Task { await app.scanKeys() }
+                                }
+                                .padding(8)
                             }
-                            .padding(8)
-                            .disabled(app.isLoadingKeys)
                         }
                         Spacer()
                     } else {
@@ -130,11 +150,21 @@ struct BrowserView: View {
                         }
 
                         if app.hasMoreKeys {
-                            Button("Load more") {
-                                Task { await app.scanKeys() }
+                            if app.isLoadingKeys {
+                                HStack(spacing: 6) {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    Text("Scanning...")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(8)
+                            } else {
+                                Button("Load more") {
+                                    Task { await app.scanKeys() }
+                                }
+                                .padding(8)
                             }
-                            .padding(8)
-                            .disabled(app.isLoadingKeys)
                         }
                     }
 
@@ -232,9 +262,15 @@ struct KeyRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: entry.icon)
-                .frame(width: 16)
-                .foregroundStyle(Color.accentColor)
+            if entry.type.isEmpty {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 16)
+            } else {
+                Image(systemName: entry.icon)
+                    .frame(width: 16)
+                    .foregroundStyle(Color.accentColor)
+            }
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.key)
                     .font(.system(.body, design: .monospaced))
