@@ -511,9 +511,8 @@ struct KeyDetailView: View {
                 Task { await app.refreshSelectedKey() }
             } label: {
                 Image(systemName: "arrow.clockwise")
-                    .frame(width: 28, height: 28)
             }
-            .buttonStyle(.accessoryBarAction)
+            .buttonStyle(.borderless)
             .help("Refresh")
 
             Button {
@@ -522,9 +521,8 @@ struct KeyDetailView: View {
                 pasteboard.setString(key.key, forType: .string)
             } label: {
                 Image(systemName: "doc.on.doc")
-                    .frame(width: 28, height: 28)
             }
-            .buttonStyle(.accessoryBarAction)
+            .buttonStyle(.borderless)
             .help("Copy key")
 
             Button {
@@ -534,18 +532,16 @@ struct KeyDetailView: View {
                 }
             } label: {
                 Image(systemName: "clock.badge.plus")
-                    .frame(width: 28, height: 28)
             }
-            .buttonStyle(.accessoryBarAction)
+            .buttonStyle(.borderless)
             .help("Set 1h TTL")
 
             Button(role: .destructive) {
                 Task { await app.deleteKey(key) }
             } label: {
                 Image(systemName: "trash")
-                    .frame(width: 28, height: 28)
             }
-            .buttonStyle(.accessoryBarAction)
+            .buttonStyle(.borderless)
             .help("Delete key")
         }
         .padding()
