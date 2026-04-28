@@ -131,11 +131,13 @@ struct BrowserView: View {
                                     Button("View") {
                                         Task { await app.selectKey(entry) }
                                     }
+                                    Divider()
                                     Button("Copy Key") {
                                         let pasteboard = NSPasteboard.general
                                         pasteboard.clearContents()
                                         pasteboard.setString(entry.key, forType: .string)
                                     }
+                                    Divider()
                                     Button("Delete", role: .destructive) {
                                         Task { await app.deleteKey(entry) }
                                     }
