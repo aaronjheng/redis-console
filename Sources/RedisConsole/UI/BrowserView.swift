@@ -128,18 +128,14 @@ struct BrowserView: View {
                         List(filteredKeys, selection: $app.selectedKey) { entry in
                             KeyRow(entry: entry)
                                 .contextMenu {
-                                    Button("View") {
-                                        Task { await app.selectKey(entry) }
+                                    Button("Delete", role: .destructive) {
+                                        Task { await app.deleteKey(entry) }
                                     }
                                     Divider()
                                     Button("Copy Key") {
                                         let pasteboard = NSPasteboard.general
                                         pasteboard.clearContents()
                                         pasteboard.setString(entry.key, forType: .string)
-                                    }
-                                    Divider()
-                                    Button("Delete", role: .destructive) {
-                                        Task { await app.deleteKey(entry) }
                                     }
                                 }
                                 .tag(entry)
