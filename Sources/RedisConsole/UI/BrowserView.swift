@@ -513,6 +513,7 @@ struct KeyDetailView: View {
                 Image(systemName: "arrow.clockwise")
             }
             .buttonStyle(.borderless)
+            .disabled(app.isLoadingDetail)
             .help("Refresh")
 
             Button {
@@ -523,6 +524,7 @@ struct KeyDetailView: View {
                 Image(systemName: "doc.on.doc")
             }
             .buttonStyle(.borderless)
+            .disabled(app.isLoadingDetail)
             .help("Copy key")
 
             Button {
@@ -534,6 +536,7 @@ struct KeyDetailView: View {
                 Image(systemName: "clock.badge.plus")
             }
             .buttonStyle(.borderless)
+            .disabled(app.isLoadingDetail)
             .help("Set 1h TTL")
 
             Button(role: .destructive) {
@@ -542,6 +545,7 @@ struct KeyDetailView: View {
                 Image(systemName: "trash")
             }
             .buttonStyle(.borderless)
+            .disabled(app.isLoadingDetail)
             .help("Delete key")
         }
         .padding()
