@@ -576,8 +576,9 @@ class ConnectionState: ObservableObject {
                 }
                 hasMoreKeys = false
             } else {
+                let scanAll = keyFilter != "*"
                 var iterations = 0
-                let maxIterations = 1000
+                let maxIterations = scanAll ? 1000 : 1
                 repeat {
                     let result = try await client.send("SCAN", scanCursor, "MATCH", keyFilter, "COUNT", "1000")
                     let arr = result.arrayValues
@@ -591,7 +592,7 @@ class ConnectionState: ObservableObject {
                     }
                     keys.append(contentsOf: newEntries)
                     iterations += 1
-                } while keys.isEmpty && hasMoreKeys && iterations < maxIterations
+                } while hasMoreKeys && iterations < maxIterations && (scanAll || keys.isEmpty)
             }
         } catch {
             connectionError = error.localizedDescription
