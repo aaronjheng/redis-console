@@ -294,6 +294,7 @@ struct KeyRow: View {
 
 struct KeyDetailView: View {
     @EnvironmentObject var app: ConnectionState
+    @State private var didCopyKey = false
     @State private var editingString = false
     @State private var stringValue = ""
     @State private var showingAddHashField = false
@@ -520,8 +521,14 @@ struct KeyDetailView: View {
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 pasteboard.setString(key.key, forType: .string)
+                didCopyKey = true
+                Task {
+                    try? await Task.sleep(for: .milliseconds(200))
+                    didCopyKey = false
+                }
             } label: {
                 Image(systemName: "doc.on.doc")
+                    .foregroundStyle(didCopyKey ? .secondary : .primary)
             }
             .buttonStyle(.borderless)
             .disabled(app.isLoadingDetail)
