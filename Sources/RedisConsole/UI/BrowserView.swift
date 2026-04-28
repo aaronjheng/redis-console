@@ -82,6 +82,13 @@ struct BrowserView: View {
                             icon: "key.slash",
                             title: searchText.isEmpty ? "No keys found" : "No matching keys"
                         )
+                        if app.hasMoreKeys {
+                            Button("Load more") {
+                                Task { await app.scanKeys() }
+                            }
+                            .padding(8)
+                            .disabled(app.isLoadingKeys)
+                        }
                         Spacer()
                     } else if filteredKeys.isEmpty {
                         Spacer()
@@ -89,6 +96,13 @@ struct BrowserView: View {
                             icon: "key.slash",
                             title: "No matching keys"
                         )
+                        if app.hasMoreKeys {
+                            Button("Load more") {
+                                Task { await app.scanKeys() }
+                            }
+                            .padding(8)
+                            .disabled(app.isLoadingKeys)
+                        }
                         Spacer()
                     } else {
                         List(filteredKeys, selection: $app.selectedKey) { entry in
@@ -96,6 +110,11 @@ struct BrowserView: View {
                                 .contextMenu {
                                     Button("View") {
                                         Task { await app.selectKey(entry) }
+                                    }
+                                    Button("Copy Key") {
+                                        let pasteboard = NSPasteboard.general
+                                        pasteboard.clearContents()
+                                        pasteboard.setString(entry.key, forType: .string)
                                     }
                                     Button("Delete", role: .destructive) {
                                         Task { await app.deleteKey(entry) }
@@ -231,16 +250,6 @@ struct KeyRow: View {
                             .background(.quaternary)
                             .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
                     }
-                    if let size = entry.size {
-                        Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if entry.ttl != nil {
-                        Text(entry.ttlText)
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
                 }
             }
             Spacer()
@@ -286,7 +295,6 @@ struct KeyDetailView: View {
                         HashDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
-                            valueSize: app.valueSize,
                             onAddField: { showingAddHashField = true },
                             onSaveField: { field, value in
                                 Task {
@@ -321,7 +329,6 @@ struct KeyDetailView: View {
                         ListDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
-                            valueSize: app.valueSize,
                             onAddElement: { showingAddListElement = true },
                             onSaveElement: { index, value in
                                 Task {
@@ -356,7 +363,6 @@ struct KeyDetailView: View {
                         SetDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
-                            valueSize: app.valueSize,
                             onAddMember: { showingAddSetMember = true },
                             onDeleteMember: { member in
                                 Task {
@@ -384,7 +390,6 @@ struct KeyDetailView: View {
                         ZSetDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
-                            valueSize: app.valueSize,
                             onAddMember: { showingAddZSetMember = true },
                             onSaveMember: { member, score in
                                 Task {
@@ -424,7 +429,6 @@ struct KeyDetailView: View {
                         StringDetailView(
                             key: key.key,
                             value: app.keyDetail,
-                            valueSize: app.valueSize,
                             onSave: { value in
                                 Task {
                                     await app.updateStringValue(key: key.key, value: value)
@@ -456,6 +460,8 @@ struct KeyDetailView: View {
                 HStack(spacing: 12) {
                     Label(key.type, systemImage: key.icon)
                         .foregroundStyle(.secondary)
+                    Label(key.ttlText, systemImage: "clock")
+                        .foregroundStyle(key.ttl == nil ? .secondary : Color.orange)
                     if let size = key.size {
                         Label(
                             ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory),
@@ -463,8 +469,6 @@ struct KeyDetailView: View {
                         )
                         .foregroundStyle(.secondary)
                     }
-                    Label(key.ttlText, systemImage: "clock")
-                        .foregroundStyle(key.ttl == nil ? .secondary : Color.orange)
                 }
                 .font(.caption)
             }
@@ -476,6 +480,16 @@ struct KeyDetailView: View {
             }
             .buttonStyle(.borderless)
             .help("Refresh")
+
+            Button {
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(key.key, forType: .string)
+            } label: {
+                Image(systemName: "doc.on.doc")
+            }
+            .buttonStyle(.borderless)
+            .help("Copy key")
 
             Button {
                 Task {
@@ -542,7 +556,6 @@ struct KeyDetailView: View {
 struct StringDetailView: View {
     let key: String
     let value: String
-    let valueSize: Int?
     let onSave: (String) -> Void
 
     @State private var isEditing = false
@@ -646,18 +659,6 @@ struct StringDetailView: View {
                 }
             }
 
-            Divider()
-
-            HStack {
-                Spacer()
-
-                if let valueSize {
-                    Text(ByteCountFormatter.string(fromByteCount: Int64(valueSize), countStyle: .memory))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(8)
         }
         .onAppear {
             isBeautified = isJson
@@ -817,7 +818,6 @@ struct HashRow: Identifiable {
 struct HashDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let valueSize: Int?
     let onAddField: () -> Void
     let onSaveField: (String, String) -> Void
     let onDeleteField: (String) -> Void
@@ -881,8 +881,7 @@ struct HashDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) fields",
-                    sizeText: valueSize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                    countText: "\(rows.count) fields"
                 )
             }
             .padding(AppTheme.spacing)
@@ -1008,7 +1007,6 @@ struct InlineTextField: NSViewRepresentable {
 struct ListDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let valueSize: Int?
     let onAddElement: () -> Void
     let onSaveElement: (Int, String) -> Void
     let onDeleteElement: (Int, String) -> Void
@@ -1075,8 +1073,7 @@ struct ListDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) elements",
-                    sizeText: valueSize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                    countText: "\(rows.count) elements"
                 )
             }
             .padding(AppTheme.spacing)
@@ -1094,7 +1091,6 @@ struct SetRow: Identifiable {
 struct SetDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let valueSize: Int?
     let onAddMember: () -> Void
     let onDeleteMember: (String) -> Void
 
@@ -1133,8 +1129,7 @@ struct SetDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) members",
-                    sizeText: valueSize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                    countText: "\(rows.count) members"
                 )
             }
             .padding(AppTheme.spacing)
@@ -1153,7 +1148,6 @@ struct ZSetRow: Identifiable {
 struct ZSetDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let valueSize: Int?
     let onAddMember: () -> Void
     let onSaveMember: (String, String) -> Void
     let onDeleteMember: (String) -> Void
@@ -1218,8 +1212,7 @@ struct ZSetDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) members",
-                    sizeText: valueSize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                    countText: "\(rows.count) members"
                 )
             }
             .padding(AppTheme.spacing)

@@ -113,8 +113,8 @@ class RedisKeyEntry: Identifiable, Hashable {
     let id = UUID()
     let key: String
     var type: String
-    let ttl: Int?
-    let size: Int?
+    var ttl: Int?
+    var size: Int?
 
     init(key: String, type: String, ttl: Int?, size: Int?) {
         self.key = key
@@ -560,22 +560,39 @@ class ConnectionState: ObservableObject {
         }
         isLoadingKeys = true
 
+        let isPattern = keyFilter.contains("*") || keyFilter.contains("?") || keyFilter.contains("[")
+
         do {
-            let result = try await client.send("SCAN", scanCursor, "MATCH", keyFilter, "COUNT", "1000")
-            let arr = result.arrayValues
-            guard arr.count >= 2 else {
-                isScanningKeysRequest = false
-                isLoadingKeys = false
-                return
+            if !isPattern {
+                let typeResult = try? await client.send("TYPE", keyFilter)
+                if let typeName = typeResult?.string, typeName != "none" {
+                    let entry = RedisKeyEntry(key: keyFilter, type: typeName, ttl: nil, size: nil)
+                    keys = [entry]
+                    selectedKey = entry
+                    await selectKey(entry)
+                } else {
+                    keys = []
+                    selectedKey = nil
+                }
+                hasMoreKeys = false
+            } else {
+                var iterations = 0
+                let maxIterations = 1000
+                repeat {
+                    let result = try await client.send("SCAN", scanCursor, "MATCH", keyFilter, "COUNT", "1000")
+                    let arr = result.arrayValues
+                    guard arr.count >= 2 else { break }
+                    scanCursor = arr[0]?.string ?? "0"
+                    hasMoreKeys = scanCursor != "0"
+                    let newKeyNames = arr[1]?.arrayValues.compactMap { $0?.string } ?? []
+                    let existingKeys = Set(keys.map { $0.key })
+                    let newEntries = newKeyNames.filter { !existingKeys.contains($0) }.map {
+                        RedisKeyEntry(key: $0, type: "", ttl: nil, size: nil)
+                    }
+                    keys.append(contentsOf: newEntries)
+                    iterations += 1
+                } while keys.isEmpty && hasMoreKeys && iterations < maxIterations
             }
-            scanCursor = arr[0]?.string ?? "0"
-            hasMoreKeys = scanCursor != "0"
-            let newKeyNames = arr[1]?.arrayValues.compactMap { $0?.string } ?? []
-            let existingKeys = Set(keys.map { $0.key })
-            let newEntries = newKeyNames.filter { !existingKeys.contains($0) }.map {
-                RedisKeyEntry(key: $0, type: "", ttl: nil, size: nil)
-            }
-            keys.append(contentsOf: newEntries)
         } catch {
             connectionError = error.localizedDescription
         }
@@ -584,7 +601,10 @@ class ConnectionState: ObservableObject {
         pendingResetScan = false
         isScanningKeysRequest = false
         isLoadingKeys = false
-        loadTypes()
+
+        if isPattern {
+            loadTypes()
+        }
 
         if shouldRestart {
             await scanKeys(reset: true)
@@ -678,7 +698,10 @@ class ConnectionState: ObservableObject {
                 keyDetail = value.string ?? "(nil)"
             }
 
+            let ttlResult = try? await client.send("TTL", entry.key)
+            entry.ttl = ttlResult?.intValue
             let memResult = try? await client.send("MEMORY", "USAGE", entry.key)
+            entry.size = memResult?.intValue
             valueSize = memResult?.intValue
         } catch {
             keyDetail = "Error: \(error.localizedDescription)"
