@@ -327,6 +327,7 @@ struct KeyDetailView: View {
                         HashDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
+                            keySize: key.size,
                             onAddField: { showingAddHashField = true },
                             onSaveField: { field, value in
                                 Task {
@@ -361,6 +362,7 @@ struct KeyDetailView: View {
                         ListDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
+                            keySize: key.size,
                             onAddElement: { showingAddListElement = true },
                             onSaveElement: { index, value in
                                 Task {
@@ -395,6 +397,7 @@ struct KeyDetailView: View {
                         SetDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
+                            keySize: key.size,
                             onAddMember: { showingAddSetMember = true },
                             onDeleteMember: { member in
                                 Task {
@@ -422,6 +425,7 @@ struct KeyDetailView: View {
                         ZSetDetailView(
                             key: key.key,
                             rows: app.keyDetailRows,
+                            keySize: key.size,
                             onAddMember: { showingAddZSetMember = true },
                             onSaveMember: { member, score in
                                 Task {
@@ -461,6 +465,7 @@ struct KeyDetailView: View {
                         StringDetailView(
                             key: key.key,
                             value: app.keyDetail,
+                            keySize: key.size,
                             onSave: { value in
                                 Task {
                                     await app.updateStringValue(key: key.key, value: value)
@@ -494,13 +499,6 @@ struct KeyDetailView: View {
                         .foregroundStyle(.secondary)
                     Label(key.ttlText, systemImage: "clock")
                         .foregroundStyle(key.ttl == nil ? .secondary : Color.orange)
-                    if let size = key.size {
-                        Label(
-                            ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory),
-                            systemImage: "doc"
-                        )
-                        .foregroundStyle(.secondary)
-                    }
                 }
                 .font(.caption)
             }
@@ -598,6 +596,7 @@ struct KeyDetailView: View {
 struct StringDetailView: View {
     let key: String
     let value: String
+    let keySize: Int?
     let onSave: (String) -> Void
 
     @State private var isEditing = false
@@ -701,6 +700,16 @@ struct StringDetailView: View {
                 }
             }
 
+            if let keySize {
+                Divider()
+                HStack {
+                    Spacer()
+                    Text(ByteCountFormatter.string(fromByteCount: Int64(keySize), countStyle: .memory))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(AppTheme.spacing)
+            }
         }
         .onAppear {
             isBeautified = isJson
@@ -860,6 +869,7 @@ struct HashRow: Identifiable {
 struct HashDetailView: View {
     let key: String
     let rows: [(String, String)]
+    let keySize: Int?
     let onAddField: () -> Void
     let onSaveField: (String, String) -> Void
     let onDeleteField: (String) -> Void
@@ -923,7 +933,8 @@ struct HashDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) fields"
+                    countText: "\(rows.count) fields",
+                    sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
                 )
             }
             .padding(AppTheme.spacing)
@@ -1049,6 +1060,7 @@ struct InlineTextField: NSViewRepresentable {
 struct ListDetailView: View {
     let key: String
     let rows: [(String, String)]
+    let keySize: Int?
     let onAddElement: () -> Void
     let onSaveElement: (Int, String) -> Void
     let onDeleteElement: (Int, String) -> Void
@@ -1115,7 +1127,8 @@ struct ListDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) elements"
+                    countText: "\(rows.count) elements",
+                    sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
                 )
             }
             .padding(AppTheme.spacing)
@@ -1133,6 +1146,7 @@ struct SetRow: Identifiable {
 struct SetDetailView: View {
     let key: String
     let rows: [(String, String)]
+    let keySize: Int?
     let onAddMember: () -> Void
     let onDeleteMember: (String) -> Void
 
@@ -1171,7 +1185,8 @@ struct SetDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) members"
+                    countText: "\(rows.count) members",
+                    sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
                 )
             }
             .padding(AppTheme.spacing)
@@ -1190,6 +1205,7 @@ struct ZSetRow: Identifiable {
 struct ZSetDetailView: View {
     let key: String
     let rows: [(String, String)]
+    let keySize: Int?
     let onAddMember: () -> Void
     let onSaveMember: (String, String) -> Void
     let onDeleteMember: (String) -> Void
@@ -1254,7 +1270,8 @@ struct ZSetDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) members"
+                    countText: "\(rows.count) members",
+                    sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
                 )
             }
             .padding(AppTheme.spacing)
