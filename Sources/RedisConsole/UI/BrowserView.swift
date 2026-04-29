@@ -11,8 +11,6 @@ struct BrowserView: View {
 
     var body: some View {
         PersistentSplitView(
-            storageKey: "browserSplitRatio",
-            defaultRatio: 0.4,
             leftMinWidth: 250,
             rightMinWidth: 250
         ) {
