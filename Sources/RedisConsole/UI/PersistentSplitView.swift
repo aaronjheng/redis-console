@@ -60,7 +60,15 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
         var storageKey: String = ""
         var defaultRatio: CGFloat = 0.4
         private var restored = false
-        private var userDragged = false
+        private var currentRatio: CGFloat?
+        private var lastTotalWidth: CGFloat = 0
+        private var isAdjusting = false
+
+        private var ratio: CGFloat {
+            if let currentRatio { return currentRatio }
+            if let saved = UserDefaults.standard.object(forKey: storageKey) as? CGFloat { return saved }
+            return defaultRatio
+        }
 
         override func viewWillAppear() {
             super.viewWillAppear()
@@ -69,29 +77,31 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
 
             let total = splitView.frame.width
             guard total > 0 else { return }
-            let savedRatio = UserDefaults.standard.object(forKey: storageKey) as? CGFloat
-            let ratio = savedRatio ?? defaultRatio
-            let position = total * ratio
-            splitView.setPosition(position, ofDividerAt: 0)
+            lastTotalWidth = total
+            splitView.setPosition(total * ratio, ofDividerAt: 0)
         }
 
         override func splitViewDidResizeSubviews(_ notification: Notification) {
             super.splitViewDidResizeSubviews(notification)
-            guard userDragged else { return }
-            let position = splitViewItems[0].viewController.view.frame.width
+            guard !isAdjusting else { return }
+
             let total = splitView.frame.width
             guard total > 0 else { return }
-            let ratio = position / total
-            UserDefaults.standard.set(ratio, forKey: storageKey)
-        }
 
-        override func splitView(
-            _ splitView: NSSplitView,
-            constrainSplitPosition proposedPosition: CGFloat,
-            ofSubviewAt dividerIndex: Int
-        ) -> CGFloat {
-            userDragged = true
-            return proposedPosition
+            if abs(total - lastTotalWidth) > 1 {
+                isAdjusting = true
+                splitView.setPosition(total * ratio, ofDividerAt: 0)
+                lastTotalWidth = total
+                isAdjusting = false
+            } else {
+                let position = splitViewItems[0].viewController.view.frame.width
+                let newRatio = position / total
+                if abs(newRatio - ratio) > 0.001 {
+                    currentRatio = newRatio
+                    UserDefaults.standard.set(newRatio, forKey: storageKey)
+                }
+                lastTotalWidth = total
+            }
         }
     }
 }
