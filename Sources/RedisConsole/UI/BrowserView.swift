@@ -10,190 +10,189 @@ struct BrowserView: View {
     @State private var newKeyValue = ""
 
     var body: some View {
-        GeometryReader { geo in
-            HSplitView {
-                // Key List
-                VStack(spacing: 0) {
-                    HStack(spacing: 6) {
-                        ZStack(alignment: .trailing) {
-                            TextField("Pattern (e.g. user:* or *)", text: $searchText)
-                                .textFieldStyle(.roundedBorder)
-                                .onSubmit {
-                                    app.keyFilter = searchText.isEmpty ? "*" : searchText
+        PersistentSplitView(
+            storageKey: "browserSplitRatio",
+            defaultRatio: 0.4,
+            leftMinWidth: 250,
+            rightMinWidth: 250
+        ) {
+            VStack(spacing: 0) {
+                HStack(spacing: 6) {
+                    ZStack(alignment: .trailing) {
+                        TextField("Pattern (e.g. user:* or *)", text: $searchText)
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit {
+                                app.keyFilter = searchText.isEmpty ? "*" : searchText
+                                Task { await app.scanKeys(reset: true) }
+                            }
+                        HStack(spacing: 4) {
+                            if !searchText.isEmpty {
+                                Button {
+                                    searchText = ""
+                                    app.keyFilter = "*"
                                     Task { await app.scanKeys(reset: true) }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
                                 }
-                            HStack(spacing: 4) {
-                                if !searchText.isEmpty {
-                                    Button {
-                                        searchText = ""
-                                        app.keyFilter = "*"
-                                        Task { await app.scanKeys(reset: true) }
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                    }
-                                    .buttonStyle(.borderless)
-                                    .foregroundStyle(.secondary)
-                                }
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundStyle(.secondary)
-                                    .padding(.trailing, 8)
+                                .buttonStyle(.borderless)
+                                .foregroundStyle(.secondary)
                             }
+                            Image(systemName: "magnifyingglass")
+                                .foregroundStyle(.secondary)
+                                .padding(.trailing, 8)
                         }
                     }
-                    .padding(8)
-
-                    HStack {
-                        Picker("", selection: $typeFilter) {
-                            Text("All Types").tag("")
-                            Text("String").tag("string")
-                            Text("List").tag("list")
-                            Text("Hash").tag("hash")
-                            Text("Set").tag("set")
-                            Text("Sorted Set").tag("zset")
-                        }
-                        .labelsHidden()
-                        .onChange(of: typeFilter) { _, newValue in
-                            app.keyTypeFilter = newValue
-                        }
-                        Spacer()
-                        Button {
-                            Task { await app.scanKeys(reset: true) }
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .buttonStyle(.borderless)
-                        .disabled(app.isLoadingKeys)
-                        .help("Refresh")
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
-
-                    Divider()
-
-                    let filteredKeys = app.keys.filter { app.keyTypeFilter.isEmpty || $0.type == app.keyTypeFilter }
-
-                    if app.isLoadingKeys && app.keys.isEmpty {
-                        Spacer()
-                        ProgressView("Scanning keys...")
-                        Spacer()
-                    } else if app.keys.isEmpty {
-                        Spacer()
-                        EmptyStateView(
-                            icon: "key.slash",
-                            title: searchText.isEmpty ? "No keys found" : "No matching keys"
-                        )
-                        if app.hasMoreKeys {
-                            if app.isLoadingKeys {
-                                HStack(spacing: 6) {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                    Text("Scanning...")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding(8)
-                            } else {
-                                Button("Load more") {
-                                    Task { await app.scanKeys() }
-                                }
-                                .padding(8)
-                            }
-                        }
-                        Spacer()
-                    } else if filteredKeys.isEmpty {
-                        Spacer()
-                        EmptyStateView(
-                            icon: "key.slash",
-                            title: "No matching keys"
-                        )
-                        if app.hasMoreKeys {
-                            if app.isLoadingKeys {
-                                HStack(spacing: 6) {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                    Text("Scanning...")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding(8)
-                            } else {
-                                Button("Load more") {
-                                    Task { await app.scanKeys() }
-                                }
-                                .padding(8)
-                            }
-                        }
-                        Spacer()
-                    } else {
-                        List(filteredKeys, selection: $app.selectedKey) { entry in
-                            KeyRow(entry: entry)
-                                .contextMenu {
-                                    Button("Delete", role: .destructive) {
-                                        Task { await app.deleteKey(entry) }
-                                    }
-                                    Divider()
-                                    Button("Copy Key") {
-                                        let pasteboard = NSPasteboard.general
-                                        pasteboard.clearContents()
-                                        pasteboard.setString(entry.key, forType: .string)
-                                    }
-                                }
-                                .tag(entry)
-                        }
-                        .listStyle(.plain)
-                        .onChange(of: app.selectedKey) { _, newValue in
-                            if let key = newValue {
-                                Task { await app.selectKey(key) }
-                            }
-                        }
-
-                        if app.hasMoreKeys {
-                            if app.isLoadingKeys {
-                                HStack(spacing: 6) {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                    Text("Scanning...")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding(8)
-                            } else {
-                                Button("Load more") {
-                                    Task { await app.scanKeys() }
-                                }
-                                .padding(8)
-                            }
-                        }
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Button {
-                            newKeyName = ""
-                            newKeyType = "string"
-                            newKeyValue = ""
-                            showingAddKey = true
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Add key")
-
-                        Spacer()
-
-                        Text("\(app.keys.count) keys")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(8)
                 }
-                .frame(minWidth: 250, idealWidth: geo.size.width / 2)
+                .padding(8)
 
-                // Key Detail
-                KeyDetailView()
-                    .frame(minWidth: 250)
+                HStack {
+                    Picker("", selection: $typeFilter) {
+                        Text("All Types").tag("")
+                        Text("String").tag("string")
+                        Text("List").tag("list")
+                        Text("Hash").tag("hash")
+                        Text("Set").tag("set")
+                        Text("Sorted Set").tag("zset")
+                    }
+                    .labelsHidden()
+                    .onChange(of: typeFilter) { _, newValue in
+                        app.keyTypeFilter = newValue
+                    }
+                    Spacer()
+                    Button {
+                        Task { await app.scanKeys(reset: true) }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(app.isLoadingKeys)
+                    .help("Refresh")
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+
+                Divider()
+
+                let filteredKeys = app.keys.filter { app.keyTypeFilter.isEmpty || $0.type == app.keyTypeFilter }
+
+                if app.isLoadingKeys && app.keys.isEmpty {
+                    Spacer()
+                    ProgressView("Scanning keys...")
+                    Spacer()
+                } else if app.keys.isEmpty {
+                    Spacer()
+                    EmptyStateView(
+                        icon: "key.slash",
+                        title: searchText.isEmpty ? "No keys found" : "No matching keys"
+                    )
+                    if app.hasMoreKeys {
+                        if app.isLoadingKeys {
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("Scanning...")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(8)
+                        } else {
+                            Button("Load more") {
+                                Task { await app.scanKeys() }
+                            }
+                            .padding(8)
+                        }
+                    }
+                    Spacer()
+                } else if filteredKeys.isEmpty {
+                    Spacer()
+                    EmptyStateView(
+                        icon: "key.slash",
+                        title: "No matching keys"
+                    )
+                    if app.hasMoreKeys {
+                        if app.isLoadingKeys {
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("Scanning...")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(8)
+                        } else {
+                            Button("Load more") {
+                                Task { await app.scanKeys() }
+                            }
+                            .padding(8)
+                        }
+                    }
+                    Spacer()
+                } else {
+                    List(filteredKeys, selection: $app.selectedKey) { entry in
+                        KeyRow(entry: entry)
+                            .contextMenu {
+                                Button("Delete", role: .destructive) {
+                                    Task { await app.deleteKey(entry) }
+                                }
+                                Divider()
+                                Button("Copy Key") {
+                                    let pasteboard = NSPasteboard.general
+                                    pasteboard.clearContents()
+                                    pasteboard.setString(entry.key, forType: .string)
+                                }
+                            }
+                            .tag(entry)
+                    }
+                    .listStyle(.plain)
+                    .onChange(of: app.selectedKey) { _, newValue in
+                        if let key = newValue {
+                            Task { await app.selectKey(key) }
+                        }
+                    }
+
+                    if app.hasMoreKeys {
+                        if app.isLoadingKeys {
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("Scanning...")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(8)
+                        } else {
+                            Button("Load more") {
+                                Task { await app.scanKeys() }
+                            }
+                            .padding(8)
+                        }
+                    }
+                }
+
+                Divider()
+
+                HStack {
+                    Button {
+                        newKeyName = ""
+                        newKeyType = "string"
+                        newKeyValue = ""
+                        showingAddKey = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Add key")
+
+                    Spacer()
+
+                    Text("\(app.keys.count) keys")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(8)
             }
+        } right: {
+            KeyDetailView()
         }
         .sheet(isPresented: $showingAddKey) {
             AddKeySheet(

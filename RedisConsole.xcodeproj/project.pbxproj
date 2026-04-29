@@ -22,6 +22,7 @@
 		BE71ED9FA189175A079FB476 /* Application/AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D620F14F7D75D74C01119464 /* Application/AppState.swift */; };
 		D6C7D69ABDED21BD3BD0090B /* UI/ShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8D6099DE77854253F3FD15 /* UI/ShellView.swift */; };
 		D88BEDDC62ACB7432ACD4694 /* UI/BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACEB586CD12D0873A8718B1 /* UI/BrowserView.swift */; };
+		A1B2C3D4E5F6789012345678 /* UI/PersistentSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9E8D7C6B5A43210FEDCBA09 /* UI/PersistentSplitView.swift */; };
 		F0DD9FE630F55BD002EE819B /* Application/AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E8633A52269F80A7F6FDA1 /* Application/AppLogger.swift */; };
 		027F421A3802B3F7AA0FF5C4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88C421BA492019C7EFFFFEC2 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -42,6 +43,7 @@
 		E1202E9EAD648CAADB72313E /* Infrastructure/AsyncTimeout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Infrastructure/AsyncTimeout.swift; sourceTree = "<group>"; };
 		EC5F6AF1EE8514832416133F /* swift-nio-ssh */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-nio-ssh"; path = "Vendor/swift-nio-ssh"; sourceTree = SOURCE_ROOT; };
 		FACEB586CD12D0873A8718B1 /* UI/BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/BrowserView.swift; sourceTree = "<group>"; };
+		F9E8D7C6B5A43210FEDCBA09 /* UI/PersistentSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/PersistentSplitView.swift; sourceTree = "<group>"; };
 		88C421BA492019C7EFFFFEC2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Assets.xcassets; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -65,6 +67,7 @@
 				05BE6CF64F60ACC797244A8A /* Application/AppTheme.swift */,
 				E1202E9EAD648CAADB72313E /* Infrastructure/AsyncTimeout.swift */,
 				FACEB586CD12D0873A8718B1 /* UI/BrowserView.swift */,
+				F9E8D7C6B5A43210FEDCBA09 /* UI/PersistentSplitView.swift */,
 				CF606A6964524077E9B2C2AC /* UI/ContentView.swift */,
 				05662699AFF90DD439C2E9F5 /* Infrastructure/KeychainStore.swift */,
 				6FC45097D404559C7802F7F8 /* Redis/RedisClient.swift */,
@@ -175,6 +178,7 @@
 				8EB4B86D1FCDB0A2C0F4451A /* Application/AppTheme.swift in Sources */,
 				7EEE9F0E74615C5D4FBC55CD /* Infrastructure/AsyncTimeout.swift in Sources */,
 				D88BEDDC62ACB7432ACD4694 /* UI/BrowserView.swift in Sources */,
+				A1B2C3D4E5F6789012345678 /* UI/PersistentSplitView.swift in Sources */,
 				08CAE39503D01547D187531D /* UI/ContentView.swift in Sources */,
 				491A36E51AE41F8C761D6514 /* Infrastructure/KeychainStore.swift in Sources */,
 				9FB4F5632F37B1E97961E43E /* Redis/RESPParser.swift in Sources */,
