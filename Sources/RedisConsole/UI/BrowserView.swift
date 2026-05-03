@@ -268,7 +268,7 @@ struct KeyRow: View {
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.key)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.body)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 HStack(spacing: 8) {
@@ -492,7 +492,7 @@ struct KeyDetailView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(key.key)
-                    .font(.system(.title3, design: .monospaced))
+                    .font(.title3)
                     .lineLimit(1)
                 HStack(spacing: 12) {
                     Label(key.type, systemImage: key.icon)
