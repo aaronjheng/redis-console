@@ -14,7 +14,7 @@ format:
 format-check:
     swift-format lint --recursive Sources
 
-update-deps:
+bump-deps:
     xcodebuild -resolvePackageDependencies -project RedisConsole.xcodeproj
 
 build-release:
