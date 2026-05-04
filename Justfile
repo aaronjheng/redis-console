@@ -2,6 +2,9 @@ derived_data := ".build/xcode-derived"
 configuration := "Release"
 app_bundle := derived_data / "Build/Products" / configuration / "RedisConsole.app"
 
+bump-deps:
+    xcodebuild -resolvePackageDependencies -project RedisConsole.xcodeproj
+
 lint:
     swiftlint lint Sources
 
@@ -13,9 +16,6 @@ format:
 
 format-check:
     swift-format lint --recursive Sources
-
-bump-deps:
-    xcodebuild -resolvePackageDependencies -project RedisConsole.xcodeproj
 
 build-release:
     xcodebuild -project RedisConsole.xcodeproj -scheme RedisConsole -configuration '{{ configuration }}' -destination 'platform=macOS,arch=arm64' -derivedDataPath '{{ derived_data }}' -allowProvisioningUpdates build
