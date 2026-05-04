@@ -14,14 +14,14 @@ format:
 format-check:
     swift-format lint --recursive Sources
 
+update-deps:
+    xcodebuild -resolvePackageDependencies -project RedisConsole.xcodeproj
+
 build-release:
     xcodebuild -project RedisConsole.xcodeproj -scheme RedisConsole -configuration '{{ configuration }}' -destination 'platform=macOS,arch=arm64' -derivedDataPath '{{ derived_data }}' -allowProvisioningUpdates build
 
 clean:
     rm -rf .build
-
-update-deps:
-    xcodebuild -resolvePackageDependencies -project RedisConsole.xcodeproj
 
 open: build-release
     @open '{{ app_bundle }}'
