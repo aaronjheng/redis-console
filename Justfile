@@ -2,9 +2,6 @@ derived_data := ".build/xcode-derived"
 configuration := "Release"
 app_bundle := derived_data / "Build/Products" / configuration / "RedisConsole.app"
 
-bump-deps:
-    xcodebuild -resolvePackageDependencies -project RedisConsole.xcodeproj
-
 lint:
     swiftlint lint Sources
 
