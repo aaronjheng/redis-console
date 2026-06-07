@@ -724,18 +724,6 @@ struct ConnectionDetailView: View {
 
             Divider()
 
-            if let result = testResult {
-                HStack {
-                    Image(systemName: result.hasPrefix("OK") ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundStyle(result.hasPrefix("OK") ? .green : .red)
-                    Text(result)
-                        .font(.caption)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-            }
-
             HStack {
                 if isNew {
                     Button("Save") {
@@ -750,6 +738,8 @@ struct ConnectionDetailView: View {
                         Task { await testConnection() }
                     }
                     .disabled(host.isEmpty || isTesting || (ssh.enabled && ssh.host.isEmpty))
+
+                    testResultView
                 } else if let config = editingConfig {
                     Button("Save") {
                         var updated = config
@@ -768,6 +758,8 @@ struct ConnectionDetailView: View {
                         Task { await testConnection() }
                     }
                     .disabled(host.isEmpty || isTesting || (ssh.enabled && ssh.host.isEmpty))
+
+                    testResultView
                 }
 
                 Spacer()
@@ -824,6 +816,19 @@ struct ConnectionDetailView: View {
             password = ""
             ssh = SSHConfig()
         default: break
+        }
+    }
+
+    @ViewBuilder
+    private var testResultView: some View {
+        if let result = testResult {
+            HStack(spacing: 4) {
+                Image(systemName: result.hasPrefix("OK") ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .foregroundStyle(result.hasPrefix("OK") ? .green : .red)
+                Text(result)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
