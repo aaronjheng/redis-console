@@ -1,0 +1,26 @@
+--- a/Sources/NIOSSH/Key Exchange/SSHKeyExchangeStateMachine.swift
++++ b/Sources/NIOSSH/Key Exchange/SSHKeyExchangeStateMachine.swift
+@@ -576,11 +576,19 @@
+     private var supportedMacAlgorithms: [Substring] {
+         let schemes = self.protectionSchemes.compactMap { $0.macName.map { Substring($0) } }
+ 
+-        // We do a weird thing here: if there are no MAC schemes, we lie and put one in. This is
+-        // because some schemes (such as AES-GCM in OpenSSH mode) ignore the MAC negotiation.
+-        // Worse case, we fail out later in the handshake because the peer actually wanted it.
++        // AES-GCM in OpenSSH mode ignores MAC negotiation entirely, but many OpenSSH servers still
++        // advertise only ETM/UMAC MAC lists during KEXINIT. Returning a single legacy MAC here can
++        // incorrectly fail negotiation before the selected cipher gets a chance to ignore MACs.
++        // Offer the common OpenSSH MAC names instead so GCM-based sessions can negotiate.
+         if schemes.isEmpty {
+-            return ["hmac-sha2-256"]
++            return [
++                "hmac-sha2-512-etm@openssh.com",
++                "hmac-sha2-256-etm@openssh.com",
++                "umac-128-etm@openssh.com",
++                "hmac-sha2-512",
++                "hmac-sha2-256",
++                "umac-128@openssh.com",
++            ]
+         } else {
+             return schemes
+         }
