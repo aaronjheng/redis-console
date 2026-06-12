@@ -436,7 +436,8 @@ class ConnectionState: ObservableObject {
         let resolvedConfig = config
         AppLogger.info(
             "connect requested name=\(resolvedConfig.name) "
-                + "redis=\(resolvedConfig.host):\(resolvedConfig.port) sshEnabled=\(resolvedConfig.ssh.enabled) tlsEnabled=\(resolvedConfig.tls.enabled)",
+                + "redis=\(resolvedConfig.host):\(resolvedConfig.port) "
+                + "sshEnabled=\(resolvedConfig.ssh.enabled) tlsEnabled=\(resolvedConfig.tls.enabled)",
             category: "Connection"
         )
         connectTask?.cancel()

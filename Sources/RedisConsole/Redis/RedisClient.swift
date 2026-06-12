@@ -72,6 +72,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                     sec_protocol_options_set_verify_block(
                         tlsOptions.securityProtocolOptions,
                         { [caCertificatePath = self.caCertificatePath] _, trust, completionHandler in
+                            // swiftlint:disable:next force_cast
                             let secTrust = trust as! SecTrust
 
                             if !caCertificatePath.isEmpty {

@@ -853,7 +853,9 @@ struct ConnectionDetailView: View {
 
     func testConnection() async {
         AppLogger.info(
-            "test connection requested redis=\(host):\(port) sshEnabled=\(ssh.enabled) tlsEnabled=\(tls.enabled) ssh=\(ssh.host):\(ssh.port) user=\(ssh.user)",
+            "test connection requested redis=\(host):\(port) "
+                + "sshEnabled=\(ssh.enabled) tlsEnabled=\(tls.enabled) "
+                + "ssh=\(ssh.host):\(ssh.port) user=\(ssh.user)",
             category: "ConnectionTest"
         )
         isTesting = true
