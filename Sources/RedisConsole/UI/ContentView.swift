@@ -45,6 +45,46 @@ final class WindowDelegateManager {
     }
 }
 
+// MARK: - Appearance Preference
+
+enum AppAppearance: Int, CaseIterable {
+    case system = 0
+    case light = 1
+    case dark = 2
+
+    private static let userDefaultsKey = "com.redisconsole.appearance"
+
+    var name: String {
+        switch self {
+        case .system: return "System"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+
+    static var current: AppAppearance {
+        let raw = UserDefaults.standard.integer(forKey: userDefaultsKey)
+        return AppAppearance(rawValue: raw) ?? .system
+    }
+
+    @MainActor
+    func apply() {
+        UserDefaults.standard.set(rawValue, forKey: Self.userDefaultsKey)
+    }
+
+    @MainActor
+    func applyToWindow(_ window: NSWindow) {
+        switch self {
+        case .system:
+            window.appearance = nil
+        case .light:
+            window.appearance = NSAppearance(named: .aqua)
+        case .dark:
+            window.appearance = NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
 // MARK: - AppDelegate
 
 @MainActor
@@ -66,6 +106,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
         openNewTab()
+        if let window = NSApp.keyWindow {
+            AppAppearance.current.applyToWindow(window)
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -79,6 +122,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func toggleFullScreen() {
         NSApp.keyWindow?.toggleFullScreen(nil)
+    }
+
+    @objc func setAppearance(_ sender: NSMenuItem) {
+        guard let appearance = AppAppearance(rawValue: sender.tag) else { return }
+        appearance.apply()
+        for window in NSApp.windows {
+            appearance.applyToWindow(window)
+        }
+        if let menu = sender.menu {
+            for item in menu.items where item.tag >= 0 {
+                item.state = item.tag == sender.tag ? .on : .off
+            }
+        }
     }
 
     @objc func newWindowForTab(_ sender: Any?) {
@@ -134,6 +190,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
         }
 
+        AppAppearance.current.applyToWindow(window)
         stateToWindow[state.id] = window
         requestTabChromeRefresh()
 
@@ -223,6 +280,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let fsItem = NSMenuItem(title: "Enter Full Screen", action: #selector(toggleFullScreen), keyEquivalent: "f")
         fsItem.keyEquivalentModifierMask = [.command, .control]
         viewMenu.addItem(fsItem)
+        viewMenu.addItem(.separator())
+        let currentAppearance = AppAppearance.current
+        for appearance in AppAppearance.allCases {
+            let item = NSMenuItem(
+                title: appearance.name,
+                action: #selector(setAppearance(_:)),
+                keyEquivalent: ""
+            )
+            item.tag = appearance.rawValue
+            item.target = self
+            item.state = currentAppearance == appearance ? .on : .off
+            viewMenu.addItem(item)
+        }
         viewMenuItem.submenu = viewMenu
 
         NSApp.mainMenu = mainMenu

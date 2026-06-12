@@ -78,7 +78,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                             if !caCertificatePath.isEmpty {
                                 let url = URL(fileURLWithPath: caCertificatePath)
                                 if let caData = try? Data(contentsOf: url),
-                                   let caCert = SecCertificateCreateWithData(nil, caData as CFData) {
+                                    let caCert = SecCertificateCreateWithData(nil, caData as CFData) {
                                     SecTrustSetAnchorCertificates(secTrust, [caCert] as CFArray)
                                     SecTrustSetAnchorCertificatesOnly(secTrust, false)
                                 }
@@ -103,7 +103,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                 if !clientCertificatePath.isEmpty && !clientKeyPath.isEmpty {
                     let certURL = URL(fileURLWithPath: clientCertificatePath)
                     if let certData = try? Data(contentsOf: certURL),
-                       let cert = SecCertificateCreateWithData(nil, certData as CFData) {
+                        let cert = SecCertificateCreateWithData(nil, certData as CFData) {
                         var identity: SecIdentity?
                         let status = SecIdentityCreateWithCertificate(
                             nil,
@@ -111,7 +111,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                             &identity
                         )
                         if status == errSecSuccess, let identity,
-                           let secIdentity = sec_identity_create(identity) {
+                            let secIdentity = sec_identity_create(identity) {
                             sec_protocol_options_set_local_identity(
                                 tlsOptions.securityProtocolOptions,
                                 secIdentity

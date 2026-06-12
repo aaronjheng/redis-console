@@ -19,7 +19,7 @@ enum AppTheme {
 
     // MARK: - Background Colors
     static var sidebarBackground: Color {
-        Color(white: 0.95)
+        Color(nsColor: .controlBackgroundColor)
     }
 }
 
