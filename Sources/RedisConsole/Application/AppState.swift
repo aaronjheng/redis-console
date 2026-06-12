@@ -13,6 +13,14 @@ struct SSHConfig: Codable, Hashable {
     var privateKeyPassphrase: String = ""
 }
 
+struct TLSConfig: Codable, Hashable {
+    var enabled: Bool = false
+    var verifyServerCertificate: Bool = true
+    var caCertificatePath: String = ""
+    var clientCertificatePath: String = ""
+    var clientKeyPath: String = ""
+}
+
 struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var id = UUID()
     var name: String
@@ -23,6 +31,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var password: String = ""
 
     var ssh: SSHConfig = SSHConfig()
+    var tls: TLSConfig = TLSConfig()
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -32,6 +41,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         case username
         case ssh
         case password
+        case tls
     }
 
     static let `default` = RedisConnectionConfig(name: "localhost", host: "127.0.0.1")
@@ -45,7 +55,8 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         port: UInt16 = 6379,
         username: String = "",
         password: String = "",
-        ssh: SSHConfig = SSHConfig()
+        ssh: SSHConfig = SSHConfig(),
+        tls: TLSConfig = TLSConfig()
     ) {
         self.id = id
         self.name = name
@@ -54,6 +65,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         self.username = username
         self.password = password
         self.ssh = ssh
+        self.tls = tls
     }
 
     static func parseURI(_ uri: String) -> RedisConnectionConfig? {
@@ -64,6 +76,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
 
         let host = components.host ?? "127.0.0.1"
         let port = UInt16(components.port ?? 6379)
+        let useTLS = scheme == "rediss"
 
         var username = ""
         var password = ""
@@ -80,7 +93,8 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
             host: host,
             port: port,
             username: username,
-            password: password
+            password: password,
+            tls: TLSConfig(enabled: useTLS)
         )
     }
 
@@ -93,6 +107,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         username = try container.decodeIfPresent(String.self, forKey: .username) ?? ""
         password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
         ssh = try container.decodeIfPresent(SSHConfig.self, forKey: .ssh) ?? SSHConfig()
+        tls = try container.decodeIfPresent(TLSConfig.self, forKey: .tls) ?? TLSConfig()
     }
 
     func encode(to encoder: Encoder) throws {
@@ -103,6 +118,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         try container.encode(port, forKey: .port)
         try container.encode(username, forKey: .username)
         try container.encode(ssh, forKey: .ssh)
+        try container.encode(tls, forKey: .tls)
     }
 }
 
@@ -420,7 +436,7 @@ class ConnectionState: ObservableObject {
         let resolvedConfig = config
         AppLogger.info(
             "connect requested name=\(resolvedConfig.name) "
-                + "redis=\(resolvedConfig.host):\(resolvedConfig.port) sshEnabled=\(resolvedConfig.ssh.enabled)",
+                + "redis=\(resolvedConfig.host):\(resolvedConfig.port) sshEnabled=\(resolvedConfig.ssh.enabled) tlsEnabled=\(resolvedConfig.tls.enabled)",
             category: "Connection"
         )
         connectTask?.cancel()
@@ -477,7 +493,12 @@ class ConnectionState: ObservableObject {
                 let redis = RedisClient(
                     host: connectHost,
                     port: connectPort,
-                    password: resolvedConfig.password.isEmpty ? nil : resolvedConfig.password
+                    password: resolvedConfig.password.isEmpty ? nil : resolvedConfig.password,
+                    tlsEnabled: resolvedConfig.tls.enabled,
+                    verifyServerCertificate: resolvedConfig.tls.verifyServerCertificate,
+                    caCertificatePath: resolvedConfig.tls.caCertificatePath,
+                    clientCertificatePath: resolvedConfig.tls.clientCertificatePath,
+                    clientKeyPath: resolvedConfig.tls.clientKeyPath
                 )
                 client = redis
 

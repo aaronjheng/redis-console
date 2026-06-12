@@ -28,6 +28,11 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     let host: String
     let port: UInt16
     let password: String?
+    let tlsEnabled: Bool
+    let verifyServerCertificate: Bool
+    let caCertificatePath: String
+    let clientCertificatePath: String
+    let clientKeyPath: String
     let preferredProtocolVersion: RESPProtocolVersion
 
     private(set) var negotiatedProtocolVersion: RESPProtocolVersion = .resp2
@@ -37,11 +42,21 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         host: String,
         port: UInt16,
         password: String? = nil,
+        tlsEnabled: Bool = false,
+        verifyServerCertificate: Bool = true,
+        caCertificatePath: String = "",
+        clientCertificatePath: String = "",
+        clientKeyPath: String = "",
         preferredProtocolVersion: RESPProtocolVersion = .resp2
     ) {
         self.host = host
         self.port = port
         self.password = password
+        self.tlsEnabled = tlsEnabled
+        self.verifyServerCertificate = verifyServerCertificate
+        self.caCertificatePath = caCertificatePath
+        self.clientCertificatePath = clientCertificatePath
+        self.clientKeyPath = clientKeyPath
         self.preferredProtocolVersion = preferredProtocolVersion
     }
 
@@ -49,7 +64,70 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let continuationState = ConnectContinuationState()
 
-            let params = NWParameters.tcp
+            let params: NWParameters
+            if tlsEnabled {
+                let tlsOptions = NWProtocolTLS.Options()
+
+                if !caCertificatePath.isEmpty || !clientCertificatePath.isEmpty || !clientKeyPath.isEmpty {
+                    sec_protocol_options_set_verify_block(
+                        tlsOptions.securityProtocolOptions,
+                        { [caCertificatePath = self.caCertificatePath] _, trust, completionHandler in
+                            let secTrust = trust as! SecTrust
+
+                            if !caCertificatePath.isEmpty {
+                                let url = URL(fileURLWithPath: caCertificatePath)
+                                if let caData = try? Data(contentsOf: url),
+                                   let caCert = SecCertificateCreateWithData(nil, caData as CFData) {
+                                    SecTrustSetAnchorCertificates(secTrust, [caCert] as CFArray)
+                                    SecTrustSetAnchorCertificatesOnly(secTrust, false)
+                                }
+                            }
+
+                            var error: CFError?
+                            let isValid = SecTrustEvaluateWithError(secTrust, &error)
+                            completionHandler(isValid)
+                        },
+                        .main
+                    )
+                } else if !verifyServerCertificate {
+                    sec_protocol_options_set_verify_block(
+                        tlsOptions.securityProtocolOptions,
+                        { _, _, completionHandler in
+                            completionHandler(true)
+                        },
+                        .main
+                    )
+                }
+
+                if !clientCertificatePath.isEmpty && !clientKeyPath.isEmpty {
+                    let certURL = URL(fileURLWithPath: clientCertificatePath)
+                    if let certData = try? Data(contentsOf: certURL),
+                       let cert = SecCertificateCreateWithData(nil, certData as CFData) {
+                        var identity: SecIdentity?
+                        let status = SecIdentityCreateWithCertificate(
+                            nil,
+                            cert,
+                            &identity
+                        )
+                        if status == errSecSuccess, let identity,
+                           let secIdentity = sec_identity_create(identity) {
+                            sec_protocol_options_set_local_identity(
+                                tlsOptions.securityProtocolOptions,
+                                secIdentity
+                            )
+                        }
+                    }
+                }
+
+                sec_protocol_options_set_tls_server_name(
+                    tlsOptions.securityProtocolOptions,
+                    host
+                )
+
+                params = NWParameters(tls: tlsOptions, tcp: .init())
+            } else {
+                params = NWParameters.tcp
+            }
             params.allowLocalEndpointReuse = true
             guard let nwPort = NWEndpoint.Port(rawValue: port) else {
                 continuation.resume(throwing: RedisError.commandError("Invalid Redis port: \(port)"))

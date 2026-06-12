@@ -629,6 +629,7 @@ struct ConnectionDetailView: View {
     @State private var isTesting = false
 
     @State private var ssh = SSHConfig()
+    @State private var tls = TLSConfig()
     @State private var uriInput = ""
     @State private var isCreatingNew = false
     @State private var cachedConfig: RedisConnectionConfig?
@@ -654,6 +655,7 @@ struct ConnectionDetailView: View {
                                     port = config.port
                                     username = config.username
                                     password = config.password
+                                    tls = config.tls
                                     uriInput = ""
                                 }
                             }
@@ -682,6 +684,19 @@ struct ConnectionDetailView: View {
                         }
                         TextField("Username", text: $username)
                         SecureField("Password", text: $password)
+                    }
+
+                    Section("TLS/SSL") {
+                        Toggle("Enable TLS", isOn: $tls.enabled)
+                        if tls.enabled {
+                            Toggle("Verify Server Certificate", isOn: $tls.verifyServerCertificate)
+                            TextField("CA Certificate Path (optional)", text: $tls.caCertificatePath)
+                            TextField("Client Certificate Path (optional)", text: $tls.clientCertificatePath)
+                            TextField("Client Key Path (optional)", text: $tls.clientKeyPath)
+                            Text("For mTLS, provide both client certificate and key")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     Section("SSH Tunnel") {
@@ -749,6 +764,7 @@ struct ConnectionDetailView: View {
                         updated.username = username
                         updated.password = password
                         updated.ssh = ssh
+                        updated.tls = tls
                         store.updateConnection(updated)
                         conn.selectedConnection = updated
                     }
@@ -791,6 +807,7 @@ struct ConnectionDetailView: View {
         )
         config.password = password
         config.ssh = ssh
+        config.tls = tls
         return config
     }
 
@@ -806,6 +823,7 @@ struct ConnectionDetailView: View {
             username = config.username
             password = config.password
             ssh = config.ssh
+            tls = config.tls
         case .newConnection:
             isCreatingNew = true
             cachedConfig = nil
@@ -815,6 +833,7 @@ struct ConnectionDetailView: View {
             username = ""
             password = ""
             ssh = SSHConfig()
+            tls = TLSConfig()
         default: break
         }
     }
@@ -834,7 +853,7 @@ struct ConnectionDetailView: View {
 
     func testConnection() async {
         AppLogger.info(
-            "test connection requested redis=\(host):\(port) sshEnabled=\(ssh.enabled) ssh=\(ssh.host):\(ssh.port) user=\(ssh.user)",
+            "test connection requested redis=\(host):\(port) sshEnabled=\(ssh.enabled) tlsEnabled=\(tls.enabled) ssh=\(ssh.host):\(ssh.port) user=\(ssh.user)",
             category: "ConnectionTest"
         )
         isTesting = true
@@ -887,7 +906,16 @@ struct ConnectionDetailView: View {
             }
         }
 
-        let createdClient = RedisClient(host: connectHost, port: connectPort, password: password.isEmpty ? nil : password)
+        let createdClient = RedisClient(
+            host: connectHost,
+            port: connectPort,
+            password: password.isEmpty ? nil : password,
+            tlsEnabled: tls.enabled,
+            verifyServerCertificate: tls.verifyServerCertificate,
+            caCertificatePath: tls.caCertificatePath,
+            clientCertificatePath: tls.clientCertificatePath,
+            clientKeyPath: tls.clientKeyPath
+        )
         client = createdClient
         do {
             try await withTimeout(10, context: "Redis connection") {
