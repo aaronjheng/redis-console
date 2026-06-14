@@ -13,7 +13,6 @@
 		0CDB668F1E8A810797CB0465 /* SSH/SSHTunnel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC6C4B80F017969CEB19B06 /* SSH/SSHTunnel.swift */; };
 		491A36E51AE41F8C761D6514 /* Infrastructure/KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05662699AFF90DD439C2E9F5 /* Infrastructure/KeychainStore.swift */; };
 		6344D9938425496018D4A0B5 /* UI/ServerInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288450F3CEC2CFCC1BF4B8C8 /* UI/ServerInfoView.swift */; };
-		695D682516FEC3FEEEF4A60E /* UI/SlowLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC42194F4666517406FD3FC5 /* UI/SlowLogView.swift */; };
 		7EEE9F0E74615C5D4FBC55CD /* Infrastructure/AsyncTimeout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1202E9EAD648CAADB72313E /* Infrastructure/AsyncTimeout.swift */; };
 		8EB4B86D1FCDB0A2C0F4451A /* Application/AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BE6CF64F60ACC797244A8A /* Application/AppTheme.swift */; };
 		9FB4F5632F37B1E97961E43E /* Redis/RESPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192713478BAB4601F8037492 /* Redis/RESPParser.swift */; };
@@ -39,7 +38,6 @@
 		6FC45097D404559C7802F7F8 /* Redis/RedisClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redis/RedisClient.swift; sourceTree = "<group>"; };
 		89E8633A52269F80A7F6FDA1 /* Application/AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppLogger.swift; sourceTree = "<group>"; };
 		C1A5F0E7A4B94C3D9E613001 /* Redis/RedisClusterClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redis/RedisClusterClient.swift; sourceTree = "<group>"; };
-		CC42194F4666517406FD3FC5 /* UI/SlowLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/SlowLogView.swift; sourceTree = "<group>"; };
 		CF606A6964524077E9B2C2AC /* UI/ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ContentView.swift; sourceTree = "<group>"; };
 		D620F14F7D75D74C01119464 /* Application/AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppState.swift; sourceTree = "<group>"; };
 		E1202E9EAD648CAADB72313E /* Infrastructure/AsyncTimeout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Infrastructure/AsyncTimeout.swift; sourceTree = "<group>"; };
@@ -77,7 +75,6 @@
 				192713478BAB4601F8037492 /* Redis/RESPParser.swift */,
 				288450F3CEC2CFCC1BF4B8C8 /* UI/ServerInfoView.swift */,
 				4A8D6099DE77854253F3FD15 /* UI/ShellView.swift */,
-				CC42194F4666517406FD3FC5 /* UI/SlowLogView.swift */,
 				6AC6C4B80F017969CEB19B06 /* SSH/SSHTunnel.swift */,
 			);
 			path = RedisConsole;
@@ -190,7 +187,6 @@
 				0CDB668F1E8A810797CB0465 /* SSH/SSHTunnel.swift in Sources */,
 				6344D9938425496018D4A0B5 /* UI/ServerInfoView.swift in Sources */,
 				D6C7D69ABDED21BD3BD0090B /* UI/ShellView.swift in Sources */,
-				695D682516FEC3FEEEF4A60E /* UI/SlowLogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

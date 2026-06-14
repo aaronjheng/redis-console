@@ -202,26 +202,6 @@ struct ShellHistoryEntry: Identifiable {
     let isError: Bool
 }
 
-// MARK: - Slow Log Entry
-
-struct SlowLogEntry: Identifiable {
-    let id = UUID()
-    let index: Int
-    let timestamp: Date
-    let durationMicroseconds: Int
-    let command: [String]
-    let clientAddress: String
-
-    var durationText: String {
-        if durationMicroseconds > 1_000_000 {
-            return String(format: "%.1fs", Double(durationMicroseconds) / 1_000_000)
-        } else if durationMicroseconds > 1_000 {
-            return String(format: "%.1fms", Double(durationMicroseconds) / 1_000)
-        }
-        return "\(durationMicroseconds)μs"
-    }
-}
-
 // MARK: - App Store (Global singleton, shared across all tabs)
 
 @MainActor
@@ -382,14 +362,12 @@ enum AppView: String, CaseIterable {
     case browser = "Browser"
     case shell = "Shell"
     case serverInfo = "Server Info"
-    case slowlog = "Slow Log"
 
     var icon: String {
         switch self {
         case .browser: return "key"
         case .shell: return "terminal"
         case .serverInfo: return "info.circle"
-        case .slowlog: return "clock.badge.exclamationmark"
         }
     }
 }
@@ -456,8 +434,6 @@ class ConnectionState: ObservableObject {
     @Published var clusterInfo: [String: String] = [:]
     @Published var clusterNodes: [RedisClusterNodeSummary] = []
     @Published var selectedServerInfoNode: RedisEndpoint?
-
-    @Published var slowLogEntries: [SlowLogEntry] = []
 
     @Published var currentView: AppView = .browser
     @Published var rightPanel: RightPanel = .welcome
@@ -1171,33 +1147,6 @@ class ConnectionState: ObservableObject {
         let minor = (versionNumber / 100) % 100
         let patch = versionNumber % 100
         return "\(major).\(minor).\(patch) (\(rawValue))"
-    }
-
-    // MARK: - Slow Log
-
-    func loadSlowLog() async {
-        guard let client = activeClient else { return }
-        do {
-            let result = try await client.send("SLOWLOG", "GET", "50")
-            var entries: [SlowLogEntry] = []
-            for item in result.arrayValues {
-                guard let arr = item?.arrayValues, arr.count >= 6 else { continue }
-                let index = arr[0]?.intValue ?? 0
-                let ts = arr[1]?.intValue ?? 0
-                let duration = arr[2]?.intValue ?? 0
-                let cmd = arr[3]?.arrayValues.compactMap { $0?.string } ?? []
-                let clientAddr = arr[5]?.string ?? ""
-                entries.append(
-                    SlowLogEntry(
-                        index: index,
-                        timestamp: Date(timeIntervalSince1970: Double(ts)),
-                        durationMicroseconds: duration,
-                        command: cmd,
-                        clientAddress: clientAddr
-                    ))
-            }
-            slowLogEntries = entries
-        } catch {}
     }
 
     // MARK: - Auto-complete
