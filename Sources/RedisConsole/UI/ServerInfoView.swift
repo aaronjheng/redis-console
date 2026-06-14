@@ -4,7 +4,9 @@ struct ServerInfoView: View {
     @EnvironmentObject var app: ConnectionState
 
     var sections: [String] {
-        app.serverInfo.keys.sorted()
+        app.serverInfo.keys
+            .filter { $0 != "Modules" }
+            .sorted()
     }
 
     private var isClusterMode: Bool {
@@ -127,26 +129,34 @@ struct ServerInfoView: View {
 
     private var serverInfoList: some View {
         List {
+            capabilitiesSection
+
             ForEach(sections, id: \.self) { section in
                 Section(header: Text(section)) {
                     if let items = app.serverInfo[section] {
                         ForEach(items.keys.sorted(), id: \.self) { key in
-                            HStack {
-                                Text(key)
-                                    .font(.system(.caption, design: .monospaced))
-                                    .foregroundStyle(.secondary)
-                                    .frame(minWidth: 160, alignment: .leading)
-                                Spacer()
-                                Text(items[key] ?? "")
-                                    .font(.system(.caption, design: .monospaced))
-                                    .textSelection(.enabled)
-                            }
+                            infoRow(key, items[key] ?? "")
                         }
                     }
                 }
             }
         }
         .listStyle(.inset)
+    }
+
+    private var capabilitiesSection: some View {
+        Section(header: Text("Capabilities")) {
+            infoRow("redis", app.serverInfo["Server"]?["redis_version"] ?? "-")
+            infoRow("mode", capabilityMode)
+
+            if app.serverCapabilities.isEmpty {
+                infoRow("modules", "No modules loaded")
+            } else {
+                ForEach(app.serverCapabilities) { capability in
+                    capabilityRow(capability)
+                }
+            }
+        }
     }
 
     private var selectedNode: RedisClusterNodeSummary? {
@@ -158,6 +168,51 @@ struct ServerInfoView: View {
         app.clusterNodes
             .filter { $0.role == .primary }
             .reduce(0) { $0 + $1.coveredSlotCount }
+    }
+
+    private var capabilityMode: String {
+        if isClusterMode || app.serverInfo["Cluster"]?["cluster_enabled"] == "1" {
+            return "Cluster"
+        }
+        return "Standalone"
+    }
+
+    private func infoRow(_ key: String, _ value: String) -> some View {
+        HStack {
+            Text(key)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 160, alignment: .leading)
+            Spacer()
+            Text(value)
+                .font(.system(.caption, design: .monospaced))
+                .textSelection(.enabled)
+        }
+    }
+
+    private func capabilityRow(_ capability: RedisServerCapability) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(capability.name)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.primary)
+                    .textSelection(.enabled)
+                Spacer()
+                Text(capability.version ?? "-")
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+
+            if !capability.details.isEmpty {
+                Text(capabilityDetails(capability))
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .textSelection(.enabled)
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     private func clusterNodeRow(_ node: RedisClusterNodeSummary) -> some View {
@@ -205,5 +260,9 @@ struct ServerInfoView: View {
         case .replica:
             return "Replica of \(node.replicaOf?.address ?? "-")"
         }
+    }
+
+    private func capabilityDetails(_ capability: RedisServerCapability) -> String {
+        capability.details.map { "\($0.name)=\($0.value)" }.joined(separator: " · ")
     }
 }

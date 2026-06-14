@@ -409,6 +409,21 @@ enum RightPanel: Equatable {
     }
 }
 
+struct RedisServerCapability: Identifiable, Hashable {
+    let name: String
+    let version: String?
+    let details: [RedisServerCapabilityDetail]
+
+    var id: String {
+        ([name, version ?? ""] + details.map { "\($0.name)=\($0.value)" }).joined(separator: "|")
+    }
+}
+
+struct RedisServerCapabilityDetail: Hashable {
+    let name: String
+    let value: String
+}
+
 @MainActor
 class ConnectionState: ObservableObject {
     let id = UUID()
@@ -437,6 +452,7 @@ class ConnectionState: ObservableObject {
     @Published var shellInput: String = ""
 
     @Published var serverInfo: [String: [String: String]] = [:]
+    @Published var serverCapabilities: [RedisServerCapability] = []
     @Published var clusterInfo: [String: String] = [:]
     @Published var clusterNodes: [RedisClusterNodeSummary] = []
     @Published var selectedServerInfoNode: RedisEndpoint?
@@ -477,6 +493,7 @@ class ConnectionState: ObservableObject {
         connectionError = nil
         pendingConnection = resolvedConfig
         serverInfo = [:]
+        serverCapabilities = []
         clusterInfo = [:]
         clusterNodes = []
         selectedServerInfoNode = nil
@@ -610,6 +627,7 @@ class ConnectionState: ObservableObject {
         selectedKey = nil
         keyDetail = ""
         serverInfo = [:]
+        serverCapabilities = []
         clusterInfo = [:]
         clusterNodes = []
         selectedServerInfoNode = nil
@@ -932,6 +950,7 @@ class ConnectionState: ObservableObject {
         guard let client = activeClient else { return }
         do {
             let result: RESPValue
+            var capabilityEndpoint: RedisEndpoint?
 
             if let clusterClient = client as? RedisClusterClient {
                 let nodes = try await clusterClient.clusterNodes()
@@ -955,8 +974,10 @@ class ConnectionState: ObservableObject {
 
                 guard let selectedEndpoint else {
                     serverInfo = [:]
+                    serverCapabilities = []
                     return
                 }
+                capabilityEndpoint = selectedEndpoint
                 result = try await clusterClient.send(["INFO"], to: selectedEndpoint)
             } else {
                 clusterInfo = [:]
@@ -970,6 +991,10 @@ class ConnectionState: ObservableObject {
             }
             guard let infoStr = result.string else { return }
             serverInfo = parseServerInfo(infoStr)
+            let infoCapabilities = parseInfoModuleCapabilities(infoStr)
+            serverCapabilities =
+                await loadModuleCapabilities(using: client, endpoint: capabilityEndpoint)
+                ?? infoCapabilities
         } catch {}
     }
 
@@ -1007,6 +1032,145 @@ class ConnectionState: ObservableObject {
             values[key] = String(trimmed[valueStart...])
         }
         return values
+    }
+
+    private func loadModuleCapabilities(
+        using client: any RedisSession,
+        endpoint: RedisEndpoint?
+    ) async -> [RedisServerCapability]? {
+        do {
+            let result: RESPValue
+            if let clusterClient = client as? RedisClusterClient, let endpoint {
+                result = try await clusterClient.send(["MODULE", "LIST"], to: endpoint)
+            } else {
+                result = try await client.send("MODULE", "LIST")
+            }
+
+            if case .error = result {
+                return nil
+            }
+            return parseModuleListCapabilities(result)
+        } catch {
+            return nil
+        }
+    }
+
+    private func parseModuleListCapabilities(_ value: RESPValue) -> [RedisServerCapability] {
+        value.arrayValues.enumerated().compactMap { index, moduleValue in
+            guard let values = moduleValue?.arrayValues, !values.isEmpty else { return nil }
+
+            var fields: [(String, String)] = []
+            var fieldIndex = 0
+            while fieldIndex + 1 < values.count {
+                guard let key = values[fieldIndex]?.string?.lowercased() else {
+                    fieldIndex += 2
+                    continue
+                }
+                fields.append((key, moduleValueDisplayString(values[fieldIndex + 1])))
+                fieldIndex += 2
+            }
+
+            return moduleCapability(from: fields, fallbackName: "Module \(index + 1)")
+        }
+    }
+
+    private func parseInfoModuleCapabilities(_ infoStr: String) -> [RedisServerCapability] {
+        var capabilities: [RedisServerCapability] = []
+        var isModulesSection = false
+
+        for line in infoStr.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasPrefix("#") {
+                isModulesSection = String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces) == "Modules"
+                continue
+            }
+
+            guard isModulesSection, trimmed.hasPrefix("module:") else { continue }
+            let payload = String(trimmed.dropFirst("module:".count))
+            let fields = splitModuleInfoFields(payload).compactMap { field -> (String, String)? in
+                guard let separatorIndex = field.firstIndex(of: "=") else { return nil }
+                let key = String(field[..<separatorIndex]).trimmingCharacters(in: .whitespaces)
+                let valueStart = field.index(after: separatorIndex)
+                let value = String(field[valueStart...]).trimmingCharacters(in: .whitespaces)
+                return key.isEmpty ? nil : (key.lowercased(), value)
+            }
+            guard !fields.isEmpty else { continue }
+            capabilities.append(moduleCapability(from: fields, fallbackName: "Module \(capabilities.count + 1)"))
+        }
+
+        return capabilities
+    }
+
+    private func moduleCapability(
+        from fields: [(String, String)],
+        fallbackName: String
+    ) -> RedisServerCapability {
+        let name = fields.first { $0.0 == "name" }?.1 ?? fallbackName
+        let rawVersion = fields.first { $0.0 == "ver" }?.1
+        let details = fields.compactMap { key, value -> RedisServerCapabilityDetail? in
+            guard key != "name", key != "ver" else { return nil }
+            return RedisServerCapabilityDetail(name: key, value: value)
+        }
+
+        return RedisServerCapability(
+            name: name,
+            version: rawVersion.map(moduleVersionDisplayString),
+            details: details
+        )
+    }
+
+    private func splitModuleInfoFields(_ payload: String) -> [String] {
+        var fields: [String] = []
+        var current = ""
+        var bracketDepth = 0
+
+        for character in payload {
+            switch character {
+            case "[":
+                bracketDepth += 1
+                current.append(character)
+            case "]":
+                bracketDepth = max(0, bracketDepth - 1)
+                current.append(character)
+            case "," where bracketDepth == 0:
+                fields.append(current)
+                current = ""
+            default:
+                current.append(character)
+            }
+        }
+
+        if !current.isEmpty {
+            fields.append(current)
+        }
+        return fields
+    }
+
+    private func moduleValueDisplayString(_ value: RESPValue?) -> String {
+        guard let value else { return "-" }
+        switch value {
+        case .array(let values):
+            return "[" + values.map(moduleValueDisplayString).joined(separator: ", ") + "]"
+        case .bulkString(let string):
+            return string ?? "(nil)"
+        case .simpleString(let string):
+            return string
+        case .integer(let integer):
+            return "\(integer)"
+        default:
+            return value.displayString
+        }
+    }
+
+    private func moduleVersionDisplayString(_ rawValue: String) -> String {
+        guard let versionNumber = Int(rawValue), versionNumber >= 10_000 else {
+            return rawValue
+        }
+
+        let major = versionNumber / 10_000
+        let minor = (versionNumber / 100) % 100
+        let patch = versionNumber % 100
+        return "\(major).\(minor).\(patch) (\(rawValue))"
     }
 
     // MARK: - Slow Log
