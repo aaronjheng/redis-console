@@ -215,8 +215,7 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
     }
 
     func disconnect() {
-        isConnected = false
-        Task { await state.disconnectAll() }
+        disconnect(publishState: true)
     }
 
     func send(_ args: String...) async throws -> RESPValue {
@@ -470,17 +469,32 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
     }
 
     deinit {
-        disconnect()
+        disconnect(publishState: false)
+    }
+
+    private func disconnect(publishState: Bool) {
+        if publishState {
+            isConnected = false
+        }
+        let state = state
+        Task { await state.disconnectAll() }
     }
 }
 
 private actor RedisClusterState {
+    private struct PendingConnection {
+        let generation: Int
+        let client: RedisClient
+        let task: Task<RedisClient, Error>
+    }
+
     private var clients: [RedisEndpoint: RedisClient] = [:]
-    private var connectionTasks: [RedisEndpoint: Task<RedisClient, Error>] = [:]
+    private var connectionTasks: [RedisEndpoint: PendingConnection] = [:]
     private var slotOwners = [RedisEndpoint?](repeating: nil, count: RedisClusterHash.slotCount)
     private var primaries: [RedisEndpoint] = []
     private var slotRanges: [RedisClusterSlotRange] = []
     private var fallbackEndpoint: RedisEndpoint?
+    private var generation = 0
 
     func client(
         for endpoint: RedisEndpoint,
@@ -490,27 +504,52 @@ private actor RedisClusterState {
             return client
         }
 
-        if let task = connectionTasks[endpoint] {
-            return try await task.value
+        if let pendingConnection = connectionTasks[endpoint] {
+            return try await resolveConnectionTask(pendingConnection, endpoint: endpoint)
         }
 
+        let client = makeClient(endpoint)
         let task = Task {
-            let client = makeClient(endpoint)
             try await client.connect()
             return client
         }
-        connectionTasks[endpoint] = task
+        let pendingConnection = PendingConnection(generation: generation, client: client, task: task)
+        connectionTasks[endpoint] = pendingConnection
 
+        return try await resolveConnectionTask(pendingConnection, endpoint: endpoint)
+    }
+
+    private func resolveConnectionTask(
+        _ pendingConnection: PendingConnection,
+        endpoint: RedisEndpoint
+    ) async throws -> RedisClient {
         do {
-            let client = try await task.value
+            let client = try await pendingConnection.task.value
+            guard pendingConnection.generation == generation else {
+                clearConnectionTask(pendingConnection, endpoint: endpoint)
+                client.disconnect()
+                throw RedisError.notConnected
+            }
             clients[endpoint] = client
-            connectionTasks[endpoint] = nil
+            clearConnectionTask(pendingConnection, endpoint: endpoint)
             return client
         } catch {
-            connectionTasks[endpoint] = nil
-            clients[endpoint] = nil
+            clearConnectionTask(pendingConnection, endpoint: endpoint)
+            if let client = clients[endpoint], client === pendingConnection.client {
+                clients[endpoint] = nil
+            }
             throw error
         }
+    }
+
+    private func clearConnectionTask(_ pendingConnection: PendingConnection, endpoint: RedisEndpoint) {
+        guard let current = connectionTasks[endpoint],
+            current.generation == pendingConnection.generation,
+            current.client === pendingConnection.client
+        else {
+            return
+        }
+        connectionTasks[endpoint] = nil
     }
 
     func updateTopology(_ ranges: [RedisClusterSlotRange], defaultEndpoint: RedisEndpoint) {
@@ -592,14 +631,23 @@ private actor RedisClusterState {
     }
 
     func disconnectAll() {
-        for task in connectionTasks.values {
-            task.cancel()
-        }
-        for client in clients.values {
-            client.disconnect()
-        }
+        generation += 1
+
+        let pendingConnections = Array(connectionTasks.values)
+        let connectedClients = Array(clients.values)
+
         connectionTasks.removeAll()
         clients.removeAll()
+
+        for pendingConnection in pendingConnections {
+            pendingConnection.task.cancel()
+            pendingConnection.client.disconnect()
+        }
+
+        for client in connectedClients {
+            client.disconnect()
+        }
+
         slotOwners = [RedisEndpoint?](repeating: nil, count: RedisClusterHash.slotCount)
         primaries = []
         slotRanges = []

@@ -17,9 +17,36 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         }
     }
 
+    private final class PendingCommand: @unchecked Sendable {
+        private let lock = NSLock()
+        private var continuation: CheckedContinuation<RESPValue, Error>?
+
+        init(_ continuation: CheckedContinuation<RESPValue, Error>) {
+            self.continuation = continuation
+        }
+
+        func complete(_ result: Result<RESPValue, Error>) {
+            let continuation: CheckedContinuation<RESPValue, Error>?
+            lock.lock()
+            continuation = self.continuation
+            self.continuation = nil
+            lock.unlock()
+
+            guard let continuation else { return }
+
+            switch result {
+            case .success(let value):
+                continuation.resume(returning: value)
+            case .failure(let error):
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+
     private var connection: NWConnection?
     private let queue = DispatchQueue(label: "redis.client.queue")
-    private var pendingCompletions: [(Result<RESPValue, Error>) -> Void] = []
+    private let queueKey = DispatchSpecificKey<Bool>()
+    private var pendingCompletions: [PendingCommand] = []
     private var parser = RESPParser()
 
     @Published var isConnected = false
@@ -61,6 +88,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         self.clientCertificatePath = clientCertificatePath
         self.clientKeyPath = clientKeyPath
         self.preferredProtocolVersion = preferredProtocolVersion
+        queue.setSpecific(key: queueKey, value: true)
     }
 
     func connect() async throws {
@@ -198,6 +226,11 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                         }
                     case .waiting(let error):
                         self?.lastError = error.localizedDescription
+                    case .cancelled:
+                        self?.isConnected = false
+                        if continuationState.tryMarkResumed() {
+                            continuation.resume(throwing: RedisError.notConnected)
+                        }
                     default:
                         break
                     }
@@ -209,38 +242,99 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     func disconnect() {
+        disconnect(publishState: true)
+    }
+
+    private func disconnect(publishState: Bool) {
+        let disconnectAction = {
+            self.cancelConnectionOnQueue()
+        }
+
+        if DispatchQueue.getSpecific(key: queueKey) == true {
+            disconnectAction()
+        } else {
+            queue.sync(execute: disconnectAction)
+        }
+
+        guard publishState else { return }
+        updateConnectionState(isConnected: false)
+    }
+
+    private func updateConnectionState(isConnected: Bool, lastError: String? = nil) {
+        if Thread.isMainThread {
+            self.isConnected = isConnected
+            if let lastError {
+                self.lastError = lastError
+            }
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.isConnected = isConnected
+            if let lastError {
+                self?.lastError = lastError
+            }
+        }
+    }
+
+    private func removePendingCompletion(_ completion: PendingCommand) {
+        if let index = pendingCompletions.firstIndex(where: { $0 === completion }) {
+            pendingCompletions.remove(at: index)
+        }
+    }
+
+    private func failPendingCompletion(_ completion: PendingCommand, with error: Error) {
+        removePendingCompletion(completion)
+        completion.complete(.failure(error))
+    }
+
+    private func receiveLoop() {
+        queue.async {
+            self.connection?.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
+                guard let self else { return }
+                if let data, !data.isEmpty {
+                    self.queue.async {
+                        self.parser.append(data)
+                        self.processBuffer()
+                    }
+                }
+                if error == nil && !isComplete {
+                    self.receiveLoop()
+                } else {
+                    self.queue.async {
+                        self.completePendingCommands(with: error ?? RedisError.notConnected)
+                        self.parser = RESPParser()
+                    }
+                    self.updateConnectionState(isConnected: false, lastError: error?.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func completePendingCommands(with error: Error) {
+        let pendingCompletions = pendingCompletions
+        self.pendingCompletions.removeAll()
+        for completion in pendingCompletions {
+            completion.complete(.failure(error))
+        }
+    }
+
+    private func cancelConnectionOnQueue() {
         connection?.cancel()
         connection = nil
-        isConnected = false
-        pendingCompletions.removeAll()
+        completePendingCommands(with: RedisError.notConnected)
         parser = RESPParser()
     }
 
     private func startReceiving() {
-        connection?.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, _, error in
-            guard let self = self else { return }
-            if let data = data, !data.isEmpty {
-                self.queue.async {
-                    self.parser.append(data)
-                    self.processBuffer()
-                }
-            }
-            if error == nil {
-                self.startReceiving()
-            } else {
-                Task { @MainActor in
-                    self.isConnected = false
-                    self.lastError = error?.localizedDescription
-                }
-            }
-        }
+        receiveLoop()
     }
 
     private func processBuffer() {
         while let value = parser.parse() {
             if let completion = pendingCompletions.first {
                 pendingCompletions.removeFirst()
-                completion(.success(value))
+                completion.complete(.success(value))
             }
         }
     }
@@ -250,34 +344,30 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     func send(_ args: [String]) async throws -> RESPValue {
-        guard isConnected, let connection = connection else {
+        guard isConnected else {
             throw RedisError.notConnected
         }
 
         return try await withCheckedThrowingContinuation { continuation in
             // Use negotiated protocol version for encoding
             let data = RESPEncoder.encode(args, version: negotiatedProtocolVersion)
+            let pendingCompletion = PendingCommand(continuation)
 
             self.queue.async {
-                self.pendingCompletions.append { result in
-                    switch result {
-                    case .success(let value):
-                        continuation.resume(returning: value)
-                    case .failure(let error):
-                        continuation.resume(throwing: error)
-                    }
+                guard let connection = self.connection else {
+                    pendingCompletion.complete(.failure(RedisError.notConnected))
+                    return
                 }
+
+                self.pendingCompletions.append(pendingCompletion)
 
                 connection.send(
                     content: data,
                     completion: .contentProcessed { error in
                         if let error = error {
                             self.queue.async {
-                                if !self.pendingCompletions.isEmpty {
-                                    self.pendingCompletions.removeFirst()
-                                }
+                                self.failPendingCompletion(pendingCompletion, with: error)
                             }
-                            continuation.resume(throwing: error)
                         }
                     })
             }
@@ -318,26 +408,23 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         let data = buildHelloCommand()
 
         return try await withCheckedThrowingContinuation { continuation in
+            let pendingCompletion = PendingCommand(continuation)
+
             self.queue.async {
-                self.pendingCompletions.append { result in
-                    switch result {
-                    case .success(let value):
-                        continuation.resume(returning: value)
-                    case .failure(let error):
-                        continuation.resume(throwing: error)
-                    }
+                guard let connection = self.connection else {
+                    pendingCompletion.complete(.failure(RedisError.notConnected))
+                    return
                 }
 
-                self.connection?.send(
+                self.pendingCompletions.append(pendingCompletion)
+
+                connection.send(
                     content: data,
                     completion: .contentProcessed { error in
                         if let error = error {
                             self.queue.async {
-                                if !self.pendingCompletions.isEmpty {
-                                    self.pendingCompletions.removeFirst()
-                                }
+                                self.failPendingCompletion(pendingCompletion, with: error)
                             }
-                            continuation.resume(throwing: error)
                         }
                     })
             }
@@ -358,7 +445,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     deinit {
-        disconnect()
+        disconnect(publishState: false)
     }
 }
 
