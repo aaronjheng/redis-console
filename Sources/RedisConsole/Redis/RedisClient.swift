@@ -27,6 +27,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
 
     let host: String
     let port: UInt16
+    let username: String?
     let password: String?
     let tlsEnabled: Bool
     let verifyServerCertificate: Bool
@@ -41,6 +42,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     init(
         host: String,
         port: UInt16,
+        username: String? = nil,
         password: String? = nil,
         tlsEnabled: Bool = false,
         verifyServerCertificate: Bool = true,
@@ -51,6 +53,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     ) {
         self.host = host
         self.port = port
+        self.username = username
         self.password = password
         self.tlsEnabled = tlsEnabled
         self.verifyServerCertificate = verifyServerCertificate
@@ -77,10 +80,12 @@ class RedisClient: ObservableObject, @unchecked Sendable {
 
                             if !caCertificatePath.isEmpty {
                                 let url = URL(fileURLWithPath: caCertificatePath)
-                                if let caData = try? Data(contentsOf: url),
-                                    let caCert = SecCertificateCreateWithData(nil, caData as CFData) {
-                                    SecTrustSetAnchorCertificates(secTrust, [caCert] as CFArray)
-                                    SecTrustSetAnchorCertificatesOnly(secTrust, false)
+                                if let caData = try? Data(contentsOf: url) {
+                                    let caCert = SecCertificateCreateWithData(nil, caData as CFData)
+                                    if let caCert {
+                                        SecTrustSetAnchorCertificates(secTrust, [caCert] as CFArray)
+                                        SecTrustSetAnchorCertificatesOnly(secTrust, false)
+                                    }
                                 }
                             }
 
@@ -102,20 +107,24 @@ class RedisClient: ObservableObject, @unchecked Sendable {
 
                 if !clientCertificatePath.isEmpty && !clientKeyPath.isEmpty {
                     let certURL = URL(fileURLWithPath: clientCertificatePath)
-                    if let certData = try? Data(contentsOf: certURL),
-                        let cert = SecCertificateCreateWithData(nil, certData as CFData) {
-                        var identity: SecIdentity?
-                        let status = SecIdentityCreateWithCertificate(
-                            nil,
-                            cert,
-                            &identity
-                        )
-                        if status == errSecSuccess, let identity,
-                            let secIdentity = sec_identity_create(identity) {
-                            sec_protocol_options_set_local_identity(
-                                tlsOptions.securityProtocolOptions,
-                                secIdentity
+                    if let certData = try? Data(contentsOf: certURL) {
+                        let cert = SecCertificateCreateWithData(nil, certData as CFData)
+                        if let cert {
+                            var identity: SecIdentity?
+                            let status = SecIdentityCreateWithCertificate(
+                                nil,
+                                cert,
+                                &identity
                             )
+                            if status == errSecSuccess, let identity {
+                                let secIdentity = sec_identity_create(identity)
+                                if let secIdentity {
+                                    sec_protocol_options_set_local_identity(
+                                        tlsOptions.securityProtocolOptions,
+                                        secIdentity
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -155,11 +164,19 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                                     try await self?.performResp3Handshake()
                                 }
 
-                                // Authenticate if password provided
-                                if let pw = self?.password, !pw.isEmpty {
-                                    let result = try await self?.send("AUTH", pw) ?? .null
+                                // Authenticate if credentials are provided.
+                                let user = self?.username ?? ""
+                                let pw = self?.password ?? ""
+                                if !user.isEmpty || !pw.isEmpty {
+                                    let result: RESPValue
+                                    if !user.isEmpty {
+                                        result = try await self?.send("AUTH", user, pw) ?? .null
+                                    } else {
+                                        result = try await self?.send("AUTH", pw) ?? .null
+                                    }
                                     if case .error(let msg) = result {
                                         self?.lastError = msg
+                                        throw RedisError.commandError(msg)
                                     }
                                 }
 

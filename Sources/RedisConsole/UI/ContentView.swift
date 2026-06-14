@@ -655,7 +655,7 @@ struct ConnectingView: View {
                 Text("Connecting to \(pending.name)")
                     .font(.title3)
                     .bold()
-                Text(pending.host + ":" + String(pending.port))
+                Text(pending.address)
                     .foregroundStyle(.secondary)
                     .font(.system(.body, design: .monospaced))
             }
@@ -691,8 +691,10 @@ struct ConnectionDetailView: View {
     @EnvironmentObject var store: AppStore
 
     @State private var name = ""
+    @State private var connectionMode: RedisConnectionMode = .standalone
     @State private var host = ""
     @State private var port: UInt16 = 6379
+    @State private var seedNodesText = ""
     @State private var username = ""
     @State private var password = ""
     @State private var testResult: String?
@@ -721,8 +723,10 @@ struct ConnectionDetailView: View {
                             Button("Import") {
                                 if let config = RedisConnectionConfig.parseURI(uriInput) {
                                     name = config.name
+                                    connectionMode = config.mode
                                     host = config.host
                                     port = config.port
+                                    seedNodesText = additionalSeedNodesText(for: config)
                                     username = config.username
                                     password = config.password
                                     tls = config.tls
@@ -735,6 +739,11 @@ struct ConnectionDetailView: View {
 
                     Section(isNew ? "New Connection" : "Connection") {
                         TextField("Name", text: $name)
+                        Picker("Mode", selection: $connectionMode) {
+                            ForEach(RedisConnectionMode.allCases, id: \.self) { mode in
+                                Text(mode.title).tag(mode)
+                            }
+                        }
                         TextField("Host", text: $host)
                         HStack {
                             Text("Port")
@@ -754,6 +763,13 @@ struct ConnectionDetailView: View {
                         }
                         TextField("Username", text: $username)
                         SecureField("Password", text: $password)
+                    }
+
+                    if connectionMode == .cluster {
+                        Section("Redis Cluster") {
+                            TextField("Additional Seeds", text: $seedNodesText, axis: .vertical)
+                                .lineLimit(2...4)
+                        }
                     }
 
                     Section("TLS/SSL") {
@@ -829,8 +845,10 @@ struct ConnectionDetailView: View {
                     Button("Save") {
                         var updated = config
                         updated.name = name
+                        updated.mode = connectionMode
                         updated.host = host
                         updated.port = port
+                        updated.seedNodes = connectionMode == .cluster ? configuredSeedNodes() : []
                         updated.username = username
                         updated.password = password
                         updated.ssh = ssh
@@ -871,8 +889,10 @@ struct ConnectionDetailView: View {
     private func createConfig() -> RedisConnectionConfig {
         var config = RedisConnectionConfig(
             name: name.isEmpty ? host : name,
+            mode: connectionMode,
             host: host,
             port: port,
+            seedNodes: connectionMode == .cluster ? configuredSeedNodes() : [],
             username: username
         )
         config.password = password
@@ -888,8 +908,10 @@ struct ConnectionDetailView: View {
             isCreatingNew = false
             cachedConfig = config
             name = config.name
+            connectionMode = config.mode
             host = config.host
             port = config.port
+            seedNodesText = additionalSeedNodesText(for: config)
             username = config.username
             password = config.password
             ssh = config.ssh
@@ -898,14 +920,29 @@ struct ConnectionDetailView: View {
             isCreatingNew = true
             cachedConfig = nil
             name = "localhost"
+            connectionMode = .standalone
             host = "127.0.0.1"
             port = 6379
+            seedNodesText = ""
             username = ""
             password = ""
             ssh = SSHConfig()
             tls = TLSConfig()
         default: break
         }
+    }
+
+    private func configuredSeedNodes() -> [RedisEndpoint] {
+        let primary = RedisEndpoint(host: host.trimmingCharacters(in: .whitespacesAndNewlines), port: port)
+        return RedisEndpoint.unique([primary] + RedisEndpoint.parseList(seedNodesText))
+    }
+
+    private func additionalSeedNodesText(for config: RedisConnectionConfig) -> String {
+        let primary = RedisEndpoint(host: config.host, port: config.port)
+        return config.effectiveSeedNodes
+            .filter { $0 != primary }
+            .map(\.address)
+            .joined(separator: "\n")
     }
 
     @ViewBuilder
@@ -923,14 +960,14 @@ struct ConnectionDetailView: View {
 
     func testConnection() async {
         AppLogger.info(
-            "test connection requested redis=\(host):\(port) "
+            "test connection requested mode=\(connectionMode.rawValue) redis=\(host):\(port) "
                 + "sshEnabled=\(ssh.enabled) tlsEnabled=\(tls.enabled) "
                 + "ssh=\(ssh.host):\(ssh.port) user=\(ssh.user)",
             category: "ConnectionTest"
         )
         isTesting = true
         testResult = nil
-        var client: RedisClient?
+        var client: (any RedisSession)?
         var tunnel: SSHTunnel?
         defer {
             client?.disconnect()
@@ -940,6 +977,12 @@ struct ConnectionDetailView: View {
 
         var connectHost = host
         var connectPort = port
+
+        if connectionMode == .cluster && ssh.enabled {
+            testResult = "Failed - Redis Cluster over SSH tunnel is not supported yet"
+            AppLogger.error("test failed: cluster ssh unsupported", category: "ConnectionTest")
+            return
+        }
 
         if ssh.enabled {
             let trimmedSSHHost = ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -978,16 +1021,32 @@ struct ConnectionDetailView: View {
             }
         }
 
-        let createdClient = RedisClient(
-            host: connectHost,
-            port: connectPort,
-            password: password.isEmpty ? nil : password,
-            tlsEnabled: tls.enabled,
-            verifyServerCertificate: tls.verifyServerCertificate,
-            caCertificatePath: tls.caCertificatePath,
-            clientCertificatePath: tls.clientCertificatePath,
-            clientKeyPath: tls.clientKeyPath
-        )
+        let createdClient: any RedisSession
+        switch connectionMode {
+        case .standalone:
+            createdClient = RedisClient(
+                host: connectHost,
+                port: connectPort,
+                username: username.isEmpty ? nil : username,
+                password: password.isEmpty ? nil : password,
+                tlsEnabled: tls.enabled,
+                verifyServerCertificate: tls.verifyServerCertificate,
+                caCertificatePath: tls.caCertificatePath,
+                clientCertificatePath: tls.clientCertificatePath,
+                clientKeyPath: tls.clientKeyPath
+            )
+        case .cluster:
+            createdClient = RedisClusterClient(
+                seedNodes: configuredSeedNodes(),
+                username: username.isEmpty ? nil : username,
+                password: password.isEmpty ? nil : password,
+                tlsEnabled: tls.enabled,
+                verifyServerCertificate: tls.verifyServerCertificate,
+                caCertificatePath: tls.caCertificatePath,
+                clientCertificatePath: tls.clientCertificatePath,
+                clientKeyPath: tls.clientKeyPath
+            )
+        }
         client = createdClient
         do {
             try await withTimeout(10, context: "Redis connection") {
@@ -996,6 +1055,9 @@ struct ConnectionDetailView: View {
             let start = Date()
             let pong = try await withTimeout(5, context: "Redis PING") {
                 try await createdClient.send("PING")
+            }
+            if case .error(let message) = pong {
+                throw RedisError.commandError(message)
             }
             let elapsed = Date().timeIntervalSince(start) * 1000
             testResult = "OK — \(pong.string ?? "PONG") (\(String(format: "%.2f", elapsed)) ms)"

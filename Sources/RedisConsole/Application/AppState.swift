@@ -24,8 +24,10 @@ struct TLSConfig: Codable, Hashable {
 struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var id = UUID()
     var name: String
+    var mode: RedisConnectionMode = .standalone
     var host: String
     var port: UInt16 = 6379
+    var seedNodes: [RedisEndpoint] = []
 
     var username: String = ""
     var password: String = ""
@@ -36,8 +38,10 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id
         case name
+        case mode
         case host
         case port
+        case seedNodes
         case username
         case ssh
         case password
@@ -46,13 +50,30 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
 
     static let `default` = RedisConnectionConfig(name: "localhost", host: "127.0.0.1")
 
-    var address: String { "\(host):\(port)" }
+    var effectiveSeedNodes: [RedisEndpoint] {
+        let primary = RedisEndpoint(host: host, port: port)
+        if seedNodes.isEmpty {
+            return [primary]
+        }
+        return RedisEndpoint.unique(seedNodes)
+    }
+
+    var address: String {
+        switch mode {
+        case .standalone:
+            return "\(host):\(port)"
+        case .cluster:
+            return effectiveSeedNodes.map(\.address).joined(separator: ", ")
+        }
+    }
 
     init(
         id: UUID = UUID(),
         name: String,
+        mode: RedisConnectionMode = .standalone,
         host: String,
         port: UInt16 = 6379,
+        seedNodes: [RedisEndpoint] = [],
         username: String = "",
         password: String = "",
         ssh: SSHConfig = SSHConfig(),
@@ -60,8 +81,10 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     ) {
         self.id = id
         self.name = name
+        self.mode = mode
         self.host = host
         self.port = port
+        self.seedNodes = seedNodes
         self.username = username
         self.password = password
         self.ssh = ssh
@@ -90,8 +113,10 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
 
         return RedisConnectionConfig(
             name: host,
+            mode: .standalone,
             host: host,
             port: port,
+            seedNodes: [],
             username: username,
             password: password,
             tls: TLSConfig(enabled: useTLS)
@@ -102,8 +127,10 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         name = try container.decode(String.self, forKey: .name)
+        mode = try container.decodeIfPresent(RedisConnectionMode.self, forKey: .mode) ?? .standalone
         host = try container.decode(String.self, forKey: .host)
         port = try container.decodeIfPresent(UInt16.self, forKey: .port) ?? 6379
+        seedNodes = try container.decodeIfPresent([RedisEndpoint].self, forKey: .seedNodes) ?? []
         username = try container.decodeIfPresent(String.self, forKey: .username) ?? ""
         password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
         ssh = try container.decodeIfPresent(SSHConfig.self, forKey: .ssh) ?? SSHConfig()
@@ -114,8 +141,10 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
+        try container.encode(mode, forKey: .mode)
         try container.encode(host, forKey: .host)
         try container.encode(port, forKey: .port)
+        try container.encode(seedNodes, forKey: .seedNodes)
         try container.encode(username, forKey: .username)
         try container.encode(ssh, forKey: .ssh)
         try container.encode(tls, forKey: .tls)
@@ -389,7 +418,7 @@ class ConnectionState: ObservableObject {
     let id = UUID()
     weak var window: NSWindow?
 
-    @Published var activeClient: RedisClient?
+    @Published var activeClient: (any RedisSession)?
     @Published var isConnecting = false
     @Published var connectionError: String?
     @Published var selectedConnection: RedisConnectionConfig?
@@ -412,6 +441,9 @@ class ConnectionState: ObservableObject {
     @Published var shellInput: String = ""
 
     @Published var serverInfo: [String: [String: String]] = [:]
+    @Published var clusterInfo: [String: String] = [:]
+    @Published var clusterNodes: [RedisClusterNodeSummary] = []
+    @Published var selectedServerInfoNode: RedisEndpoint?
 
     @Published var slowLogEntries: [SlowLogEntry] = []
 
@@ -436,7 +468,7 @@ class ConnectionState: ObservableObject {
         let resolvedConfig = config
         AppLogger.info(
             "connect requested name=\(resolvedConfig.name) "
-                + "redis=\(resolvedConfig.host):\(resolvedConfig.port) "
+                + "mode=\(resolvedConfig.mode.rawValue) redis=\(resolvedConfig.address) "
                 + "sshEnabled=\(resolvedConfig.ssh.enabled) tlsEnabled=\(resolvedConfig.tls.enabled)",
             category: "Connection"
         )
@@ -448,13 +480,21 @@ class ConnectionState: ObservableObject {
         isConnecting = true
         connectionError = nil
         pendingConnection = resolvedConfig
+        serverInfo = [:]
+        clusterInfo = [:]
+        clusterNodes = []
+        selectedServerInfoNode = nil
 
         let task = Task { @MainActor in
             var connectHost = resolvedConfig.host
             var connectPort = resolvedConfig.port
-            var client: RedisClient?
+            var client: (any RedisSession)?
 
             do {
+                if resolvedConfig.mode == .cluster && resolvedConfig.ssh.enabled {
+                    throw RedisError.commandError("Redis Cluster over SSH tunnel is not supported yet")
+                }
+
                 if resolvedConfig.ssh.enabled {
                     let sshHost = resolvedConfig.ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
                     let sshUser = resolvedConfig.ssh.user.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -491,22 +531,38 @@ class ConnectionState: ObservableObject {
 
                 try Task.checkCancellation()
 
-                let redis = RedisClient(
-                    host: connectHost,
-                    port: connectPort,
-                    password: resolvedConfig.password.isEmpty ? nil : resolvedConfig.password,
-                    tlsEnabled: resolvedConfig.tls.enabled,
-                    verifyServerCertificate: resolvedConfig.tls.verifyServerCertificate,
-                    caCertificatePath: resolvedConfig.tls.caCertificatePath,
-                    clientCertificatePath: resolvedConfig.tls.clientCertificatePath,
-                    clientKeyPath: resolvedConfig.tls.clientKeyPath
-                )
+                let redis: any RedisSession
+                switch resolvedConfig.mode {
+                case .standalone:
+                    redis = RedisClient(
+                        host: connectHost,
+                        port: connectPort,
+                        username: resolvedConfig.username.isEmpty ? nil : resolvedConfig.username,
+                        password: resolvedConfig.password.isEmpty ? nil : resolvedConfig.password,
+                        tlsEnabled: resolvedConfig.tls.enabled,
+                        verifyServerCertificate: resolvedConfig.tls.verifyServerCertificate,
+                        caCertificatePath: resolvedConfig.tls.caCertificatePath,
+                        clientCertificatePath: resolvedConfig.tls.clientCertificatePath,
+                        clientKeyPath: resolvedConfig.tls.clientKeyPath
+                    )
+                case .cluster:
+                    redis = RedisClusterClient(
+                        seedNodes: resolvedConfig.effectiveSeedNodes,
+                        username: resolvedConfig.username.isEmpty ? nil : resolvedConfig.username,
+                        password: resolvedConfig.password.isEmpty ? nil : resolvedConfig.password,
+                        tlsEnabled: resolvedConfig.tls.enabled,
+                        verifyServerCertificate: resolvedConfig.tls.verifyServerCertificate,
+                        caCertificatePath: resolvedConfig.tls.caCertificatePath,
+                        clientCertificatePath: resolvedConfig.tls.clientCertificatePath,
+                        clientKeyPath: resolvedConfig.tls.clientKeyPath
+                    )
+                }
                 client = redis
 
                 try await withTimeout(10, context: "Redis connection") {
                     try await redis.connect()
                 }
-                AppLogger.info("redis connected \(connectHost):\(connectPort)", category: "Connection")
+                AppLogger.info("redis connected mode=\(resolvedConfig.mode.rawValue) \(resolvedConfig.address)", category: "Connection")
 
                 try Task.checkCancellation()
 
@@ -558,6 +614,9 @@ class ConnectionState: ObservableObject {
         selectedKey = nil
         keyDetail = ""
         serverInfo = [:]
+        clusterInfo = [:]
+        clusterNodes = []
+        selectedServerInfoNode = nil
         shellHistory = []
     }
 
@@ -602,12 +661,10 @@ class ConnectionState: ObservableObject {
                 var iterations = 0
                 let maxIterations = scanAll ? 1000 : 1
                 repeat {
-                    let result = try await client.send("SCAN", scanCursor, "MATCH", keyFilter, "COUNT", "1000")
-                    let arr = result.arrayValues
-                    guard arr.count >= 2 else { break }
-                    scanCursor = arr[0]?.string ?? "0"
+                    let result = try await client.scan(cursor: scanCursor, match: keyFilter, count: 1000)
+                    scanCursor = result.nextCursor
                     hasMoreKeys = scanCursor != "0"
-                    let newKeyNames = arr[1]?.arrayValues.compactMap { $0?.string } ?? []
+                    let newKeyNames = result.keys
                     let existingKeys = Set(keys.map { $0.key })
                     let newEntries = newKeyNames.filter { !existingKeys.contains($0) }.map {
                         RedisKeyEntry(key: $0, type: "", ttl: nil, size: nil)
@@ -878,24 +935,82 @@ class ConnectionState: ObservableObject {
     func loadServerInfo() async {
         guard let client = activeClient else { return }
         do {
-            let result = try await client.send("INFO")
-            guard let infoStr = result.string else { return }
-            var sections: [String: [String: String]] = [:]
-            var currentSection = ""
-            for line in infoStr.components(separatedBy: "\n") {
-                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed.hasPrefix("#") {
-                    currentSection = String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces)
-                    sections[currentSection] = [:]
-                } else if trimmed.contains(":") {
-                    let parts = trimmed.components(separatedBy: ":")
-                    if parts.count >= 2 {
-                        sections[currentSection]?[parts[0]] = parts.dropFirst().joined(separator: ":")
+            let result: RESPValue
+
+            if let clusterClient = client as? RedisClusterClient {
+                let nodes = try await clusterClient.clusterNodes()
+                clusterNodes = nodes
+
+                let selectedEndpoint =
+                    selectedServerInfoNode.flatMap { endpoint in
+                        nodes.contains { $0.endpoint == endpoint } ? endpoint : nil
                     }
+                    ?? nodes.first(where: { $0.role == .primary })?.endpoint
+                    ?? nodes.first?.endpoint
+                selectedServerInfoNode = selectedEndpoint
+
+                let clusterInfoResult = try await clusterClient.send(["CLUSTER", "INFO"])
+                if case .error(let message) = clusterInfoResult {
+                    throw RedisError.commandError(message)
                 }
+                if let clusterInfoString = clusterInfoResult.string {
+                    clusterInfo = parseFlatInfo(clusterInfoString)
+                }
+
+                guard let selectedEndpoint else {
+                    serverInfo = [:]
+                    return
+                }
+                result = try await clusterClient.send(["INFO"], to: selectedEndpoint)
+            } else {
+                clusterInfo = [:]
+                clusterNodes = []
+                selectedServerInfoNode = nil
+                result = try await client.send("INFO")
             }
-            serverInfo = sections
+
+            if case .error(let message) = result {
+                throw RedisError.commandError(message)
+            }
+            guard let infoStr = result.string else { return }
+            serverInfo = parseServerInfo(infoStr)
         } catch {}
+    }
+
+    func selectServerInfoNode(_ endpoint: RedisEndpoint) async {
+        selectedServerInfoNode = endpoint
+        await loadServerInfo()
+    }
+
+    private func parseServerInfo(_ infoStr: String) -> [String: [String: String]] {
+        var sections: [String: [String: String]] = [:]
+        var currentSection = ""
+        for line in infoStr.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasPrefix("#") {
+                currentSection = String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces)
+                sections[currentSection] = [:]
+            } else if let separatorIndex = trimmed.firstIndex(of: ":") {
+                let key = String(trimmed[..<separatorIndex])
+                let valueStart = trimmed.index(after: separatorIndex)
+                sections[currentSection]?[key] = String(trimmed[valueStart...])
+            }
+        }
+        return sections
+    }
+
+    private func parseFlatInfo(_ infoStr: String) -> [String: String] {
+        var values: [String: String] = [:]
+        for line in infoStr.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#"), let separatorIndex = trimmed.firstIndex(of: ":") else {
+                continue
+            }
+            let key = String(trimmed[..<separatorIndex])
+            let valueStart = trimmed.index(after: separatorIndex)
+            values[key] = String(trimmed[valueStart...])
+        }
+        return values
     }
 
     // MARK: - Slow Log
