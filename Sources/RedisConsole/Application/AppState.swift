@@ -51,11 +51,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     static let `default` = RedisConnectionConfig(name: "localhost", host: "127.0.0.1")
 
     var effectiveSeedNodes: [RedisEndpoint] {
-        let primary = RedisEndpoint(host: host, port: port)
-        if seedNodes.isEmpty {
-            return [primary]
-        }
-        return RedisEndpoint.unique(seedNodes)
+        [RedisEndpoint(host: host, port: port)]
     }
 
     var address: String {

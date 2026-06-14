@@ -699,7 +699,6 @@ struct ConnectionDetailView: View {
     @State private var connectionMode: RedisConnectionMode = .standalone
     @State private var host = ""
     @State private var port: UInt16 = 6379
-    @State private var seedNodesText = ""
     @State private var username = ""
     @State private var password = ""
     @State private var testResult: String?
@@ -731,7 +730,6 @@ struct ConnectionDetailView: View {
                                     connectionMode = config.mode
                                     host = config.host
                                     port = config.port
-                                    seedNodesText = additionalSeedNodesText(for: config)
                                     username = config.username
                                     password = config.password
                                     tls = config.tls
@@ -768,13 +766,6 @@ struct ConnectionDetailView: View {
                         }
                         TextField("Username", text: $username)
                         SecureField("Password", text: $password)
-                    }
-
-                    if connectionMode == .cluster {
-                        Section("Redis Cluster") {
-                            TextField("Additional Seeds", text: $seedNodesText, axis: .vertical)
-                                .lineLimit(2...4)
-                        }
                     }
 
                     Section("TLS/SSL") {
@@ -853,7 +844,7 @@ struct ConnectionDetailView: View {
                         updated.mode = connectionMode
                         updated.host = host
                         updated.port = port
-                        updated.seedNodes = connectionMode == .cluster ? configuredSeedNodes() : []
+                        updated.seedNodes = []
                         updated.username = username
                         updated.password = password
                         updated.ssh = ssh
@@ -897,7 +888,7 @@ struct ConnectionDetailView: View {
             mode: connectionMode,
             host: host,
             port: port,
-            seedNodes: connectionMode == .cluster ? configuredSeedNodes() : [],
+            seedNodes: [],
             username: username
         )
         config.password = password
@@ -916,7 +907,6 @@ struct ConnectionDetailView: View {
             connectionMode = config.mode
             host = config.host
             port = config.port
-            seedNodesText = additionalSeedNodesText(for: config)
             username = config.username
             password = config.password
             ssh = config.ssh
@@ -928,26 +918,12 @@ struct ConnectionDetailView: View {
             connectionMode = .standalone
             host = "127.0.0.1"
             port = 6379
-            seedNodesText = ""
             username = ""
             password = ""
             ssh = SSHConfig()
             tls = TLSConfig()
         default: break
         }
-    }
-
-    private func configuredSeedNodes() -> [RedisEndpoint] {
-        let primary = RedisEndpoint(host: host.trimmingCharacters(in: .whitespacesAndNewlines), port: port)
-        return RedisEndpoint.unique([primary] + RedisEndpoint.parseList(seedNodesText))
-    }
-
-    private func additionalSeedNodesText(for config: RedisConnectionConfig) -> String {
-        let primary = RedisEndpoint(host: config.host, port: config.port)
-        return config.effectiveSeedNodes
-            .filter { $0 != primary }
-            .map(\.address)
-            .joined(separator: "\n")
     }
 
     @ViewBuilder
@@ -1042,7 +1018,7 @@ struct ConnectionDetailView: View {
             )
         case .cluster:
             createdClient = RedisClusterClient(
-                seedNodes: configuredSeedNodes(),
+                seedNodes: [RedisEndpoint(host: connectHost, port: connectPort)],
                 username: username.isEmpty ? nil : username,
                 password: password.isEmpty ? nil : password,
                 tlsEnabled: tls.enabled,
