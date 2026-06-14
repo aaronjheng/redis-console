@@ -5,6 +5,7 @@ struct BrowserView: View {
     @State private var searchText = ""
     @State private var typeFilter = ""
     @State private var showingAddKey = false
+    @State private var keyPendingDeletion: RedisKeyEntry?
     @State private var newKeyName = ""
     @State private var newKeyType = "string"
     @State private var newKeyValue = ""
@@ -130,7 +131,7 @@ struct BrowserView: View {
                         KeyRow(entry: entry)
                             .contextMenu {
                                 Button("Delete", role: .destructive) {
-                                    Task { await app.deleteKey(entry) }
+                                    keyPendingDeletion = entry
                                 }
                                 Divider()
                                 Button("Copy Key") {
@@ -203,6 +204,32 @@ struct BrowserView: View {
                 },
                 onCancel: { showingAddKey = false }
             )
+        }
+        .confirmationDialog(
+            "Delete Key?",
+            isPresented: Binding(
+                get: { keyPendingDeletion != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        keyPendingDeletion = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let key = keyPendingDeletion {
+                Button("Delete", role: .destructive) {
+                    Task { await app.deleteKey(key) }
+                    keyPendingDeletion = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                keyPendingDeletion = nil
+            }
+        } message: {
+            if let key = keyPendingDeletion {
+                Text("This permanently deletes \(key.key).")
+            }
         }
     }
 
@@ -305,6 +332,7 @@ struct KeyDetailView: View {
     @State private var showingAddZSetMember = false
     @State private var newZSetMember = ""
     @State private var newZSetScore = ""
+    @State private var keyPendingDeletion: RedisKeyEntry?
 
     enum ListPosition {
         case head, tail
@@ -486,6 +514,32 @@ struct KeyDetailView: View {
                 Spacer()
             }
         }
+        .confirmationDialog(
+            "Delete Key?",
+            isPresented: Binding(
+                get: { keyPendingDeletion != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        keyPendingDeletion = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let key = keyPendingDeletion {
+                Button("Delete", role: .destructive) {
+                    Task { await app.deleteKey(key) }
+                    keyPendingDeletion = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                keyPendingDeletion = nil
+            }
+        } message: {
+            if let key = keyPendingDeletion {
+                Text("This permanently deletes \(key.key).")
+            }
+        }
     }
 
     private func headerView(key: RedisKeyEntry) -> some View {
@@ -542,7 +596,7 @@ struct KeyDetailView: View {
             .help("Set 1h TTL")
 
             Button(role: .destructive) {
-                Task { await app.deleteKey(key) }
+                keyPendingDeletion = key
             } label: {
                 Image(systemName: "trash")
             }
