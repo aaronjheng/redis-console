@@ -478,15 +478,20 @@ struct TabSidebarView: View {
                         .font(.system(size: 8))
                     VStack(alignment: .leading, spacing: 1) {
                         if let selectedConnection = conn.selectedConnection {
-                            Text(selectedConnection.name)
-                                .font(.headline)
-                                .lineLimit(1)
+                            HStack(spacing: AppTheme.spacingSmall) {
+                                Text(selectedConnection.name)
+                                    .font(.headline)
+                                    .lineLimit(1)
+                                Spacer(minLength: AppTheme.spacing)
+                                ConnectionModeBadge(mode: selectedConnection.mode)
+                            }
                             Text(selectedConnection.address)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(1)
                         }
                     }
-                    Spacer()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     Button {
                         conn.disconnect()
                     } label: {
@@ -1077,14 +1082,51 @@ struct ConnectionRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(config.name)
-                .font(.body)
+            HStack(spacing: AppTheme.spacingSmall) {
+                Text(config.name)
+                    .font(.body)
+                    .lineLimit(1)
+                Spacer(minLength: AppTheme.spacing)
+                ConnectionModeBadge(mode: config.mode)
+            }
             Text(config.address)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
+    }
+}
+
+private struct ConnectionModeBadge: View {
+    let mode: RedisConnectionMode
+
+    var body: some View {
+        Text(mode.title)
+            .font(.caption2.weight(.medium))
+            .lineLimit(1)
+            .foregroundStyle(foregroundStyle)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(backgroundStyle)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall, style: .continuous))
+            .fixedSize(horizontal: true, vertical: false)
+            .help("Connection mode: \(mode.title)")
+    }
+
+    private var foregroundStyle: Color {
+        switch mode {
+        case .standalone: return .secondary
+        case .cluster: return .accentColor
+        }
+    }
+
+    private var backgroundStyle: Color {
+        switch mode {
+        case .standalone: return Color.secondary.opacity(0.12)
+        case .cluster: return Color.accentColor.opacity(0.14)
+        }
     }
 }
 

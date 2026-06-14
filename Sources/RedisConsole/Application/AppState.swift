@@ -385,15 +385,15 @@ class AppStore: ObservableObject {
 enum AppView: String, CaseIterable {
     case browser = "Browser"
     case shell = "Shell"
-    case slowlog = "Slow Log"
     case serverInfo = "Server Info"
+    case slowlog = "Slow Log"
 
     var icon: String {
         switch self {
         case .browser: return "key"
         case .shell: return "terminal"
-        case .slowlog: return "clock.badge.exclamationmark"
         case .serverInfo: return "info.circle"
+        case .slowlog: return "clock.badge.exclamationmark"
         }
     }
 }
