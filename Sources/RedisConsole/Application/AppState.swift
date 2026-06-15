@@ -176,11 +176,16 @@ class RedisKeyEntry: Identifiable, Hashable {
     }
 
     var ttlText: String {
-        guard let ttl = ttl, ttl > 0 else { return "No expiry" }
+        guard let ttl = ttl, ttl > 0 else { return "No limit" }
         if ttl > 86400 { return "\(ttl / 86400)d" }
         if ttl > 3600 { return "\(ttl / 3600)h" }
         if ttl > 60 { return "\(ttl / 60)m" }
         return "\(ttl)s"
+    }
+
+    var hasExpiry: Bool {
+        guard let ttl else { return false }
+        return ttl > 0
     }
 
     func hash(into hasher: inout Hasher) {
@@ -1079,6 +1084,32 @@ class ConnectionState: ObservableObject {
     }
 
     // MARK: - Key Editing
+
+    func updateKeyTTL(_ entry: RedisKeyEntry, ttl: Int) async {
+        guard let client = activeClient else { return }
+
+        do {
+            if ttl == -1 {
+                let currentTTL = try? await client.send("TTL", entry.key)
+                if (currentTTL?.intValue ?? -1) > 0 {
+                    _ = try await client.send("PERSIST", entry.key)
+                }
+                entry.ttl = -1
+            } else {
+                let result = try await client.send("EXPIRE", entry.key, "\(ttl)")
+                if result.intValue == 0 || ttl == 0 {
+                    keys.removeAll { $0.key == entry.key }
+                    if selectedKey?.key == entry.key {
+                        clearSelectedKeyDetail()
+                    }
+                    return
+                }
+                entry.ttl = ttl
+            }
+        } catch {
+            keyDetail = "Error: \(error.localizedDescription)"
+        }
+    }
 
     func updateStringValue(key: String, value: String) async {
         guard let client = activeClient else { return }

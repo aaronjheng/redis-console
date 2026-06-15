@@ -592,6 +592,11 @@ struct KeyDetailView: View {
     @State private var newZSetMember = ""
     @State private var newZSetScore = ""
     @State private var keyPendingDeletion: RedisKeyEntry?
+    @State private var showingTTLEditor = false
+    @State private var ttlInput = ""
+    @State private var ttlEditorError: String?
+
+    private let maxTTL = 2_147_483_647
 
     enum ListPosition {
         case head, tail
@@ -799,6 +804,10 @@ struct KeyDetailView: View {
                 Text("This permanently deletes \(key.key).")
             }
         }
+        .onChange(of: app.selectedKey?.key) {
+            showingTTLEditor = false
+            ttlEditorError = nil
+        }
     }
 
     private func headerView(key: RedisKeyEntry) -> some View {
@@ -810,8 +819,37 @@ struct KeyDetailView: View {
                 HStack(spacing: 12) {
                     Label(key.type, systemImage: key.icon)
                         .foregroundStyle(.secondary)
-                    Label(key.ttlText, systemImage: "clock")
-                        .foregroundStyle(key.ttl == nil ? .secondary : Color.orange)
+                    Button {
+                        beginEditingTTL(for: key)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                            Text("TTL: \(key.ttlText)")
+                            Image(systemName: "pencil")
+                                .imageScale(.small)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(key.hasExpiry ? Color.orange : .secondary)
+                    .disabled(app.isLoadingDetail)
+                    .accessibilityLabel("Edit TTL, \(key.ttlText)")
+                    .help("Edit TTL")
+                    .popover(isPresented: $showingTTLEditor, arrowEdge: .bottom) {
+                        KeyTTLEditorPopover(
+                            keyName: key.key,
+                            ttlInput: $ttlInput,
+                            error: ttlEditorError,
+                            onSave: { saveTTL(for: key) },
+                            onCancel: cancelTTLEdit
+                        )
+                        .onChange(of: ttlInput) { _, newValue in
+                            let validatedValue = validatedTTLInput(newValue)
+                            if validatedValue != newValue {
+                                ttlInput = validatedValue
+                            }
+                            ttlEditorError = nil
+                        }
+                    }
                 }
                 .font(.caption)
             }
@@ -842,18 +880,6 @@ struct KeyDetailView: View {
             .disabled(app.isLoadingDetail)
             .help("Copy key")
 
-            Button {
-                Task {
-                    _ = try? await app.activeClient?.send("EXPIRE", key.key, "3600")
-                    await app.selectKey(key)
-                }
-            } label: {
-                Image(systemName: "clock.badge.plus")
-            }
-            .buttonStyle(.borderless)
-            .disabled(app.isLoadingDetail)
-            .help("Set 1h TTL")
-
             Button(role: .destructive) {
                 keyPendingDeletion = key
             } label: {
@@ -864,6 +890,43 @@ struct KeyDetailView: View {
             .help("Delete key")
         }
         .padding()
+    }
+
+    private func beginEditingTTL(for key: RedisKeyEntry) {
+        if let ttl = key.ttl, ttl > 0 {
+            ttlInput = "\(ttl)"
+        } else {
+            ttlInput = ""
+        }
+        ttlEditorError = nil
+        showingTTLEditor = true
+    }
+
+    private func cancelTTLEdit() {
+        ttlEditorError = nil
+        showingTTLEditor = false
+    }
+
+    private func saveTTL(for key: RedisKeyEntry) {
+        let ttl = ttlInput.isEmpty ? -1 : Int(ttlInput)
+        guard let ttl else {
+            ttlEditorError = "Enter a valid TTL."
+            return
+        }
+
+        showingTTLEditor = false
+        ttlEditorError = nil
+        Task {
+            await app.updateKeyTTL(key, ttl: ttl)
+        }
+    }
+
+    private func validatedTTLInput(_ value: String) -> String {
+        let digits = value.filter(\.isNumber)
+        guard let ttl = Int(digits) else {
+            return digits
+        }
+        return min(ttl, maxTTL).description
     }
 
     private var genericRowsView: some View {
@@ -901,6 +964,53 @@ struct KeyDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
         }
+    }
+}
+
+private struct KeyTTLEditorPopover: View {
+    let keyName: String
+    @Binding var ttlInput: String
+    let error: String?
+    let onSave: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(keyName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 8) {
+                Text("TTL")
+                    .font(.headline)
+                TextField("No limit", text: $ttlInput)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 140)
+                    .onSubmit(onSave)
+                Text("s")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let error {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel", action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+                Button("Save", action: onSave)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
+        .frame(width: 260)
     }
 }
 
