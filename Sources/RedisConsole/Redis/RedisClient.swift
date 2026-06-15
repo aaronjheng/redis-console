@@ -675,4 +675,9 @@ enum RedisError: LocalizedError {
         case .commandError(let msg): return "Command error: \(msg)"
         }
     }
+
+    var isUnknownCommand: Bool {
+        guard case .commandError(let message) = self else { return false }
+        return message.localizedCaseInsensitiveContains("unknown command")
+    }
 }

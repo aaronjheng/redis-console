@@ -156,12 +156,14 @@ class RedisKeyEntry: Identifiable, Hashable {
     var type: String
     var ttl: Int?
     var size: Int?
+    var length: Int?
 
-    init(key: String, type: String, ttl: Int?, size: Int?) {
+    init(key: String, type: String, ttl: Int?, size: Int?, length: Int? = nil) {
         self.key = key
         self.type = type
         self.ttl = ttl
         self.size = size
+        self.length = length
     }
 
     var icon: String {
@@ -197,14 +199,83 @@ class RedisKeyEntry: Identifiable, Hashable {
     }
 }
 
+enum KeyDetailZSetOrder: String, CaseIterable, Identifiable {
+    case ascending
+    case descending
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .ascending: return "Ascending"
+        case .descending: return "Descending"
+        }
+    }
+}
+
+enum StringValueFormat: String, CaseIterable, Identifiable, Codable {
+    case raw
+    case unicode
+    case json
+    case ascii
+    case hex
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .raw: return "Raw"
+        case .unicode: return "Unicode"
+        case .json: return "JSON"
+        case .ascii: return "ASCII"
+        case .hex: return "Hex"
+        }
+    }
+}
+
+struct BulkDeletePreview: Identifiable {
+    let id = UUID()
+    let pattern: String
+    let typeFilter: String
+    let keys: [String]
+    let scannedCount: Int
+    let didReachLimit: Bool
+    let duration: TimeInterval
+
+    var typeText: String {
+        typeFilter.isEmpty ? "all types" : typeFilter
+    }
+}
+
+struct BulkDeleteResult {
+    let processed: Int
+    let deleted: Int
+    let usedFallback: Bool
+    let duration: TimeInterval
+}
+
 // MARK: - Shell History
 
-struct ShellHistoryEntry: Identifiable {
-    let id = UUID()
+struct ShellHistoryEntry: Identifiable, Codable {
+    let id: UUID
     let command: String
     let result: String
     let timestamp: Date
     let isError: Bool
+
+    init(
+        id: UUID = UUID(),
+        command: String,
+        result: String,
+        timestamp: Date,
+        isError: Bool
+    ) {
+        self.id = id
+        self.command = command
+        self.result = result
+        self.timestamp = timestamp
+        self.isError = isError
+    }
 }
 
 // MARK: - Profiler
@@ -650,13 +721,35 @@ class ConnectionState: ObservableObject {
     @Published var keyDetailRows: [(String, String)] = []
     @Published var keyType: String = ""
     @Published var valueSize: Int?
+    @Published var keyDetailLength: Int?
+    @Published var keyDetailError: String?
+    @Published var keyDetailOffset = 0
+    @Published var keyDetailCursor: String = "0"
+    @Published var keyDetailHasMoreRows = false
+    @Published var keyDetailSearchText = ""
+    @Published var keyDetailZSetOrder: KeyDetailZSetOrder = .ascending
     @Published var isLoadingKeys = false
     @Published var isLoadingDetail = false
     @Published var scanCursor: String = "0"
     @Published var hasMoreKeys = true
     @Published var keyFilter: String = "*"
-    @Published var keyTypeFilter: String = ""
+    @Published var keyTypeFilter: String = "" {
+        didSet { saveBrowserPreferences() }
+    }
     @Published var keyScanCount = 500
+    @Published var keyScanReturnedCount = 0
+    @Published var keyScanIterationCount = 0
+    @Published var keyScanLimitReached = false
+    @Published var isNamespaceGroupingEnabled = false {
+        didSet { saveBrowserPreferences() }
+    }
+    @Published var namespaceSeparator = ":" {
+        didSet { saveBrowserPreferences() }
+    }
+    @Published var stringValueFormat: StringValueFormat = .json {
+        didSet { saveBrowserPreferences() }
+    }
+    @Published var keyDetailLastRefreshedAt: Date?
 
     @Published var shellHistory: [ShellHistoryEntry] = []
     @Published var shellInput: String = ""
@@ -688,13 +781,97 @@ class ConnectionState: ObservableObject {
     private var profilerClusterTunnelManager: SSHClusterTunnelManager?
     private var profilerGeneration = 0
     private let profilerMaxEntries = 2_000
-    private let keyTypePipelineBatchSize = 100
+    private let keyMetadataPipelineBatchSize = 50
+    private let keyDetailPageSize = 100
+    private let keyPatternScanIterationLimit = 1_000
+    private let bulkDeleteScanLimit = 20_000
+    private let bulkDeleteBatchSize = 100
+    private let shellHistoryLimit = 200
+    private static let browserPreferencesKey = "com.redisconsole.browserPreferences"
+    private static let shellHistoryKeyPrefix = "com.redisconsole.shellHistory."
+
+    private struct BrowserPreferences: Codable {
+        var keyTypeFilter: String
+        var isNamespaceGroupingEnabled: Bool
+        var namespaceSeparator: String
+        var stringValueFormat: StringValueFormat
+    }
+
+    init() {
+        loadBrowserPreferences()
+    }
 
     var windowTitle: String {
         if let conn = selectedConnection {
             return conn.name
         }
         return "Redis Console"
+    }
+
+    private func loadBrowserPreferences() {
+        guard
+            let data = UserDefaults.standard.data(forKey: Self.browserPreferencesKey),
+            let preferences = try? JSONDecoder().decode(BrowserPreferences.self, from: data)
+        else {
+            return
+        }
+
+        keyTypeFilter = preferences.keyTypeFilter
+        isNamespaceGroupingEnabled = preferences.isNamespaceGroupingEnabled
+        namespaceSeparator = normalizedNamespaceSeparator(preferences.namespaceSeparator)
+        stringValueFormat = preferences.stringValueFormat
+    }
+
+    private func saveBrowserPreferences() {
+        let preferences = BrowserPreferences(
+            keyTypeFilter: keyTypeFilter,
+            isNamespaceGroupingEnabled: isNamespaceGroupingEnabled,
+            namespaceSeparator: normalizedNamespaceSeparator(namespaceSeparator),
+            stringValueFormat: stringValueFormat
+        )
+        guard let data = try? JSONEncoder().encode(preferences) else { return }
+        UserDefaults.standard.set(data, forKey: Self.browserPreferencesKey)
+    }
+
+    private func normalizedNamespaceSeparator(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = trimmed.first else { return ":" }
+        return String(first)
+    }
+
+    func updateNamespaceSeparator(_ value: String) {
+        namespaceSeparator = normalizedNamespaceSeparator(value)
+    }
+
+    private func shellHistoryKey(for connection: RedisConnectionConfig) -> String {
+        Self.shellHistoryKeyPrefix + connection.id.uuidString
+    }
+
+    private func loadShellHistory(for connection: RedisConnectionConfig) {
+        guard
+            let data = UserDefaults.standard.data(forKey: shellHistoryKey(for: connection)),
+            let decoded = try? JSONDecoder().decode([ShellHistoryEntry].self, from: data)
+        else {
+            shellHistory = []
+            return
+        }
+        shellHistory = Array(decoded.suffix(shellHistoryLimit))
+    }
+
+    private func saveShellHistory(for connection: RedisConnectionConfig) {
+        let limitedHistory = Array(shellHistory.suffix(shellHistoryLimit))
+        shellHistory = limitedHistory
+        guard let data = try? JSONEncoder().encode(limitedHistory) else { return }
+        UserDefaults.standard.set(data, forKey: shellHistoryKey(for: connection))
+    }
+
+    private func appendShellHistory(_ entry: ShellHistoryEntry) {
+        shellHistory.append(entry)
+        if shellHistory.count > shellHistoryLimit {
+            shellHistory.removeFirst(shellHistory.count - shellHistoryLimit)
+        }
+        guard let selectedConnection else { return }
+        saveShellHistory(for: selectedConnection)
     }
 
     // MARK: - Connect / Disconnect
@@ -821,6 +998,7 @@ class ConnectionState: ObservableObject {
 
                 activeClient = redis
                 selectedConnection = resolvedConfig
+                loadShellHistory(for: resolvedConfig)
                 isConnecting = false
                 pendingConnection = nil
                 await loadServerInfo()
@@ -915,6 +1093,9 @@ class ConnectionState: ObservableObject {
             keys = []
             clearSelectedKeyDetail()
             hasMoreKeys = true
+            keyScanReturnedCount = 0
+            keyScanIterationCount = 0
+            keyScanLimitReached = false
         }
         isLoadingKeys = true
 
@@ -926,27 +1107,33 @@ class ConnectionState: ObservableObject {
                 if let typeName = typeResult?.string, typeName != "none" {
                     let entry = RedisKeyEntry(key: keyFilter, type: typeName, ttl: nil, size: nil)
                     keys = [entry]
+                    keyScanReturnedCount = 1
+                    loadKeyMetadata(for: [entry])
                 } else {
                     keys = []
+                    keyScanReturnedCount = 0
                     clearSelectedKeyDetail()
                 }
                 hasMoreKeys = false
             } else {
                 let scanAll = keyFilter != "*"
                 var iterations = 0
-                let maxIterations = scanAll ? 1000 : 1
+                let maxIterations = scanAll ? keyPatternScanIterationLimit : 1
                 repeat {
                     let result = try await client.scan(cursor: scanCursor, match: keyFilter, count: keyScanCount)
                     scanCursor = result.nextCursor
                     hasMoreKeys = scanCursor != "0"
                     let newKeyNames = result.keys
+                    keyScanReturnedCount += newKeyNames.count
                     let existingKeys = Set(keys.map { $0.key })
                     let newEntries = newKeyNames.filter { !existingKeys.contains($0) }.map {
                         RedisKeyEntry(key: $0, type: "", ttl: nil, size: nil)
                     }
                     keys.append(contentsOf: newEntries)
                     iterations += 1
+                    keyScanIterationCount += 1
                 } while hasMoreKeys && iterations < maxIterations && (scanAll || keys.isEmpty)
+                keyScanLimitReached = hasMoreKeys && iterations >= maxIterations
             }
         } catch {
             connectionError = error.localizedDescription
@@ -958,7 +1145,10 @@ class ConnectionState: ObservableObject {
         isLoadingKeys = false
 
         if isPattern {
-            loadTypes()
+            let entriesNeedingMetadata = keys.filter { entry in
+                entry.type.isEmpty || entry.ttl == nil || entry.size == nil || entry.length == nil
+            }
+            loadKeyMetadata(for: entriesNeedingMetadata)
         }
 
         if shouldRestart {
@@ -972,110 +1162,549 @@ class ConnectionState: ObservableObject {
         keyDetailRows = []
         keyType = ""
         valueSize = nil
+        keyDetailLength = nil
+        keyDetailError = nil
+        keyDetailOffset = 0
+        keyDetailCursor = "0"
+        keyDetailHasMoreRows = false
+        keyDetailSearchText = ""
+        keyDetailLastRefreshedAt = nil
         isLoadingDetail = false
     }
 
-    private func loadTypes() {
+    private func loadKeyMetadata(for entries: [RedisKeyEntry]) {
         guard let client = activeClient, client.isConnected else { return }
-        let keyNames = keys.filter { $0.type.isEmpty }.map(\.key)
-        Task {
-            for batchStart in stride(from: 0, to: keyNames.count, by: keyTypePipelineBatchSize) {
-                let batchEnd = min(batchStart + keyTypePipelineBatchSize, keyNames.count)
-                let batchKeys = Array(keyNames[batchStart..<batchEnd])
-                let commands = batchKeys.map { ["TYPE", $0] }
-                guard let typeResults = try? await client.sendPipeline(commands) else {
-                    continue
+        guard !entries.isEmpty else { return }
+
+        Task { @MainActor in
+            for batchStart in stride(from: 0, to: entries.count, by: keyMetadataPipelineBatchSize) {
+                let batchEnd = min(batchStart + keyMetadataPipelineBatchSize, entries.count)
+                let batchEntries = Array(entries[batchStart..<batchEnd])
+                let commands = batchEntries.flatMap { entry in
+                    [
+                        ["TYPE", entry.key],
+                        ["TTL", entry.key],
+                        ["MEMORY", "USAGE", entry.key, "SAMPLES", "0"],
+                    ]
                 }
 
-                for (keyName, typeResult) in zip(batchKeys, typeResults) {
-                    guard let typeName = typeResult.string else {
-                        continue
-                    }
-                    if let entry = keys.first(where: { $0.key == keyName }) {
-                        entry.type = typeName
-                    }
+                do {
+                    let metadataResults = try await client.sendPipeline(commands)
+                    applyMetadataResults(metadataResults, to: batchEntries)
+                    await loadKeyLengths(for: batchEntries, using: client)
+                } catch {
+                    connectionError = error.localizedDescription
                 }
             }
+        }
+    }
+
+    private func applyMetadataResults(_ results: [RESPValue], to entries: [RedisKeyEntry]) {
+        for (entryIndex, entry) in entries.enumerated() {
+            let resultIndex = entryIndex * 3
+            guard resultIndex + 2 < results.count else { continue }
+
+            if let typeName = results[resultIndex].string {
+                if typeName == "none" {
+                    keys.removeAll { $0.key == entry.key }
+                    if selectedKey?.key == entry.key {
+                        clearSelectedKeyDetail()
+                    }
+                    continue
+                }
+                entry.type = typeName
+            }
+            entry.ttl = results[resultIndex + 1].intValue
+            entry.size = results[resultIndex + 2].intValue
+
+            if selectedKey?.key == entry.key {
+                keyType = entry.type
+                valueSize = entry.size
+            }
+        }
+    }
+
+    private func loadKeyLengths(for entries: [RedisKeyEntry], using client: any RedisSession) async {
+        var commands: [[String]] = []
+        var targets: [RedisKeyEntry] = []
+        for entry in entries {
+            guard let command = keyLengthCommand(type: entry.type, key: entry.key) else { continue }
+            commands.append(command)
+            targets.append(entry)
+        }
+        guard !commands.isEmpty else { return }
+
+        do {
+            let lengthResults = try await client.sendPipeline(commands)
+            for (entry, result) in zip(targets, lengthResults) {
+                guard let length = result.intValue else { continue }
+                entry.length = length
+                if selectedKey?.key == entry.key {
+                    keyDetailLength = length
+                }
+            }
+        } catch {
+            connectionError = error.localizedDescription
+        }
+    }
+
+    private func keyLengthCommand(type: String, key: String) -> [String]? {
+        switch type {
+        case "string": return ["STRLEN", key]
+        case "list": return ["LLEN", key]
+        case "hash": return ["HLEN", key]
+        case "set": return ["SCARD", key]
+        case "zset": return ["ZCARD", key]
+        default: return nil
         }
     }
 
     func selectKey(_ entry: RedisKeyEntry) async {
         selectedKey = entry
-        isLoadingDetail = true
-        keyDetail = ""
-        keyDetailRows = []
-        valueSize = nil
+        keyDetailSearchText = ""
+        keyDetailZSetOrder = .ascending
+        resetKeyDetailPaging(clearRows: true)
+        await loadSelectedKeyDetail(append: false)
+    }
+
+    func loadMoreSelectedKeyDetailRows() async {
+        guard keyDetailHasMoreRows, !isLoadingDetail else { return }
+        await loadSelectedKeyDetail(append: true)
+    }
+
+    func searchSelectedKeyDetail(_ searchText: String) async {
+        keyDetailSearchText = searchText
+        resetKeyDetailPaging(clearRows: true)
+        await loadSelectedKeyDetail(append: false)
+    }
+
+    func updateSelectedZSetOrder(_ order: KeyDetailZSetOrder) async {
+        guard keyDetailZSetOrder != order else { return }
+        keyDetailZSetOrder = order
+        resetKeyDetailPaging(clearRows: true)
+        await loadSelectedKeyDetail(append: false)
+    }
+
+    private func loadSelectedKeyDetail(append: Bool) async {
+        guard let entry = selectedKey else { return }
         guard let client = activeClient else { return }
+
+        isLoadingDetail = true
+        keyDetailError = nil
+        if !append {
+            keyDetail = ""
+            keyDetailRows = []
+            valueSize = nil
+            keyDetailLength = nil
+        }
+
         do {
             let typeResult = try await client.send("TYPE", entry.key)
+            try throwIfRedisError(typeResult)
             keyType = typeResult.string ?? "string"
+            guard keyType != "none" else {
+                keys.removeAll { $0.key == entry.key }
+                clearSelectedKeyDetail()
+                return
+            }
             entry.type = keyType
+            keyDetailLength = await loadLength(for: entry.key, type: keyType, using: client)
+            entry.length = keyDetailLength
+
             switch keyType {
             case "string":
                 let value = try await client.send("GET", entry.key)
+                try throwIfRedisError(value)
                 keyDetail = value.string ?? "(nil)"
+                keyDetailHasMoreRows = false
             case "list":
-                let value = try await client.send("LRANGE", entry.key, "0", "99")
-                let items = value.arrayValues.enumerated().compactMap { index, value -> (String, String)? in
-                    guard let stringValue = value?.string else { return nil }
-                    return ("\(index)", stringValue)
-                }
-                keyDetailRows = items
+                try await loadListDetail(key: entry.key, append: append, using: client)
             case "hash":
-                let value = try await client.send("HGETALL", entry.key)
-                let rows = value.keyValuePairs.compactMap { pair -> (String, String)? in
-                    guard let field = pair.key.string else { return nil }
-                    return (field, pair.value.string ?? pair.value.displayString)
-                }
-                keyDetailRows = rows
+                try await loadHashDetail(key: entry.key, append: append, using: client)
             case "set":
-                let value = try await client.send("SMEMBERS", entry.key)
-                keyDetailRows = value.arrayValues.enumerated().compactMap { index, value in
-                    guard let stringValue = value?.string else { return nil }
-                    return ("[\(index)]", stringValue)
-                }
+                try await loadSetDetail(key: entry.key, append: append, using: client)
             case "zset":
-                let value = try await client.send("ZRANGE", entry.key, "0", "99", "WITHSCORES")
-                let items = value.arrayValues
-                var rows: [(String, String)] = []
-                var itemIndex = 0
-                while itemIndex + 1 < items.count {
-                    let member = items[itemIndex]?.string ?? ""
-                    let score = items[itemIndex + 1]?.string ?? ""
-                    rows.append((score, member))
-                    itemIndex += 2
-                }
-                keyDetailRows = rows
+                try await loadZSetDetail(key: entry.key, append: append, using: client)
             default:
                 let value = try await client.send("GET", entry.key)
+                try throwIfRedisError(value)
                 keyDetail = value.string ?? "(nil)"
+                keyDetailHasMoreRows = false
             }
 
-            let ttlResult = try? await client.send("TTL", entry.key)
-            entry.ttl = ttlResult?.intValue
-            let memResult = try? await client.send("MEMORY", "USAGE", entry.key)
-            entry.size = memResult?.intValue
-            valueSize = memResult?.intValue
+            await refreshMetadata(for: entry, using: client)
+            keyDetailLastRefreshedAt = Date()
         } catch {
-            keyDetail = "Error: \(error.localizedDescription)"
+            reportKeyOperationError(error)
         }
         isLoadingDetail = false
     }
 
+    private func resetKeyDetailPaging(clearRows: Bool) {
+        keyDetailOffset = 0
+        keyDetailCursor = "0"
+        keyDetailHasMoreRows = false
+        keyDetailError = nil
+        if clearRows {
+            keyDetailRows = []
+            keyDetail = ""
+        }
+    }
+
+    private func refreshMetadata(for entry: RedisKeyEntry, using client: any RedisSession) async {
+        do {
+            let results = try await client.sendPipeline([
+                ["TTL", entry.key],
+                ["MEMORY", "USAGE", entry.key, "SAMPLES", "0"],
+            ])
+            entry.ttl = results.first?.intValue
+            entry.size = results.dropFirst().first?.intValue
+            valueSize = entry.size
+        } catch {
+            connectionError = error.localizedDescription
+        }
+    }
+
+    private func loadLength(for key: String, type: String, using client: any RedisSession) async -> Int? {
+        guard let command = keyLengthCommand(type: type, key: key) else { return nil }
+        guard let result = try? await client.send(command) else { return nil }
+        return result.intValue
+    }
+
+    private func loadListDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+        let start = append ? keyDetailOffset : 0
+        let stop = start + keyDetailPageSize - 1
+        let value = try await client.send("LRANGE", key, "\(start)", "\(stop)")
+        try throwIfRedisError(value)
+        let rows = value.arrayValues.enumerated().compactMap { index, value -> (String, String)? in
+            guard let value else { return nil }
+            return ("\(start + index)", value.string ?? value.displayString)
+        }
+        if append {
+            keyDetailRows.append(contentsOf: rows)
+        } else {
+            keyDetailRows = rows
+        }
+        keyDetailOffset = start + rows.count
+        if let keyDetailLength {
+            keyDetailHasMoreRows = keyDetailOffset < keyDetailLength
+        } else {
+            keyDetailHasMoreRows = rows.count == keyDetailPageSize
+        }
+    }
+
+    private func loadHashDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+        var args = ["HSCAN", key, append ? keyDetailCursor : "0"]
+        if let pattern = keyDetailMatchPattern {
+            args.append(contentsOf: ["MATCH", pattern])
+        }
+        args.append(contentsOf: ["COUNT", "\(keyDetailPageSize)"])
+
+        let response = try await client.send(args)
+        let result = try parseScanValues(response, context: "HSCAN")
+        let rows = keyValueRows(from: result.values)
+        if append {
+            keyDetailRows.append(contentsOf: rows)
+        } else {
+            keyDetailRows = rows
+        }
+        keyDetailCursor = result.nextCursor
+        keyDetailHasMoreRows = result.nextCursor != "0"
+    }
+
+    private func loadSetDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+        var args = ["SSCAN", key, append ? keyDetailCursor : "0"]
+        if let pattern = keyDetailMatchPattern {
+            args.append(contentsOf: ["MATCH", pattern])
+        }
+        args.append(contentsOf: ["COUNT", "\(keyDetailPageSize)"])
+
+        let response = try await client.send(args)
+        let result = try parseScanValues(response, context: "SSCAN")
+        let baseIndex = append ? keyDetailRows.count : 0
+        let rows = result.values.enumerated().compactMap { index, value -> (String, String)? in
+            guard let value else { return nil }
+            return ("[\(baseIndex + index)]", value.string ?? value.displayString)
+        }
+        if append {
+            keyDetailRows.append(contentsOf: rows)
+        } else {
+            keyDetailRows = rows
+        }
+        keyDetailCursor = result.nextCursor
+        keyDetailHasMoreRows = result.nextCursor != "0"
+    }
+
+    private func loadZSetDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+        if keyDetailMatchPattern != nil {
+            try await loadScannedZSetDetail(key: key, append: append, using: client)
+            return
+        }
+
+        let start = append ? keyDetailOffset : 0
+        let stop = start + keyDetailPageSize - 1
+        let command = keyDetailZSetOrder == .descending ? "ZREVRANGE" : "ZRANGE"
+        let value = try await client.send(command, key, "\(start)", "\(stop)", "WITHSCORES")
+        try throwIfRedisError(value)
+        let rows = scoredRows(from: value.arrayValues)
+        if append {
+            keyDetailRows.append(contentsOf: rows)
+        } else {
+            keyDetailRows = rows
+        }
+        keyDetailOffset = start + rows.count
+        if let keyDetailLength {
+            keyDetailHasMoreRows = keyDetailOffset < keyDetailLength
+        } else {
+            keyDetailHasMoreRows = rows.count == keyDetailPageSize
+        }
+    }
+
+    private func loadScannedZSetDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+        var args = ["ZSCAN", key, append ? keyDetailCursor : "0"]
+        if let pattern = keyDetailMatchPattern {
+            args.append(contentsOf: ["MATCH", pattern])
+        }
+        args.append(contentsOf: ["COUNT", "\(keyDetailPageSize)"])
+
+        let response = try await client.send(args)
+        let result = try parseScanValues(response, context: "ZSCAN")
+        let rows = scoredRows(from: result.values)
+        if append {
+            keyDetailRows.append(contentsOf: rows)
+        } else {
+            keyDetailRows = rows
+        }
+        keyDetailCursor = result.nextCursor
+        keyDetailHasMoreRows = result.nextCursor != "0"
+    }
+
+    private var keyDetailMatchPattern: String? {
+        let trimmed = keyDetailSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if trimmed.contains("*") || trimmed.contains("?") || trimmed.contains("[") {
+            return trimmed
+        }
+        return "*\(trimmed)*"
+    }
+
+    private func parseScanValues(
+        _ response: RESPValue,
+        context: String
+    ) throws -> (nextCursor: String, values: [RESPValue?]) {
+        try throwIfRedisError(response)
+        let values = response.arrayValues
+        guard values.count >= 2, let cursor = values[0]?.string else {
+            throw RedisError.parseError("Unexpected \(context) response")
+        }
+        return (nextCursor: cursor, values: values[1]?.arrayValues ?? [])
+    }
+
+    private func keyValueRows(from values: [RESPValue?]) -> [(String, String)] {
+        var rows: [(String, String)] = []
+        var itemIndex = 0
+        while itemIndex + 1 < values.count {
+            guard let key = values[itemIndex] else {
+                itemIndex += 2
+                continue
+            }
+            let value = values[itemIndex + 1]
+            rows.append((key.string ?? key.displayString, value?.string ?? value?.displayString ?? ""))
+            itemIndex += 2
+        }
+        return rows
+    }
+
+    private func scoredRows(from values: [RESPValue?]) -> [(String, String)] {
+        var rows: [(String, String)] = []
+        var itemIndex = 0
+        while itemIndex + 1 < values.count {
+            let member = values[itemIndex]?.string ?? values[itemIndex]?.displayString ?? ""
+            let score = values[itemIndex + 1]?.string ?? values[itemIndex + 1]?.displayString ?? ""
+            rows.append((score, member))
+            itemIndex += 2
+        }
+        return rows
+    }
+
+    private func throwIfRedisError(_ value: RESPValue) throws {
+        if case .error(let message) = value {
+            throw RedisError.commandError(message)
+        }
+    }
+
+    private func reportKeyOperationError(_ error: Error) {
+        let message = error.localizedDescription
+        connectionError = message
+        keyDetailError = message
+        keyDetail = "Error: \(message)"
+    }
+
+    func previewBulkDelete(pattern: String, typeFilter: String) async throws -> BulkDeletePreview {
+        guard let client = activeClient, client.isConnected else {
+            throw RedisError.notConnected
+        }
+
+        let startedAt = Date()
+        let matchPattern = pattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "*" : pattern
+        let result = try await scanKeysForBulkAction(
+            pattern: matchPattern,
+            typeFilter: typeFilter,
+            using: client
+        )
+        return BulkDeletePreview(
+            pattern: matchPattern,
+            typeFilter: typeFilter,
+            keys: result.keys,
+            scannedCount: result.scannedCount,
+            didReachLimit: result.didReachLimit,
+            duration: Date().timeIntervalSince(startedAt)
+        )
+    }
+
+    func executeBulkDelete(_ preview: BulkDeletePreview) async throws -> BulkDeleteResult {
+        guard let client = activeClient, client.isConnected else {
+            throw RedisError.notConnected
+        }
+
+        let startedAt = Date()
+        let unlinkResult: BulkDeleteCommandResult
+        do {
+            unlinkResult = try await deleteKeys(preview.keys, command: "UNLINK", using: client)
+        } catch let error as RedisError where error.isUnknownCommand {
+            let fallbackResult = try await deleteKeys(preview.keys, command: "DEL", using: client)
+            await scanKeys(reset: true)
+            return BulkDeleteResult(
+                processed: fallbackResult.processed,
+                deleted: fallbackResult.deleted,
+                usedFallback: true,
+                duration: Date().timeIntervalSince(startedAt)
+            )
+        }
+
+        await scanKeys(reset: true)
+        return BulkDeleteResult(
+            processed: unlinkResult.processed,
+            deleted: unlinkResult.deleted,
+            usedFallback: false,
+            duration: Date().timeIntervalSince(startedAt)
+        )
+    }
+
+    private func scanKeysForBulkAction(
+        pattern: String,
+        typeFilter: String,
+        using client: any RedisSession
+    ) async throws -> BulkDeleteScanResult {
+        var cursor = "0"
+        var matchedKeys: [String] = []
+        var seenKeys: Set<String> = []
+        var scannedCount = 0
+        var iterations = 0
+
+        repeat {
+            let result = try await client.scan(cursor: cursor, match: pattern, count: keyScanCount)
+            cursor = result.nextCursor
+            iterations += 1
+            scannedCount += result.keys.count
+
+            let uniqueKeys = result.keys.filter { seenKeys.insert($0).inserted }
+            let filteredKeys =
+                typeFilter.isEmpty
+                ? uniqueKeys
+                : try await keys(uniqueKeys, matchingType: typeFilter, using: client)
+            let remainingLimit = max(0, bulkDeleteScanLimit - matchedKeys.count)
+            matchedKeys.append(contentsOf: filteredKeys.prefix(remainingLimit))
+        } while cursor != "0"
+            && iterations < keyPatternScanIterationLimit
+            && matchedKeys.count < bulkDeleteScanLimit
+
+        let didReachLimit = cursor != "0" || iterations >= keyPatternScanIterationLimit
+        return BulkDeleteScanResult(
+            keys: matchedKeys,
+            scannedCount: scannedCount,
+            didReachLimit: didReachLimit
+        )
+    }
+
+    private func keys(
+        _ keyNames: [String],
+        matchingType typeFilter: String,
+        using client: any RedisSession
+    ) async throws -> [String] {
+        guard !keyNames.isEmpty else { return [] }
+        var matchedKeys: [String] = []
+        for batchStart in stride(from: 0, to: keyNames.count, by: keyMetadataPipelineBatchSize) {
+            let batchEnd = min(batchStart + keyMetadataPipelineBatchSize, keyNames.count)
+            let batchKeys = Array(keyNames[batchStart..<batchEnd])
+            let responses = try await client.sendPipeline(batchKeys.map { ["TYPE", $0] })
+            for (key, response) in zip(batchKeys, responses) {
+                try throwIfRedisError(response)
+                if response.string == typeFilter {
+                    matchedKeys.append(key)
+                }
+            }
+        }
+        return matchedKeys
+    }
+
+    private struct BulkDeleteCommandResult {
+        let processed: Int
+        let deleted: Int
+    }
+
+    private struct BulkDeleteScanResult {
+        let keys: [String]
+        let scannedCount: Int
+        let didReachLimit: Bool
+    }
+
+    private func deleteKeys(
+        _ keyNames: [String],
+        command: String,
+        using client: any RedisSession
+    ) async throws -> BulkDeleteCommandResult {
+        var processed = 0
+        var deleted = 0
+        for batchStart in stride(from: 0, to: keyNames.count, by: bulkDeleteBatchSize) {
+            let batchEnd = min(batchStart + bulkDeleteBatchSize, keyNames.count)
+            let batchKeys = Array(keyNames[batchStart..<batchEnd])
+            let responses = try await client.sendPipeline(batchKeys.map { [command, $0] })
+            for response in responses {
+                try throwIfRedisError(response)
+                processed += 1
+                deleted += response.intValue ?? 0
+            }
+        }
+        return BulkDeleteCommandResult(processed: processed, deleted: deleted)
+    }
+
     func deleteKey(_ entry: RedisKeyEntry) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("DEL", entry.key)
-        keys.removeAll { $0.key == entry.key }
-        if selectedKey?.key == entry.key {
-            selectedKey = nil
-            keyDetail = ""
+        do {
+            let result = try await client.send("DEL", entry.key)
+            try throwIfRedisError(result)
+            keys.removeAll { $0.key == entry.key }
+            if selectedKey?.key == entry.key {
+                clearSelectedKeyDetail()
+            }
+        } catch {
+            reportKeyOperationError(error)
         }
     }
 
     func renameKey(old: String, new: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("RENAME", old, new)
-        await scanKeys(reset: true)
+        do {
+            let result = try await client.send("RENAMENX", old, new)
+            try throwIfRedisError(result)
+            guard result.intValue != 0 else {
+                throw RedisError.commandError("Key \"\(new)\" already exists")
+            }
+            await scanKeys(reset: true)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     // MARK: - Key Editing
@@ -1087,11 +1716,13 @@ class ConnectionState: ObservableObject {
             if ttl == -1 {
                 let currentTTL = try? await client.send("TTL", entry.key)
                 if (currentTTL?.intValue ?? -1) > 0 {
-                    _ = try await client.send("PERSIST", entry.key)
+                    let result = try await client.send("PERSIST", entry.key)
+                    try throwIfRedisError(result)
                 }
                 entry.ttl = -1
             } else {
                 let result = try await client.send("EXPIRE", entry.key, "\(ttl)")
+                try throwIfRedisError(result)
                 if result.intValue == 0 || ttl == 0 {
                     keys.removeAll { $0.key == entry.key }
                     if selectedKey?.key == entry.key {
@@ -1102,18 +1733,40 @@ class ConnectionState: ObservableObject {
                 entry.ttl = ttl
             }
         } catch {
-            keyDetail = "Error: \(error.localizedDescription)"
+            reportKeyOperationError(error)
         }
     }
 
     func updateStringValue(key: String, value: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("SET", key, value)
+        do {
+            let ttlResult = try await client.send("TTL", key)
+            try throwIfRedisError(ttlResult)
+            let ttl = ttlResult.intValue ?? -1
+
+            let setResult = try await client.send("SET", key, value, "XX")
+            try throwIfRedisError(setResult)
+            guard setResult.string != nil else {
+                throw RedisError.commandError("Key \"\(key)\" no longer exists")
+            }
+
+            if ttl > 0 {
+                let expireResult = try await client.send("EXPIRE", key, "\(ttl)")
+                try throwIfRedisError(expireResult)
+            }
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func addHashField(key: String, field: String, value: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("HSET", key, field, value)
+        do {
+            let result = try await client.send("HSET", key, field, value)
+            try throwIfRedisError(result)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func updateHashField(key: String, field: String, value: String) async {
@@ -1122,61 +1775,119 @@ class ConnectionState: ObservableObject {
 
     func deleteHashField(key: String, field: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("HDEL", key, field)
+        do {
+            let result = try await client.send("HDEL", key, field)
+            try throwIfRedisError(result)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func addListElement(key: String, value: String, tail: Bool = false) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send(tail ? "RPUSH" : "LPUSH", key, value)
+        do {
+            let result = try await client.send(tail ? "RPUSHX" : "LPUSHX", key, value)
+            try throwIfRedisError(result)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func updateListElement(key: String, index: Int, value: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("LSET", key, "\(index)", value)
+        do {
+            let result = try await client.send("LSET", key, "\(index)", value)
+            try throwIfRedisError(result)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
-    func deleteListElement(key: String, value: String) async {
+    func deleteListElement(key: String, index: Int) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("LREM", key, "1", value)
+        let marker = "__redis_console_delete_\(UUID().uuidString)__"
+        do {
+            let setResult = try await client.send("LSET", key, "\(index)", marker)
+            try throwIfRedisError(setResult)
+            let removeResult = try await client.send("LREM", key, "1", marker)
+            try throwIfRedisError(removeResult)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func addSetMember(key: String, member: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("SADD", key, member)
+        do {
+            let result = try await client.send("SADD", key, member)
+            try throwIfRedisError(result)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func deleteSetMember(key: String, member: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("SREM", key, member)
+        do {
+            let result = try await client.send("SREM", key, member)
+            try throwIfRedisError(result)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func addZSetMember(key: String, member: String, score: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("ZADD", key, score, member)
+        do {
+            let result = try await client.send("ZADD", key, "NX", score, member)
+            try throwIfRedisError(result)
+            guard result.intValue != 0 else {
+                throw RedisError.commandError("Sorted set member already exists")
+            }
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func updateZSetScore(key: String, member: String, score: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("ZADD", key, score, member)
+        do {
+            let currentScore = try await client.send("ZSCORE", key, member)
+            try throwIfRedisError(currentScore)
+            guard currentScore.string != nil else {
+                throw RedisError.commandError("Sorted set member no longer exists")
+            }
+
+            let result = try await client.send("ZADD", key, "XX", "CH", score, member)
+            try throwIfRedisError(result)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func deleteZSetMember(key: String, member: String) async {
         guard let client = activeClient else { return }
-        _ = try? await client.send("ZREM", key, member)
+        do {
+            let result = try await client.send("ZREM", key, member)
+            try throwIfRedisError(result)
+        } catch {
+            reportKeyOperationError(error)
+        }
     }
 
     func refreshSelectedKey() async {
         guard let selectedKey else { return }
-        await selectKey(selectedKey)
+        resetKeyDetailPaging(clearRows: true)
+        await loadSelectedKeyDetail(append: false)
     }
 
     // MARK: - Shell
 
     func executeCommand(_ input: String) async {
         guard let client = activeClient, client.isConnected else { return }
-        let parts = parseCommand(input)
-        guard !parts.isEmpty else { return }
         do {
+            let parts = try parseCommand(input)
+            guard !parts.isEmpty else { return }
             let result = try await client.send(parts)
             let entry = ShellHistoryEntry(
                 command: input,
@@ -1187,7 +1898,7 @@ class ConnectionState: ObservableObject {
                     return false
                 }()
             )
-            shellHistory.append(entry)
+            appendShellHistory(entry)
         } catch {
             let entry = ShellHistoryEntry(
                 command: input,
@@ -1195,38 +1906,68 @@ class ConnectionState: ObservableObject {
                 timestamp: Date(),
                 isError: true
             )
-            shellHistory.append(entry)
+            appendShellHistory(entry)
         }
         shellInput = ""
     }
 
-    private func parseCommand(_ input: String) -> [String] {
+    private func parseCommand(_ input: String) throws -> [String] {
         var parts: [String] = []
         var current = ""
         var inQuotes = false
+        var isEscaping = false
+        var hasToken = false
         var quoteChar: Character = "\""
 
         for char in input {
-            if char == "\"" || char == "'" {
+            if isEscaping {
+                current.append(unescapedShellCharacter(char))
+                hasToken = true
+                isEscaping = false
+            } else if char == "\\" {
+                isEscaping = true
+                hasToken = true
+            } else if char == "\"" || char == "'" {
                 if inQuotes && char == quoteChar {
                     inQuotes = false
                 } else if !inQuotes {
                     inQuotes = true
                     quoteChar = char
+                    hasToken = true
+                } else {
+                    current.append(char)
                 }
-            } else if char == " " && !inQuotes {
-                if !current.isEmpty {
+            } else if char.isWhitespace && !inQuotes {
+                if hasToken {
                     parts.append(current)
                     current = ""
+                    hasToken = false
                 }
             } else {
                 current.append(char)
+                hasToken = true
             }
         }
-        if !current.isEmpty {
+
+        if isEscaping {
+            current.append("\\")
+        }
+        if inQuotes {
+            throw RedisError.commandError("Unclosed quote in command")
+        }
+        if hasToken {
             parts.append(current)
         }
         return parts
+    }
+
+    private func unescapedShellCharacter(_ character: Character) -> Character {
+        switch character {
+        case "n": return "\n"
+        case "r": return "\r"
+        case "t": return "\t"
+        default: return character
+        }
     }
 
     // MARK: - Profiler

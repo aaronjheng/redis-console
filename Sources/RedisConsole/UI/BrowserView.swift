@@ -1,15 +1,23 @@
 import SwiftUI
 
+private func copyToPasteboard(_ value: String) {
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    pasteboard.setString(value, forType: .string)
+}
+
 struct BrowserView: View {
     @EnvironmentObject var app: ConnectionState
     @State private var searchText = ""
-    @State private var typeFilter = ""
     @State private var showingAddKey = false
     @State private var keyPendingDeletion: RedisKeyEntry?
+    @State private var bulkDeletePreview: BulkDeletePreview?
+    @State private var bulkDeleteResult: BulkDeleteResult?
+    @State private var isPreparingBulkDelete = false
+    @State private var isDeletingBulkKeys = false
     @State private var newKeyName = ""
     @State private var newKeyType = "string"
     @State private var newKeyValue = ""
-    @State private var isNamespaceGroupingEnabled = false
     @State private var expandedNamespaces: Set<String> = []
 
     private let listScanCount = 500
@@ -52,7 +60,7 @@ struct BrowserView: View {
                 .padding(8)
 
                 HStack {
-                    Picker("", selection: $typeFilter) {
+                    Picker("", selection: $app.keyTypeFilter) {
                         Text("All Types").tag("")
                         Text("String").tag("string")
                         Text("List").tag("list")
@@ -61,19 +69,31 @@ struct BrowserView: View {
                         Text("Sorted Set").tag("zset")
                     }
                     .labelsHidden()
-                    .onChange(of: typeFilter) { _, newValue in
-                        app.keyTypeFilter = newValue
-                    }
                     Spacer()
-                    Toggle("Namespaces", isOn: $isNamespaceGroupingEnabled)
+                    Toggle("Namespaces", isOn: $app.isNamespaceGroupingEnabled)
                         .toggleStyle(.switch)
                         .controlSize(.small)
-                        .onChange(of: isNamespaceGroupingEnabled) { _, isEnabled in
+                        .onChange(of: app.isNamespaceGroupingEnabled) { _, isEnabled in
                             app.keyScanCount = isEnabled ? treeScanCount : listScanCount
                             expandedNamespaces = []
                             Task { await app.scanKeys(reset: true) }
                         }
                         .help("Group keys by namespace")
+                    if app.isNamespaceGroupingEnabled {
+                        TextField(
+                            ":",
+                            text: Binding(
+                                get: { app.namespaceSeparator },
+                                set: { value in
+                                    app.updateNamespaceSeparator(value)
+                                    expandedNamespaces = []
+                                }
+                            )
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 38)
+                        .help("Namespace separator")
+                    }
                     Button {
                         app.keyScanCount = currentScanCount
                         Task { await app.scanKeys(reset: true) }
@@ -86,6 +106,26 @@ struct BrowserView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.bottom, 8)
+
+                if let error = app.connectionError {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle")
+                        Text(error)
+                            .lineLimit(2)
+                        Spacer()
+                        Button {
+                            app.connectionError = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Dismiss")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 8)
+                }
 
                 Divider()
 
@@ -147,9 +187,9 @@ struct BrowserView: View {
                     Spacer()
                 } else {
                     Group {
-                        if isNamespaceGroupingEnabled {
+                        if app.isNamespaceGroupingEnabled {
                             KeyNamespaceList(
-                                tree: KeyNamespaceTree(entries: displayedKeys),
+                                tree: KeyNamespaceTree(entries: displayedKeys, separator: app.namespaceSeparator),
                                 selectedKey: $app.selectedKey,
                                 expandedNamespaces: $expandedNamespaces,
                                 onDeleteKey: { keyPendingDeletion = $0 },
@@ -205,9 +245,23 @@ struct BrowserView: View {
                     .buttonStyle(.borderless)
                     .help("Add key")
 
+                    Button(role: .destructive) {
+                        Task { await prepareBulkDelete() }
+                    } label: {
+                        if isPreparingBulkDelete || isDeletingBulkKeys {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "trash.slash")
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(isPreparingBulkDelete || isDeletingBulkKeys || app.keys.isEmpty)
+                    .help("Bulk delete current filter")
+
                     Spacer()
 
-                    Text("\(app.keys.count) keys")
+                    Text(browserFooterText(displayedCount: displayedKeys.count))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -227,6 +281,52 @@ struct BrowserView: View {
                 },
                 onCancel: { showingAddKey = false }
             )
+        }
+        .confirmationDialog(
+            "Bulk Delete Keys?",
+            isPresented: Binding(
+                get: { bulkDeletePreview != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        bulkDeletePreview = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let preview = bulkDeletePreview {
+                Button("Delete \(preview.keys.count) Keys", role: .destructive) {
+                    Task { await executeBulkDelete(preview) }
+                    bulkDeletePreview = nil
+                }
+                .disabled(preview.keys.isEmpty)
+            }
+            Button("Cancel", role: .cancel) {
+                bulkDeletePreview = nil
+            }
+        } message: {
+            if let preview = bulkDeletePreview {
+                Text(bulkDeletePreviewMessage(preview))
+            }
+        }
+        .alert(
+            "Bulk Delete Complete",
+            isPresented: Binding(
+                get: { bulkDeleteResult != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        bulkDeleteResult = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK") {
+                bulkDeleteResult = nil
+            }
+        } message: {
+            if let result = bulkDeleteResult {
+                Text(bulkDeleteResultMessage(result))
+            }
         }
         .confirmationDialog(
             "Delete Key?",
@@ -256,6 +356,7 @@ struct BrowserView: View {
         }
         .onAppear {
             app.keyScanCount = currentScanCount
+            searchText = app.keyFilter == "*" ? "" : app.keyFilter
         }
     }
 
@@ -264,67 +365,156 @@ struct BrowserView: View {
     }
 
     private var currentScanCount: Int {
-        isNamespaceGroupingEnabled ? treeScanCount : listScanCount
+        app.isNamespaceGroupingEnabled ? treeScanCount : listScanCount
     }
 
     private func copyKeyToPasteboard(_ entry: RedisKeyEntry) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(entry.key, forType: .string)
+        copyToPasteboard(entry.key)
     }
 
     private func expandNamespaces(containing key: String) {
         var namespacePath: [String] = []
-        for namespace in KeyNamespaceTree.namespaceSegments(for: key) {
+        for namespace in KeyNamespaceTree.namespaceSegments(for: key, separator: app.namespaceSeparator) {
             namespacePath.append(namespace)
-            expandedNamespaces.insert(namespacePath.joined(separator: ":"))
+            expandedNamespaces.insert(namespacePath.joined(separator: app.namespaceSeparator))
         }
+    }
+
+    private func browserFooterText(displayedCount: Int) -> String {
+        let totalText = app.hasMoreKeys ? "total unknown" : "total \(app.keys.count)"
+        let limitText = app.keyScanLimitReached ? " · threshold reached" : ""
+        return "\(totalText) · \(app.keyScanReturnedCount) scanned · \(app.keys.count) loaded · \(displayedCount) shown\(limitText)"
+    }
+
+    private func prepareBulkDelete() async {
+        isPreparingBulkDelete = true
+        defer { isPreparingBulkDelete = false }
+
+        do {
+            let preview = try await app.previewBulkDelete(
+                pattern: app.keyFilter,
+                typeFilter: app.keyTypeFilter
+            )
+            bulkDeletePreview = preview
+        } catch {
+            app.connectionError = error.localizedDescription
+        }
+    }
+
+    private func executeBulkDelete(_ preview: BulkDeletePreview) async {
+        isDeletingBulkKeys = true
+        defer { isDeletingBulkKeys = false }
+
+        do {
+            bulkDeleteResult = try await app.executeBulkDelete(preview)
+        } catch {
+            app.connectionError = error.localizedDescription
+        }
+    }
+
+    private func bulkDeletePreviewMessage(_ preview: BulkDeletePreview) -> String {
+        var parts = [
+            "Pattern: \(preview.pattern)",
+            "Type: \(preview.typeText)",
+            "Matched: \(preview.keys.count)",
+            "Scanned: \(preview.scannedCount)",
+        ]
+        if preview.didReachLimit {
+            parts.append("Preview stopped at the scan threshold.")
+        }
+        return parts.joined(separator: "\n")
+    }
+
+    private func bulkDeleteResultMessage(_ result: BulkDeleteResult) -> String {
+        var parts = [
+            "Processed: \(result.processed)",
+            "Deleted: \(result.deleted)",
+            "Time: \(String(format: "%.2f", result.duration))s",
+        ]
+        if result.usedFallback {
+            parts.append("Used DEL fallback.")
+        }
+        return parts.joined(separator: "\n")
     }
 
     private func addKey(name: String, type: String, value: String) async {
         guard let client = app.activeClient else { return }
-        switch type {
-        case "string":
-            _ = try? await client.send("SET", name, value)
-        case "list":
-            let values = value.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
-            if !values.isEmpty {
-                _ = try? await client.send(["RPUSH", name] + values)
+        do {
+            let existsResult = try await client.send("EXISTS", name)
+            try throwIfRedisError(existsResult)
+            guard existsResult.intValue == 0 else {
+                throw RedisError.commandError("Key \"\(name)\" already exists")
             }
-        case "hash":
-            var args = ["HSET", name]
-            for line in value.split(separator: "\n", omittingEmptySubsequences: true) {
-                let parts = line.split(separator: ":", maxSplits: 1)
-                if parts.count == 2 {
-                    args.append(String(parts[0]))
-                    args.append(String(parts[1]))
+
+            switch type {
+            case "string":
+                let result = try await client.send("SET", name, value, "NX")
+                try throwIfRedisError(result)
+                guard result.string != nil else {
+                    throw RedisError.commandError("Key \"\(name)\" already exists")
+                }
+            case "list":
+                let values = value.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+                guard !values.isEmpty else {
+                    throw RedisError.commandError("List key requires at least one value")
+                }
+                let result = try await client.send(["RPUSH", name] + values)
+                try throwIfRedisError(result)
+            case "hash":
+                var args = ["HSET", name]
+                for line in value.split(separator: "\n", omittingEmptySubsequences: true) {
+                    let parts = line.split(separator: ":", maxSplits: 1)
+                    if parts.count == 2 {
+                        args.append(String(parts[0]))
+                        args.append(String(parts[1]))
+                    }
+                }
+                guard args.count > 2 else {
+                    throw RedisError.commandError("Hash key requires at least one field")
+                }
+                let result = try await client.send(args)
+                try throwIfRedisError(result)
+            case "set":
+                let members = value.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+                guard !members.isEmpty else {
+                    throw RedisError.commandError("Set key requires at least one member")
+                }
+                let result = try await client.send(["SADD", name] + members)
+                try throwIfRedisError(result)
+            case "zset":
+                var args = ["ZADD", name, "NX"]
+                for line in value.split(separator: "\n", omittingEmptySubsequences: true) {
+                    let parts = line.split(separator: ":", maxSplits: 1)
+                    if parts.count == 2 {
+                        args.append(String(parts[0]))
+                        args.append(String(parts[1]))
+                    }
+                }
+                guard args.count > 3 else {
+                    throw RedisError.commandError("Sorted set key requires at least one member")
+                }
+                let result = try await client.send(args)
+                try throwIfRedisError(result)
+            default:
+                let result = try await client.send("SET", name, value, "NX")
+                try throwIfRedisError(result)
+                guard result.string != nil else {
+                    throw RedisError.commandError("Key \"\(name)\" already exists")
                 }
             }
-            if args.count > 2 {
-                _ = try? await client.send(args)
-            }
-        case "set":
-            let members = value.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
-            if !members.isEmpty {
-                _ = try? await client.send(["SADD", name] + members)
-            }
-        case "zset":
-            var args = ["ZADD", name]
-            for line in value.split(separator: "\n", omittingEmptySubsequences: true) {
-                let parts = line.split(separator: ":", maxSplits: 1)
-                if parts.count == 2 {
-                    args.append(String(parts[0]))
-                    args.append(String(parts[1]))
-                }
-            }
-            if args.count > 2 {
-                _ = try? await client.send(args)
-            }
-        default:
-            _ = try? await client.send("SET", name, value)
+            app.connectionError = nil
+            app.keyScanCount = currentScanCount
+            await app.scanKeys(reset: true)
+        } catch {
+            app.connectionError = error.localizedDescription
+            app.keyDetailError = error.localizedDescription
         }
-        app.keyScanCount = currentScanCount
-        await app.scanKeys(reset: true)
+    }
+
+    private func throwIfRedisError(_ value: RESPValue) throws {
+        if case .error(let message) = value {
+            throw RedisError.commandError(message)
+        }
     }
 }
 
@@ -380,6 +570,7 @@ private struct KeyNamespaceList: View {
             ForEach(tree.namespaces) { namespace in
                 KeyNamespaceNodeView(
                     namespace: namespace,
+                    separator: tree.separator,
                     selectedKey: $selectedKey,
                     expandedNamespaces: $expandedNamespaces,
                     onDeleteKey: onDeleteKey,
@@ -393,6 +584,7 @@ private struct KeyNamespaceList: View {
 
 private struct KeyNamespaceNodeView: View {
     let namespace: KeyNamespaceNode
+    let separator: String
     @Binding var selectedKey: RedisKeyEntry?
     @Binding var expandedNamespaces: Set<String>
     let onDeleteKey: (RedisKeyEntry) -> Void
@@ -403,6 +595,7 @@ private struct KeyNamespaceNodeView: View {
             ForEach(namespace.children) { childNamespace in
                 KeyNamespaceNodeView(
                     namespace: childNamespace,
+                    separator: separator,
                     selectedKey: $selectedKey,
                     expandedNamespaces: $expandedNamespaces,
                     onDeleteKey: onDeleteKey,
@@ -411,7 +604,7 @@ private struct KeyNamespaceNodeView: View {
             }
 
             ForEach(namespace.keys) { entry in
-                KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key))
+                KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
                     .contextMenu {
                         Button("Delete", role: .destructive) {
                             onDeleteKey(entry)
@@ -465,29 +658,37 @@ private struct KeyNamespaceRow: View {
 private struct KeyNamespaceTree {
     let rootKeys: [RedisKeyEntry]
     let namespaces: [KeyNamespaceNode]
+    let separator: String
 
-    init(entries: [RedisKeyEntry]) {
+    init(entries: [RedisKeyEntry], separator: String) {
+        self.separator = KeyNamespaceTree.normalizedSeparator(separator)
         var root = KeyNamespaceNode.root
         for entry in entries {
-            root.insert(entry)
+            root.insert(entry, separator: self.separator)
         }
         root.sortRecursively()
         rootKeys = root.keys
         namespaces = root.children
     }
 
-    static func namespaceSegments(for key: String) -> [String] {
-        let segments = key.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
+    static func namespaceSegments(for key: String, separator: String) -> [String] {
+        let separatorCharacter = Character(normalizedSeparator(separator))
+        let segments = key.split(separator: separatorCharacter, omittingEmptySubsequences: false).map(String.init)
         guard segments.count > 1 else { return [] }
         return segments.dropLast().filter { !$0.isEmpty }
     }
 
-    static func leafName(for key: String) -> String {
-        guard let separatorIndex = key.lastIndex(of: ":") else { return key }
+    static func leafName(for key: String, separator: String) -> String {
+        let separatorCharacter = Character(normalizedSeparator(separator))
+        guard let separatorIndex = key.lastIndex(of: separatorCharacter) else { return key }
 
         let suffixStart = key.index(after: separatorIndex)
         let suffix = String(key[suffixStart...])
         return suffix.isEmpty ? key : suffix
+    }
+
+    static func normalizedSeparator(_ value: String) -> String {
+        String(value.first ?? ":")
     }
 }
 
@@ -505,8 +706,13 @@ private struct KeyNamespaceNode: Identifiable {
         keys.count + children.reduce(0) { $0 + $1.keyCount }
     }
 
-    mutating func insert(_ entry: RedisKeyEntry) {
-        insert(entry, namespaceSegments: KeyNamespaceTree.namespaceSegments(for: entry.key), segmentIndex: 0)
+    mutating func insert(_ entry: RedisKeyEntry, separator: String) {
+        insert(
+            entry,
+            namespaceSegments: KeyNamespaceTree.namespaceSegments(for: entry.key, separator: separator),
+            segmentIndex: 0,
+            separator: separator
+        )
     }
 
     mutating func sortRecursively() {
@@ -524,7 +730,8 @@ private struct KeyNamespaceNode: Identifiable {
     private mutating func insert(
         _ entry: RedisKeyEntry,
         namespaceSegments: [String],
-        segmentIndex: Int
+        segmentIndex: Int,
+        separator: String
     ) {
         guard segmentIndex < namespaceSegments.count else {
             keys.append(entry)
@@ -532,12 +739,22 @@ private struct KeyNamespaceNode: Identifiable {
         }
 
         let namespaceName = namespaceSegments[segmentIndex]
-        let namespaceID = id.isEmpty ? namespaceName : "\(id):\(namespaceName)"
+        let namespaceID = id.isEmpty ? namespaceName : "\(id)\(separator)\(namespaceName)"
         if let childIndex = children.firstIndex(where: { $0.id == namespaceID }) {
-            children[childIndex].insert(entry, namespaceSegments: namespaceSegments, segmentIndex: segmentIndex + 1)
+            children[childIndex].insert(
+                entry,
+                namespaceSegments: namespaceSegments,
+                segmentIndex: segmentIndex + 1,
+                separator: separator
+            )
         } else {
             var child = KeyNamespaceNode(id: namespaceID, name: namespaceName)
-            child.insert(entry, namespaceSegments: namespaceSegments, segmentIndex: segmentIndex + 1)
+            child.insert(
+                entry,
+                namespaceSegments: namespaceSegments,
+                segmentIndex: segmentIndex + 1,
+                separator: separator
+            )
             children.append(child)
         }
     }
@@ -595,6 +812,8 @@ struct KeyDetailView: View {
     @State private var showingTTLEditor = false
     @State private var ttlInput = ""
     @State private var ttlEditorError: String?
+    @State private var isAutoRefreshEnabled = false
+    @State private var autoRefreshInterval = 5
 
     private let maxTTL = 2_147_483_647
 
@@ -609,165 +828,27 @@ struct KeyDetailView: View {
 
                 Divider()
 
+                if let error = app.keyDetailError {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle")
+                        Text(error)
+                            .lineLimit(2)
+                        Spacer()
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
+
+                    Divider()
+                }
+
                 if app.isLoadingDetail {
                     Spacer()
                     ProgressView("Loading value...")
                     Spacer()
-                } else if !app.keyDetailRows.isEmpty {
-                    switch app.keyType {
-                    case "hash":
-                        HashDetailView(
-                            key: key.key,
-                            rows: app.keyDetailRows,
-                            keySize: key.size,
-                            onAddField: { showingAddHashField = true },
-                            onSaveField: { field, value in
-                                Task {
-                                    await app.updateHashField(key: key.key, field: field, value: value)
-                                    await app.refreshSelectedKey()
-                                }
-                            },
-                            onDeleteField: { field in
-                                Task {
-                                    await app.deleteHashField(key: key.key, field: field)
-                                    await app.refreshSelectedKey()
-                                }
-                            }
-                        )
-                        .sheet(isPresented: $showingAddHashField) {
-                            AddHashFieldSheet(
-                                key: key.key,
-                                field: $newHashField,
-                                value: $newHashValue,
-                                onSave: { field, value in
-                                    Task {
-                                        await app.addHashField(key: key.key, field: field, value: value)
-                                        await app.refreshSelectedKey()
-                                    }
-                                    showingAddHashField = false
-                                },
-                                onCancel: { showingAddHashField = false }
-                            )
-                        }
-
-                    case "list":
-                        ListDetailView(
-                            key: key.key,
-                            rows: app.keyDetailRows,
-                            keySize: key.size,
-                            onAddElement: { showingAddListElement = true },
-                            onSaveElement: { index, value in
-                                Task {
-                                    await app.updateListElement(key: key.key, index: index, value: value)
-                                    await app.refreshSelectedKey()
-                                }
-                            },
-                            onDeleteElement: { _, value in
-                                Task {
-                                    await app.deleteListElement(key: key.key, value: value)
-                                    await app.refreshSelectedKey()
-                                }
-                            }
-                        )
-                        .sheet(isPresented: $showingAddListElement) {
-                            AddListElementSheet(
-                                key: key.key,
-                                value: $newListElement,
-                                position: $newListPosition,
-                                onSave: { value, position in
-                                    Task {
-                                        await app.addListElement(key: key.key, value: value, tail: position == .tail)
-                                        await app.refreshSelectedKey()
-                                    }
-                                    showingAddListElement = false
-                                },
-                                onCancel: { showingAddListElement = false }
-                            )
-                        }
-
-                    case "set":
-                        SetDetailView(
-                            key: key.key,
-                            rows: app.keyDetailRows,
-                            keySize: key.size,
-                            onAddMember: { showingAddSetMember = true },
-                            onDeleteMember: { member in
-                                Task {
-                                    await app.deleteSetMember(key: key.key, member: member)
-                                    await app.refreshSelectedKey()
-                                }
-                            }
-                        )
-                        .sheet(isPresented: $showingAddSetMember) {
-                            AddSetMemberSheet(
-                                key: key.key,
-                                member: $newSetMember,
-                                onSave: { member in
-                                    Task {
-                                        await app.addSetMember(key: key.key, member: member)
-                                        await app.refreshSelectedKey()
-                                    }
-                                    showingAddSetMember = false
-                                },
-                                onCancel: { showingAddSetMember = false }
-                            )
-                        }
-
-                    case "zset":
-                        ZSetDetailView(
-                            key: key.key,
-                            rows: app.keyDetailRows,
-                            keySize: key.size,
-                            onAddMember: { showingAddZSetMember = true },
-                            onSaveMember: { member, score in
-                                Task {
-                                    await app.updateZSetScore(key: key.key, member: member, score: score)
-                                    await app.refreshSelectedKey()
-                                }
-                            },
-                            onDeleteMember: { member in
-                                Task {
-                                    await app.deleteZSetMember(key: key.key, member: member)
-                                    await app.refreshSelectedKey()
-                                }
-                            }
-                        )
-                        .sheet(isPresented: $showingAddZSetMember) {
-                            AddZSetMemberSheet(
-                                key: key.key,
-                                member: $newZSetMember,
-                                score: $newZSetScore,
-                                onSave: { member, score in
-                                    Task {
-                                        await app.addZSetMember(key: key.key, member: member, score: score)
-                                        await app.refreshSelectedKey()
-                                    }
-                                    showingAddZSetMember = false
-                                },
-                                onCancel: { showingAddZSetMember = false }
-                            )
-                        }
-
-                    default:
-                        genericRowsView
-                    }
                 } else {
-                    switch app.keyType {
-                    case "string":
-                        StringDetailView(
-                            key: key.key,
-                            value: app.keyDetail,
-                            keySize: key.size,
-                            onSave: { value in
-                                Task {
-                                    await app.updateStringValue(key: key.key, value: value)
-                                    await app.refreshSelectedKey()
-                                }
-                            }
-                        )
-                    default:
-                        emptyValueView
-                    }
+                    detailContent(key: key)
                 }
             } else {
                 Spacer()
@@ -808,6 +889,216 @@ struct KeyDetailView: View {
             showingTTLEditor = false
             ttlEditorError = nil
         }
+        .task(id: autoRefreshTaskID) {
+            guard isAutoRefreshEnabled else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(autoRefreshInterval))
+                guard !Task.isCancelled, app.selectedKey != nil, !app.isLoadingDetail else { continue }
+                await app.refreshSelectedKey()
+            }
+        }
+    }
+
+    private var autoRefreshTaskID: String {
+        "\(app.selectedKey?.key ?? "")|\(isAutoRefreshEnabled)|\(autoRefreshInterval)"
+    }
+
+    @ViewBuilder
+    private func detailContent(key: RedisKeyEntry) -> some View {
+        switch app.keyType {
+        case "string":
+            StringDetailView(
+                key: key.key,
+                value: app.keyDetail,
+                keySize: app.valueSize ?? key.size,
+                format: Binding(
+                    get: { app.stringValueFormat },
+                    set: { app.stringValueFormat = $0 }
+                ),
+                onSave: { value in
+                    Task {
+                        await app.updateStringValue(key: key.key, value: value)
+                        await app.refreshSelectedKey()
+                    }
+                }
+            )
+
+        case "hash":
+            HashDetailView(
+                key: key.key,
+                rows: app.keyDetailRows,
+                keySize: app.valueSize ?? key.size,
+                keyLength: app.keyDetailLength ?? key.length,
+                searchText: app.keyDetailSearchText,
+                hasMoreRows: app.keyDetailHasMoreRows,
+                onSearch: { text in
+                    Task { await app.searchSelectedKeyDetail(text) }
+                },
+                onLoadMore: {
+                    Task { await app.loadMoreSelectedKeyDetailRows() }
+                },
+                onAddField: { showingAddHashField = true },
+                onSaveField: { field, value in
+                    Task {
+                        await app.updateHashField(key: key.key, field: field, value: value)
+                        await app.refreshSelectedKey()
+                    }
+                },
+                onDeleteField: { field in
+                    Task {
+                        await app.deleteHashField(key: key.key, field: field)
+                        await app.refreshSelectedKey()
+                    }
+                }
+            )
+            .sheet(isPresented: $showingAddHashField) {
+                AddHashFieldSheet(
+                    key: key.key,
+                    field: $newHashField,
+                    value: $newHashValue,
+                    onSave: { field, value in
+                        Task {
+                            await app.addHashField(key: key.key, field: field, value: value)
+                            await app.refreshSelectedKey()
+                        }
+                        showingAddHashField = false
+                    },
+                    onCancel: { showingAddHashField = false }
+                )
+            }
+
+        case "list":
+            ListDetailView(
+                key: key.key,
+                rows: app.keyDetailRows,
+                keySize: app.valueSize ?? key.size,
+                keyLength: app.keyDetailLength ?? key.length,
+                hasMoreRows: app.keyDetailHasMoreRows,
+                onLoadMore: {
+                    Task { await app.loadMoreSelectedKeyDetailRows() }
+                },
+                onAddElement: { showingAddListElement = true },
+                onSaveElement: { index, value in
+                    Task {
+                        await app.updateListElement(key: key.key, index: index, value: value)
+                        await app.refreshSelectedKey()
+                    }
+                },
+                onDeleteElement: { index, _ in
+                    Task {
+                        await app.deleteListElement(key: key.key, index: index)
+                        await app.refreshSelectedKey()
+                    }
+                }
+            )
+            .sheet(isPresented: $showingAddListElement) {
+                AddListElementSheet(
+                    key: key.key,
+                    value: $newListElement,
+                    position: $newListPosition,
+                    onSave: { value, position in
+                        Task {
+                            await app.addListElement(key: key.key, value: value, tail: position == .tail)
+                            await app.refreshSelectedKey()
+                        }
+                        showingAddListElement = false
+                    },
+                    onCancel: { showingAddListElement = false }
+                )
+            }
+
+        case "set":
+            SetDetailView(
+                key: key.key,
+                rows: app.keyDetailRows,
+                keySize: app.valueSize ?? key.size,
+                keyLength: app.keyDetailLength ?? key.length,
+                searchText: app.keyDetailSearchText,
+                hasMoreRows: app.keyDetailHasMoreRows,
+                onSearch: { text in
+                    Task { await app.searchSelectedKeyDetail(text) }
+                },
+                onLoadMore: {
+                    Task { await app.loadMoreSelectedKeyDetailRows() }
+                },
+                onAddMember: { showingAddSetMember = true },
+                onDeleteMember: { member in
+                    Task {
+                        await app.deleteSetMember(key: key.key, member: member)
+                        await app.refreshSelectedKey()
+                    }
+                }
+            )
+            .sheet(isPresented: $showingAddSetMember) {
+                AddSetMemberSheet(
+                    key: key.key,
+                    member: $newSetMember,
+                    onSave: { member in
+                        Task {
+                            await app.addSetMember(key: key.key, member: member)
+                            await app.refreshSelectedKey()
+                        }
+                        showingAddSetMember = false
+                    },
+                    onCancel: { showingAddSetMember = false }
+                )
+            }
+
+        case "zset":
+            ZSetDetailView(
+                key: key.key,
+                rows: app.keyDetailRows,
+                keySize: app.valueSize ?? key.size,
+                keyLength: app.keyDetailLength ?? key.length,
+                searchText: app.keyDetailSearchText,
+                order: app.keyDetailZSetOrder,
+                hasMoreRows: app.keyDetailHasMoreRows,
+                onSearch: { text in
+                    Task { await app.searchSelectedKeyDetail(text) }
+                },
+                onOrderChange: { order in
+                    Task { await app.updateSelectedZSetOrder(order) }
+                },
+                onLoadMore: {
+                    Task { await app.loadMoreSelectedKeyDetailRows() }
+                },
+                onAddMember: { showingAddZSetMember = true },
+                onSaveMember: { member, score in
+                    Task {
+                        await app.updateZSetScore(key: key.key, member: member, score: score)
+                        await app.refreshSelectedKey()
+                    }
+                },
+                onDeleteMember: { member in
+                    Task {
+                        await app.deleteZSetMember(key: key.key, member: member)
+                        await app.refreshSelectedKey()
+                    }
+                }
+            )
+            .sheet(isPresented: $showingAddZSetMember) {
+                AddZSetMemberSheet(
+                    key: key.key,
+                    member: $newZSetMember,
+                    score: $newZSetScore,
+                    onSave: { member, score in
+                        Task {
+                            await app.addZSetMember(key: key.key, member: member, score: score)
+                            await app.refreshSelectedKey()
+                        }
+                        showingAddZSetMember = false
+                    },
+                    onCancel: { showingAddZSetMember = false }
+                )
+            }
+
+        default:
+            if app.keyDetailRows.isEmpty {
+                emptyValueView
+            } else {
+                genericRowsView
+            }
+        }
     }
 
     private func headerView(key: RedisKeyEntry) -> some View {
@@ -819,6 +1110,25 @@ struct KeyDetailView: View {
                 HStack(spacing: 12) {
                     Label(key.type, systemImage: key.icon)
                         .foregroundStyle(.secondary)
+                    if let length = app.keyDetailLength ?? key.length {
+                        Label("Length: \(length)", systemImage: "number")
+                            .foregroundStyle(.secondary)
+                    }
+                    if let size = app.valueSize ?? key.size {
+                        Label(
+                            ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory),
+                            systemImage: "memorychip"
+                        )
+                        .foregroundStyle(.secondary)
+                    }
+                    if let refreshedAt = app.keyDetailLastRefreshedAt {
+                        Label {
+                            Text(refreshedAt, style: .time)
+                        } icon: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .foregroundStyle(.secondary)
+                    }
                     Button {
                         beginEditingTTL(for: key)
                     } label: {
@@ -854,6 +1164,32 @@ struct KeyDetailView: View {
                 .font(.caption)
             }
             Spacer()
+            Toggle(
+                isOn: $isAutoRefreshEnabled,
+                label: {
+                    Image(systemName: "timer")
+                }
+            )
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .disabled(app.isLoadingDetail)
+            .help("Auto refresh")
+
+            Picker(
+                "",
+                selection: $autoRefreshInterval
+            ) {
+                Text("2s").tag(2)
+                Text("5s").tag(5)
+                Text("10s").tag(10)
+                Text("30s").tag(30)
+            }
+            .labelsHidden()
+            .frame(width: 74)
+            .disabled(!isAutoRefreshEnabled || app.isLoadingDetail)
+            .help("Refresh interval")
+
             Button {
                 Task { await app.refreshSelectedKey() }
             } label: {
@@ -864,9 +1200,7 @@ struct KeyDetailView: View {
             .help("Refresh")
 
             Button {
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(key.key, forType: .string)
+                copyToPasteboard(key.key)
                 didCopyKey = true
                 Task {
                     try? await Task.sleep(for: .milliseconds(200))
@@ -938,9 +1272,11 @@ struct KeyDetailView: View {
                             .font(.system(.caption, design: .monospaced))
                             .foregroundStyle(.secondary)
                             .frame(width: 100, alignment: .leading)
+                            .copyableCell(row.0, row: "\(row.0)\t\(row.1)")
                         Text(row.1)
                             .font(.system(.body, design: .monospaced))
                             .textSelection(.enabled)
+                            .copyableCell(row.1, row: "\(row.0)\t\(row.1)")
                     }
                 }
             } header: {
@@ -1020,11 +1356,11 @@ struct StringDetailView: View {
     let key: String
     let value: String
     let keySize: Int?
+    @Binding var format: StringValueFormat
     let onSave: (String) -> Void
 
     @State private var isEditing = false
     @State private var editValue = ""
-    @State private var isBeautified = false
 
     private var isJson: Bool {
         guard let data = value.data(using: .utf8) else { return false }
@@ -1044,11 +1380,58 @@ struct StringDetailView: View {
     }
 
     private var displayedValue: String {
-        isBeautified ? beautifiedValue : value
+        switch format {
+        case .raw:
+            return value
+        case .unicode:
+            return unicodeEscapedValue
+        case .json:
+            return isJson ? beautifiedValue : value
+        case .ascii:
+            return asciiValue
+        case .hex:
+            return hexValue
+        }
     }
 
     private var highlightedBeautifiedValue: AttributedString {
         JSONSyntaxHighlighter.highlight(beautifiedValue)
+    }
+
+    private var unicodeEscapedValue: String {
+        value.unicodeScalars.map { scalar in
+            switch scalar.value {
+            case 0x0A:
+                return "\\n"
+            case 0x0D:
+                return "\\r"
+            case 0x09:
+                return "\\t"
+            case 0x20...0x7E:
+                return String(scalar)
+            default:
+                return "\\u{\(String(scalar.value, radix: 16, uppercase: true))}"
+            }
+        }.joined()
+    }
+
+    private var asciiValue: String {
+        String(
+            value.utf8.map { byte in
+                if (32...126).contains(byte), let scalar = UnicodeScalar(Int(byte)) {
+                    return Character(scalar)
+                }
+                return "."
+            }
+        )
+    }
+
+    private var hexValue: String {
+        value.utf8.enumerated().map { index, byte in
+            let separator = index > 0 && index % 16 == 0 ? "\n" : " "
+            let prefix = index == 0 ? "" : separator
+            return prefix + String(format: "%02X", byte)
+        }.joined()
     }
 
     var body: some View {
@@ -1083,7 +1466,7 @@ struct StringDetailView: View {
                 ZStack(alignment: .topTrailing) {
                     ScrollView {
                         Group {
-                            if isBeautified && isJson {
+                            if format == .json && isJson {
                                 Text(highlightedBeautifiedValue)
                             } else {
                                 Text(displayedValue)
@@ -1100,15 +1483,14 @@ struct StringDetailView: View {
                     }
 
                     HStack(spacing: 4) {
-                        if isJson {
-                            Button {
-                                isBeautified.toggle()
-                            } label: {
-                                Image(systemName: isBeautified ? "text.alignleft" : "curlybraces")
+                        Picker("", selection: $format) {
+                            ForEach(StringValueFormat.allCases) { format in
+                                Text(format.title).tag(format)
                             }
-                            .buttonStyle(.borderless)
-                            .help(isBeautified ? "Show original" : "Beautify JSON")
                         }
+                        .labelsHidden()
+                        .frame(width: 110)
+                        .help("Value format")
 
                         Button {
                             editValue = value
@@ -1133,12 +1515,6 @@ struct StringDetailView: View {
                 }
                 .padding(AppTheme.spacing)
             }
-        }
-        .onAppear {
-            isBeautified = isJson
-        }
-        .onChange(of: value) { _, _ in
-            isBeautified = isJson
         }
     }
 }
@@ -1281,6 +1657,71 @@ private enum JSONSyntaxHighlighter {
     }
 }
 
+// MARK: - Collection Detail Controls
+
+private func detailCountText(loaded: Int, total: Int?, noun: String) -> String {
+    if let total {
+        return "\(loaded) / \(total) \(noun)"
+    }
+    return "\(loaded) \(noun)"
+}
+
+private struct DetailSearchField: View {
+    @Binding var searchText: String
+    let placeholder: String
+    let onSearch: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            TextField(placeholder, text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(onSearch)
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                    onSearch()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help("Clear filter")
+            }
+
+            Button {
+                onSearch()
+            } label: {
+                Image(systemName: "magnifyingglass")
+            }
+            .buttonStyle(.borderless)
+            .help("Search")
+        }
+    }
+}
+
+private struct CopyableCellModifier: ViewModifier {
+    let cellValue: String
+    let rowValue: String
+
+    func body(content: Content) -> some View {
+        content.contextMenu {
+            Button("Copy Cell") {
+                copyToPasteboard(cellValue)
+            }
+            Button("Copy Row") {
+                copyToPasteboard(rowValue)
+            }
+        }
+    }
+}
+
+extension View {
+    fileprivate func copyableCell(_ cellValue: String, row: String) -> some View {
+        modifier(CopyableCellModifier(cellValue: cellValue, rowValue: row))
+    }
+}
+
 // MARK: - Hash Detail View
 
 struct HashRow: Identifiable {
@@ -1293,12 +1734,18 @@ struct HashDetailView: View {
     let key: String
     let rows: [(String, String)]
     let keySize: Int?
+    let keyLength: Int?
+    let searchText: String
+    let hasMoreRows: Bool
+    let onSearch: (String) -> Void
+    let onLoadMore: () -> Void
     let onAddField: () -> Void
     let onSaveField: (String, String) -> Void
     let onDeleteField: (String) -> Void
 
     @State private var editingField: String?
     @State private var editValue = ""
+    @State private var pendingSearchText = ""
 
     private var hashRows: [HashRow] {
         rows.map { HashRow(field: $0.0, value: $0.1) }
@@ -1306,10 +1753,20 @@ struct HashDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            DetailSearchField(
+                searchText: $pendingSearchText,
+                placeholder: "Field filter",
+                onSearch: { onSearch(pendingSearchText) }
+            )
+            .padding(AppTheme.spacing)
+
+            Divider()
+
             Table(hashRows) {
                 TableColumn("Field") { row in
                     Text(row.field)
                         .font(.system(.body, design: .monospaced))
+                        .copyableCell(row.field, row: "\(row.field)\t\(row.value)")
                 }
                 .width(min: 100, ideal: 150, max: 300)
 
@@ -1318,6 +1775,7 @@ struct HashDetailView: View {
                         row: row,
                         editingField: $editingField,
                         editValue: $editValue,
+                        rowValue: "\(row.field)\t\(row.value)",
                         onSaveField: onSaveField
                     )
                 }
@@ -1353,14 +1811,27 @@ struct HashDetailView: View {
                 .buttonStyle(.borderless)
                 .help("Add field")
 
+                if hasMoreRows {
+                    Button("Load more") {
+                        onLoadMore()
+                    }
+                    .buttonStyle(.borderless)
+                }
+
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) fields",
+                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "fields"),
                     sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
                 )
             }
             .padding(AppTheme.spacing)
+        }
+        .onAppear {
+            pendingSearchText = searchText
+        }
+        .onChange(of: searchText) { _, newValue in
+            pendingSearchText = newValue
         }
     }
 }
@@ -1369,6 +1840,7 @@ struct EditableHashCell: View {
     let row: HashRow
     @Binding var editingField: String?
     @Binding var editValue: String
+    let rowValue: String
     let onSaveField: (String, String) -> Void
 
     var body: some View {
@@ -1382,6 +1854,7 @@ struct EditableHashCell: View {
             Text(row.value)
                 .font(.system(.body, design: .monospaced))
                 .lineLimit(2)
+                .copyableCell(row.value, row: rowValue)
                 .onTapGesture(count: 2) {
                     editingField = row.field
                     editValue = row.value
@@ -1402,6 +1875,7 @@ struct EditableListCell: View {
     let row: ListRow
     @Binding var editingIndex: Int?
     @Binding var editValue: String
+    let rowValue: String
     let onSaveElement: (Int, String) -> Void
 
     var body: some View {
@@ -1415,6 +1889,7 @@ struct EditableListCell: View {
             Text(row.value)
                 .font(.system(.body, design: .monospaced))
                 .lineLimit(2)
+                .copyableCell(row.value, row: rowValue)
                 .onTapGesture(count: 2) {
                     editingIndex = row.index
                     editValue = row.value
@@ -1484,6 +1959,9 @@ struct ListDetailView: View {
     let key: String
     let rows: [(String, String)]
     let keySize: Int?
+    let keyLength: Int?
+    let hasMoreRows: Bool
+    let onLoadMore: () -> Void
     let onAddElement: () -> Void
     let onSaveElement: (Int, String) -> Void
     let onDeleteElement: (Int, String) -> Void
@@ -1492,8 +1970,9 @@ struct ListDetailView: View {
     @State private var editValue = ""
 
     private var listRows: [ListRow] {
-        rows.enumerated().map { index, row in
-            ListRow(index: index, value: row.1)
+        rows.compactMap { row in
+            guard let index = Int(row.0) else { return nil }
+            return ListRow(index: index, value: row.1)
         }
     }
 
@@ -1504,6 +1983,7 @@ struct ListDetailView: View {
                     Text("\(row.index)")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
+                        .copyableCell("\(row.index)", row: "\(row.index)\t\(row.value)")
                 }
                 .width(60)
 
@@ -1512,6 +1992,7 @@ struct ListDetailView: View {
                         row: row,
                         editingIndex: $editingIndex,
                         editValue: $editValue,
+                        rowValue: "\(row.index)\t\(row.value)",
                         onSaveElement: onSaveElement
                     )
                 }
@@ -1547,10 +2028,17 @@ struct ListDetailView: View {
                 .buttonStyle(.borderless)
                 .help("Add element")
 
+                if hasMoreRows {
+                    Button("Load more") {
+                        onLoadMore()
+                    }
+                    .buttonStyle(.borderless)
+                }
+
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) elements",
+                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "elements"),
                     sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
                 )
             }
@@ -1570,8 +2058,15 @@ struct SetDetailView: View {
     let key: String
     let rows: [(String, String)]
     let keySize: Int?
+    let keyLength: Int?
+    let searchText: String
+    let hasMoreRows: Bool
+    let onSearch: (String) -> Void
+    let onLoadMore: () -> Void
     let onAddMember: () -> Void
     let onDeleteMember: (String) -> Void
+
+    @State private var pendingSearchText = ""
 
     private var setRows: [SetRow] {
         rows.map { SetRow(member: $0.1) }
@@ -1579,10 +2074,20 @@ struct SetDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            DetailSearchField(
+                searchText: $pendingSearchText,
+                placeholder: "Member filter",
+                onSearch: { onSearch(pendingSearchText) }
+            )
+            .padding(AppTheme.spacing)
+
+            Divider()
+
             Table(setRows) {
                 TableColumn("Member") { row in
                     Text(row.member)
                         .font(.system(.body, design: .monospaced))
+                        .copyableCell(row.member, row: row.member)
                 }
 
                 TableColumn("Actions") { row in
@@ -1605,14 +2110,27 @@ struct SetDetailView: View {
                 .buttonStyle(.borderless)
                 .help("Add member")
 
+                if hasMoreRows {
+                    Button("Load more") {
+                        onLoadMore()
+                    }
+                    .buttonStyle(.borderless)
+                }
+
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) members",
+                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "members"),
                     sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
                 )
             }
             .padding(AppTheme.spacing)
+        }
+        .onAppear {
+            pendingSearchText = searchText
+        }
+        .onChange(of: searchText) { _, newValue in
+            pendingSearchText = newValue
         }
     }
 }
@@ -1629,12 +2147,20 @@ struct ZSetDetailView: View {
     let key: String
     let rows: [(String, String)]
     let keySize: Int?
+    let keyLength: Int?
+    let searchText: String
+    let order: KeyDetailZSetOrder
+    let hasMoreRows: Bool
+    let onSearch: (String) -> Void
+    let onOrderChange: (KeyDetailZSetOrder) -> Void
+    let onLoadMore: () -> Void
     let onAddMember: () -> Void
     let onSaveMember: (String, String) -> Void
     let onDeleteMember: (String) -> Void
 
     @State private var editingMember: String?
     @State private var editScore = ""
+    @State private var pendingSearchText = ""
 
     private var zsetRows: [ZSetRow] {
         rows.map { ZSetRow(score: $0.0, member: $0.1) }
@@ -1642,12 +2168,41 @@ struct ZSetDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                DetailSearchField(
+                    searchText: $pendingSearchText,
+                    placeholder: "Member filter",
+                    onSearch: { onSearch(pendingSearchText) }
+                )
+
+                Picker(
+                    "",
+                    selection: Binding(
+                        get: { order },
+                        set: { onOrderChange($0) }
+                    )
+                ) {
+                    ForEach(KeyDetailZSetOrder.allCases) { order in
+                        Text(order.title).tag(order)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 180)
+                .disabled(!pendingSearchText.isEmpty)
+                .help("Sort order")
+            }
+            .padding(AppTheme.spacing)
+
+            Divider()
+
             Table(zsetRows) {
                 TableColumn("Score") { row in
                     EditableZSetCell(
                         row: row,
                         editingMember: $editingMember,
                         editScore: $editScore,
+                        rowValue: "\(row.score)\t\(row.member)",
                         onSaveMember: onSaveMember
                     )
                 }
@@ -1657,6 +2212,7 @@ struct ZSetDetailView: View {
                     Text(row.member)
                         .font(.system(.body, design: .monospaced))
                         .lineLimit(2)
+                        .copyableCell(row.member, row: "\(row.score)\t\(row.member)")
                 }
 
                 TableColumn("Actions") { row in
@@ -1690,14 +2246,27 @@ struct ZSetDetailView: View {
                 .buttonStyle(.borderless)
                 .help("Add member")
 
+                if hasMoreRows {
+                    Button("Load more") {
+                        onLoadMore()
+                    }
+                    .buttonStyle(.borderless)
+                }
+
                 Spacer()
 
                 StatusFooterView(
-                    countText: "\(rows.count) members",
+                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "members"),
                     sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
                 )
             }
             .padding(AppTheme.spacing)
+        }
+        .onAppear {
+            pendingSearchText = searchText
+        }
+        .onChange(of: searchText) { _, newValue in
+            pendingSearchText = newValue
         }
     }
 }
@@ -1706,6 +2275,7 @@ struct EditableZSetCell: View {
     let row: ZSetRow
     @Binding var editingMember: String?
     @Binding var editScore: String
+    let rowValue: String
     let onSaveMember: (String, String) -> Void
 
     var body: some View {
@@ -1718,6 +2288,7 @@ struct EditableZSetCell: View {
         } else {
             Text(row.score)
                 .font(.system(.body, design: .monospaced))
+                .copyableCell(row.score, row: rowValue)
                 .onTapGesture(count: 2) {
                     editingMember = row.member
                     editScore = row.score
