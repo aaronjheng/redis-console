@@ -27,6 +27,35 @@
 		A1B2C3D4E5F6789012345678 /* UI/PersistentSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9E8D7C6B5A43210FEDCBA09 /* UI/PersistentSplitView.swift */; };
 		F0DD9FE630F55BD002EE819B /* Application/AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E8633A52269F80A7F6FDA1 /* Application/AppLogger.swift */; };
 		027F421A3802B3F7AA0FF5C4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88C421BA492019C7EFFFFEC2 /* Assets.xcassets */; };
+		C4166411BD7E73C24B17A9B2 /* Application/ConnectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8284803F8863D0A2876D242 /* Application/ConnectionModels.swift */; };
+		A871A43D5B5961206589CE85 /* Application/RedisKeyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710CED61DCB593AB5FAB3D09 /* Application/RedisKeyModels.swift */; };
+		17D52614402A8F13019977E4 /* Application/ShellHistoryEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AD6F67E69F6D7F21DBA9918 /* Application/ShellHistoryEntry.swift */; };
+		1308F6C13A5CC23A9D3F8CA7 /* Application/RedisProfilerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A045CD0D1ACB98D3834EB9 /* Application/RedisProfilerModels.swift */; };
+		38CC641D3286AA0C9E3F13BA /* Application/AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F59767EE7E02A667EEC3A156 /* Application/AppStore.swift */; };
+		F865DB7D7F787DD945326BA6 /* Application/AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54B11C3DFA1C686E6B6AF38 /* Application/AppNavigation.swift */; };
+		01357278E87488A50704F862 /* Application/ConnectionState+Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 663CB7525567058CB1C35306 /* Application/ConnectionState+Preferences.swift */; };
+		439B9C6C1A7DE367C9F3924B /* Application/ConnectionState+Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10036C3BACF480C5794DAFEE /* Application/ConnectionState+Connection.swift */; };
+		8BE9CBD40BFD041B7042C52E /* Application/ConnectionState+KeyBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60EF99E12856CCC43E82E2BB /* Application/ConnectionState+KeyBrowser.swift */; };
+		B1AED59A58308EED93593B40 /* Application/ConnectionState+Shell.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE342F3B0E0C074C869BA16F /* Application/ConnectionState+Shell.swift */; };
+		54857C7C66D87EF5CC23F244 /* Application/ConnectionState+Profiler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E896A2BE4208032CB46914C /* Application/ConnectionState+Profiler.swift */; };
+		351CFE6BEDC3FBBEF81093D2 /* Application/ConnectionState+ServerInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A590DA6965842B47C2B666C4 /* Application/ConnectionState+ServerInfo.swift */; };
+		CF6F27934F0499D08A3A867E /* Application/ConnectionState+Completions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CC8C138EFAF41CE1D233E5B /* Application/ConnectionState+Completions.swift */; };
+		057B6A6C484AE6189C6553B1 /* UI/Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6223746D934AF4A47B07CAB7 /* UI/Clipboard.swift */; };
+		1EE8D581409B1B7A2AB96384 /* UI/KeyRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 307922DA0FD1DFBC0AE1C390 /* UI/KeyRow.swift */; };
+		90AD1D72C1B73A0DFBEB14BC /* UI/KeyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBF582DD63B199731500A76 /* UI/KeyDetailView.swift */; };
+		30519E80DAA108581A7E0940 /* UI/StringDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D767E06402B486180E8833 /* UI/StringDetailView.swift */; };
+		FAA3E1F18B30985AE358C5BF /* UI/CollectionDetailControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF8415C586FF6FD461002505 /* UI/CollectionDetailControls.swift */; };
+		A59DF5B6151F93A5CBF4453E /* UI/HashDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710A7EA408D4C4107D58570D /* UI/HashDetailView.swift */; };
+		F9356B862B03B07C3EC56A48 /* UI/ListDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B133F8196C81269D04A526BB /* UI/ListDetailView.swift */; };
+		D2D28BF0BE748CE51D64A1F5 /* UI/SetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5F564BA2D1E0F1AD0B00339 /* UI/SetDetailView.swift */; };
+		C04CD7C654C0F2EDF797682D /* UI/ZSetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A157CCBF9ADB6B699C6416FA /* UI/ZSetDetailView.swift */; };
+		59AC308B35EAC800725934A3 /* UI/KeyEditSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32A834210EBBC9DF44554827 /* UI/KeyEditSheets.swift */; };
+		12E4521C5CF120098DD00D86 /* Application/AppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34DCE9E49BA70BF20F6F82E8 /* Application/AppLifecycle.swift */; };
+		3BC8D42C86FD17A97AF500D1 /* UI/TabSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF0092A0D2058DD291ECD3F /* UI/TabSidebarView.swift */; };
+		10693750F69F859FC4E80EB5 /* UI/ConnectingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 075617E28FD0E7BB40A29BCF /* UI/ConnectingView.swift */; };
+		5229483C61015293F62DB68B /* UI/WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED2F3356F2FD347D2FE4EA4 /* UI/WelcomeView.swift */; };
+		73DFE7FD90FC7B63E795E8C5 /* UI/ConnectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF94C12BB25368F858F2D60A /* UI/ConnectionDetailView.swift */; };
+		ACB9A5A0F74DD02D7C5C6927 /* UI/ConnectionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47D8EAB9242B4058BB99D900 /* UI/ConnectionRow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,6 +78,35 @@
 		FACEB586CD12D0873A8718B1 /* UI/BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/BrowserView.swift; sourceTree = "<group>"; };
 		F9E8D7C6B5A43210FEDCBA09 /* UI/PersistentSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/PersistentSplitView.swift; sourceTree = "<group>"; };
 		88C421BA492019C7EFFFFEC2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		B8284803F8863D0A2876D242 /* Application/ConnectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/ConnectionModels.swift; sourceTree = "<group>"; };
+		710CED61DCB593AB5FAB3D09 /* Application/RedisKeyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/RedisKeyModels.swift; sourceTree = "<group>"; };
+		7AD6F67E69F6D7F21DBA9918 /* Application/ShellHistoryEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/ShellHistoryEntry.swift; sourceTree = "<group>"; };
+		17A045CD0D1ACB98D3834EB9 /* Application/RedisProfilerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/RedisProfilerModels.swift; sourceTree = "<group>"; };
+		F59767EE7E02A667EEC3A156 /* Application/AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppStore.swift; sourceTree = "<group>"; };
+		B54B11C3DFA1C686E6B6AF38 /* Application/AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppNavigation.swift; sourceTree = "<group>"; };
+		663CB7525567058CB1C35306 /* Application/ConnectionState+Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Preferences.swift"; sourceTree = "<group>"; };
+		10036C3BACF480C5794DAFEE /* Application/ConnectionState+Connection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Connection.swift"; sourceTree = "<group>"; };
+		60EF99E12856CCC43E82E2BB /* Application/ConnectionState+KeyBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+KeyBrowser.swift"; sourceTree = "<group>"; };
+		EE342F3B0E0C074C869BA16F /* Application/ConnectionState+Shell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Shell.swift"; sourceTree = "<group>"; };
+		6E896A2BE4208032CB46914C /* Application/ConnectionState+Profiler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Profiler.swift"; sourceTree = "<group>"; };
+		A590DA6965842B47C2B666C4 /* Application/ConnectionState+ServerInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+ServerInfo.swift"; sourceTree = "<group>"; };
+		6CC8C138EFAF41CE1D233E5B /* Application/ConnectionState+Completions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Completions.swift"; sourceTree = "<group>"; };
+		6223746D934AF4A47B07CAB7 /* UI/Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/Clipboard.swift; sourceTree = "<group>"; };
+		307922DA0FD1DFBC0AE1C390 /* UI/KeyRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/KeyRow.swift; sourceTree = "<group>"; };
+		CFBF582DD63B199731500A76 /* UI/KeyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/KeyDetailView.swift; sourceTree = "<group>"; };
+		E2D767E06402B486180E8833 /* UI/StringDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/StringDetailView.swift; sourceTree = "<group>"; };
+		AF8415C586FF6FD461002505 /* UI/CollectionDetailControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/CollectionDetailControls.swift; sourceTree = "<group>"; };
+		710A7EA408D4C4107D58570D /* UI/HashDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/HashDetailView.swift; sourceTree = "<group>"; };
+		B133F8196C81269D04A526BB /* UI/ListDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ListDetailView.swift; sourceTree = "<group>"; };
+		B5F564BA2D1E0F1AD0B00339 /* UI/SetDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/SetDetailView.swift; sourceTree = "<group>"; };
+		A157CCBF9ADB6B699C6416FA /* UI/ZSetDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ZSetDetailView.swift; sourceTree = "<group>"; };
+		32A834210EBBC9DF44554827 /* UI/KeyEditSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/KeyEditSheets.swift; sourceTree = "<group>"; };
+		34DCE9E49BA70BF20F6F82E8 /* Application/AppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppLifecycle.swift; sourceTree = "<group>"; };
+		FEF0092A0D2058DD291ECD3F /* UI/TabSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/TabSidebarView.swift; sourceTree = "<group>"; };
+		075617E28FD0E7BB40A29BCF /* UI/ConnectingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ConnectingView.swift; sourceTree = "<group>"; };
+		EED2F3356F2FD347D2FE4EA4 /* UI/WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/WelcomeView.swift; sourceTree = "<group>"; };
+		FF94C12BB25368F858F2D60A /* UI/ConnectionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ConnectionDetailView.swift; sourceTree = "<group>"; };
+		47D8EAB9242B4058BB99D900 /* UI/ConnectionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ConnectionRow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,6 +126,35 @@
 			children = (
 			89E8633A52269F80A7F6FDA1 /* Application/AppLogger.swift */,
 				D620F14F7D75D74C01119464 /* Application/AppState.swift */,
+				B8284803F8863D0A2876D242 /* Application/ConnectionModels.swift */,
+				710CED61DCB593AB5FAB3D09 /* Application/RedisKeyModels.swift */,
+				7AD6F67E69F6D7F21DBA9918 /* Application/ShellHistoryEntry.swift */,
+				17A045CD0D1ACB98D3834EB9 /* Application/RedisProfilerModels.swift */,
+				F59767EE7E02A667EEC3A156 /* Application/AppStore.swift */,
+				B54B11C3DFA1C686E6B6AF38 /* Application/AppNavigation.swift */,
+				663CB7525567058CB1C35306 /* Application/ConnectionState+Preferences.swift */,
+				10036C3BACF480C5794DAFEE /* Application/ConnectionState+Connection.swift */,
+				60EF99E12856CCC43E82E2BB /* Application/ConnectionState+KeyBrowser.swift */,
+				EE342F3B0E0C074C869BA16F /* Application/ConnectionState+Shell.swift */,
+				6E896A2BE4208032CB46914C /* Application/ConnectionState+Profiler.swift */,
+				A590DA6965842B47C2B666C4 /* Application/ConnectionState+ServerInfo.swift */,
+				6CC8C138EFAF41CE1D233E5B /* Application/ConnectionState+Completions.swift */,
+				6223746D934AF4A47B07CAB7 /* UI/Clipboard.swift */,
+				307922DA0FD1DFBC0AE1C390 /* UI/KeyRow.swift */,
+				CFBF582DD63B199731500A76 /* UI/KeyDetailView.swift */,
+				E2D767E06402B486180E8833 /* UI/StringDetailView.swift */,
+				AF8415C586FF6FD461002505 /* UI/CollectionDetailControls.swift */,
+				710A7EA408D4C4107D58570D /* UI/HashDetailView.swift */,
+				B133F8196C81269D04A526BB /* UI/ListDetailView.swift */,
+				B5F564BA2D1E0F1AD0B00339 /* UI/SetDetailView.swift */,
+				A157CCBF9ADB6B699C6416FA /* UI/ZSetDetailView.swift */,
+				32A834210EBBC9DF44554827 /* UI/KeyEditSheets.swift */,
+				34DCE9E49BA70BF20F6F82E8 /* Application/AppLifecycle.swift */,
+				FEF0092A0D2058DD291ECD3F /* UI/TabSidebarView.swift */,
+				075617E28FD0E7BB40A29BCF /* UI/ConnectingView.swift */,
+				EED2F3356F2FD347D2FE4EA4 /* UI/WelcomeView.swift */,
+				FF94C12BB25368F858F2D60A /* UI/ConnectionDetailView.swift */,
+				47D8EAB9242B4058BB99D900 /* UI/ConnectionRow.swift */,
 				05BE6CF64F60ACC797244A8A /* Application/AppTheme.swift */,
 				E1202E9EAD648CAADB72313E /* Infrastructure/AsyncTimeout.swift */,
 				FACEB586CD12D0873A8718B1 /* UI/BrowserView.swift */,
@@ -181,6 +268,35 @@
 			files = (
 				F0DD9FE630F55BD002EE819B /* Application/AppLogger.swift in Sources */,
 				BE71ED9FA189175A079FB476 /* Application/AppState.swift in Sources */,
+				C4166411BD7E73C24B17A9B2 /* Application/ConnectionModels.swift in Sources */,
+				A871A43D5B5961206589CE85 /* Application/RedisKeyModels.swift in Sources */,
+				17D52614402A8F13019977E4 /* Application/ShellHistoryEntry.swift in Sources */,
+				1308F6C13A5CC23A9D3F8CA7 /* Application/RedisProfilerModels.swift in Sources */,
+				38CC641D3286AA0C9E3F13BA /* Application/AppStore.swift in Sources */,
+				F865DB7D7F787DD945326BA6 /* Application/AppNavigation.swift in Sources */,
+				01357278E87488A50704F862 /* Application/ConnectionState+Preferences.swift in Sources */,
+				439B9C6C1A7DE367C9F3924B /* Application/ConnectionState+Connection.swift in Sources */,
+				8BE9CBD40BFD041B7042C52E /* Application/ConnectionState+KeyBrowser.swift in Sources */,
+				B1AED59A58308EED93593B40 /* Application/ConnectionState+Shell.swift in Sources */,
+				54857C7C66D87EF5CC23F244 /* Application/ConnectionState+Profiler.swift in Sources */,
+				351CFE6BEDC3FBBEF81093D2 /* Application/ConnectionState+ServerInfo.swift in Sources */,
+				CF6F27934F0499D08A3A867E /* Application/ConnectionState+Completions.swift in Sources */,
+				057B6A6C484AE6189C6553B1 /* UI/Clipboard.swift in Sources */,
+				1EE8D581409B1B7A2AB96384 /* UI/KeyRow.swift in Sources */,
+				90AD1D72C1B73A0DFBEB14BC /* UI/KeyDetailView.swift in Sources */,
+				30519E80DAA108581A7E0940 /* UI/StringDetailView.swift in Sources */,
+				FAA3E1F18B30985AE358C5BF /* UI/CollectionDetailControls.swift in Sources */,
+				A59DF5B6151F93A5CBF4453E /* UI/HashDetailView.swift in Sources */,
+				F9356B862B03B07C3EC56A48 /* UI/ListDetailView.swift in Sources */,
+				D2D28BF0BE748CE51D64A1F5 /* UI/SetDetailView.swift in Sources */,
+				C04CD7C654C0F2EDF797682D /* UI/ZSetDetailView.swift in Sources */,
+				59AC308B35EAC800725934A3 /* UI/KeyEditSheets.swift in Sources */,
+				12E4521C5CF120098DD00D86 /* Application/AppLifecycle.swift in Sources */,
+				3BC8D42C86FD17A97AF500D1 /* UI/TabSidebarView.swift in Sources */,
+				10693750F69F859FC4E80EB5 /* UI/ConnectingView.swift in Sources */,
+				5229483C61015293F62DB68B /* UI/WelcomeView.swift in Sources */,
+				73DFE7FD90FC7B63E795E8C5 /* UI/ConnectionDetailView.swift in Sources */,
+				ACB9A5A0F74DD02D7C5C6927 /* UI/ConnectionRow.swift in Sources */,
 				8EB4B86D1FCDB0A2C0F4451A /* Application/AppTheme.swift in Sources */,
 				7EEE9F0E74615C5D4FBC55CD /* Infrastructure/AsyncTimeout.swift in Sources */,
 				D88BEDDC62ACB7432ACD4694 /* UI/BrowserView.swift in Sources */,
