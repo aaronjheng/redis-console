@@ -28,13 +28,6 @@ struct WorkspaceSidebarView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Button {
-                    conn.disconnect()
-                } label: {
-                    Image(systemName: "xmark.circle")
-                }
-                .buttonStyle(.borderless)
-                .help("Disconnect")
             }
             .padding()
 
@@ -47,6 +40,19 @@ struct WorkspaceSidebarView: View {
                 }
             }
             .listStyle(.sidebar)
+
+            Divider()
+
+            Button(role: .destructive) {
+                conn.disconnect()
+            } label: {
+                Label("Disconnect", systemImage: "power")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal)
+            .padding(.vertical, AppTheme.spacing)
+            .help("Disconnect")
         }
     }
 }
