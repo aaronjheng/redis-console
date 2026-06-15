@@ -5,22 +5,31 @@ import SwiftUI
 
 struct TabContentView: View {
     @EnvironmentObject var conn: ConnectionState
-    @EnvironmentObject var store: AppStore
+
+    var body: some View {
+        Group {
+            if conn.activeClient?.isConnected == true {
+                WorkspaceView()
+            } else {
+                ConnectionHubView()
+            }
+        }
+        .background(WindowTitleUpdater().environmentObject(conn))
+    }
+}
+
+// MARK: - Connection Hub View
+
+struct ConnectionHubView: View {
+    @EnvironmentObject var conn: ConnectionState
     @State private var cachedRightPanel: RightPanel = .welcome
 
     var body: some View {
         HSplitView {
-            TabSidebarView()
+            ConnectionHubSidebarView()
                 .frame(minWidth: 220, maxWidth: 280)
 
-            if conn.activeClient?.isConnected == true {
-                switch conn.currentView {
-                case .browser: BrowserView()
-                case .shell: ShellView()
-                case .profiler: ProfilerView()
-                case .serverInfo: ServerInfoView()
-                }
-            } else if conn.isConnecting {
+            if conn.isConnecting {
                 ConnectingView()
             } else {
                 switch cachedRightPanel {
@@ -32,12 +41,31 @@ struct TabContentView: View {
                 }
             }
         }
-        .background(WindowTitleUpdater().environmentObject(conn))
         .onChange(of: conn.rightPanel) { _, newValue in
             cachedRightPanel = newValue
         }
         .onAppear {
             cachedRightPanel = conn.rightPanel
+        }
+    }
+}
+
+// MARK: - Workspace View
+
+struct WorkspaceView: View {
+    @EnvironmentObject var conn: ConnectionState
+
+    var body: some View {
+        HSplitView {
+            WorkspaceSidebarView()
+                .frame(minWidth: 220, maxWidth: 280)
+
+            switch conn.currentView {
+            case .browser: BrowserView()
+            case .shell: ShellView()
+            case .profiler: ProfilerView()
+            case .serverInfo: ServerInfoView()
+            }
         }
     }
 }
