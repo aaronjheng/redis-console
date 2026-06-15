@@ -287,32 +287,24 @@ struct KeyRow: View {
             if entry.type.isEmpty {
                 ProgressView()
                     .controlSize(.small)
-                    .frame(width: 16)
+                    .frame(width: 42)
             } else {
-                Image(systemName: entry.icon)
-                    .frame(width: 16)
-                    .foregroundStyle(Color.accentColor)
+                Text(entry.type)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, AppTheme.spacingSmall)
+                    .padding(.vertical, 1)
+                    .frame(minWidth: 42)
+                    .background(.quaternary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
             }
-            VStack(alignment: .leading, spacing: 1) {
-                Text(entry.key)
-                    .font(.body)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                HStack(spacing: 8) {
-                    if !entry.type.isEmpty {
-                        Text(entry.type)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, AppTheme.spacingSmall)
-                            .padding(.vertical, 1)
-                            .background(.quaternary)
-                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
-                    }
-                }
-            }
+            Text(entry.key)
+                .font(.body)
+                .lineLimit(1)
+                .truncationMode(.middle)
             Spacer()
         }
-        .padding(.vertical, AppTheme.spacingSmall)
+        .padding(.vertical, AppTheme.spacing)
     }
 }
 

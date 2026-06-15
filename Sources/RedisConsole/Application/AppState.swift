@@ -906,6 +906,7 @@ class ConnectionState: ObservableObject {
         if reset {
             scanCursor = "0"
             keys = []
+            clearSelectedKeyDetail()
             hasMoreKeys = true
         }
         isLoadingKeys = true
@@ -918,11 +919,9 @@ class ConnectionState: ObservableObject {
                 if let typeName = typeResult?.string, typeName != "none" {
                     let entry = RedisKeyEntry(key: keyFilter, type: typeName, ttl: nil, size: nil)
                     keys = [entry]
-                    selectedKey = entry
-                    await selectKey(entry)
                 } else {
                     keys = []
-                    selectedKey = nil
+                    clearSelectedKeyDetail()
                 }
                 hasMoreKeys = false
             } else {
@@ -958,6 +957,15 @@ class ConnectionState: ObservableObject {
         if shouldRestart {
             await scanKeys(reset: true)
         }
+    }
+
+    private func clearSelectedKeyDetail() {
+        selectedKey = nil
+        keyDetail = ""
+        keyDetailRows = []
+        keyType = ""
+        valueSize = nil
+        isLoadingDetail = false
     }
 
     private func loadTypes() {
