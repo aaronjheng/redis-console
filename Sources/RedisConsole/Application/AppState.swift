@@ -1023,14 +1023,9 @@ class ConnectionState: ObservableObject {
                 keyDetailRows = items
             case "hash":
                 let value = try await client.send("HGETALL", entry.key)
-                let items = value.arrayValues
-                var rows: [(String, String)] = []
-                var itemIndex = 0
-                while itemIndex + 1 < items.count {
-                    let field = items[itemIndex]?.string ?? ""
-                    let fieldValue = items[itemIndex + 1]?.string ?? ""
-                    rows.append((field, fieldValue))
-                    itemIndex += 2
+                let rows = value.keyValuePairs.compactMap { pair -> (String, String)? in
+                    guard let field = pair.key.string else { return nil }
+                    return (field, pair.value.string ?? pair.value.displayString)
                 }
                 keyDetailRows = rows
             case "set":
@@ -1673,18 +1668,12 @@ class ConnectionState: ObservableObject {
 
     private func parseModuleListCapabilities(_ value: RESPValue) -> [RedisServerCapability] {
         value.arrayValues.enumerated().compactMap { index, moduleValue in
-            guard let values = moduleValue?.arrayValues, !values.isEmpty else { return nil }
-
-            var fields: [(String, String)] = []
-            var fieldIndex = 0
-            while fieldIndex + 1 < values.count {
-                guard let key = values[fieldIndex]?.string?.lowercased() else {
-                    fieldIndex += 2
-                    continue
-                }
-                fields.append((key, moduleValueDisplayString(values[fieldIndex + 1])))
-                fieldIndex += 2
+            guard let moduleValue else { return nil }
+            let fields = moduleValue.keyValuePairs.compactMap { pair -> (String, String)? in
+                guard let key = pair.key.string?.lowercased() else { return nil }
+                return (key, moduleValueDisplayString(pair.value))
             }
+            guard !fields.isEmpty else { return nil }
 
             return moduleCapability(from: fields, fallbackName: "Module \(index + 1)")
         }

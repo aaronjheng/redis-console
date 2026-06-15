@@ -128,6 +128,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
 
     private(set) var negotiatedProtocolVersion: RESPProtocolVersion = .resp2
     private(set) var serverCapabilities: [String: RESPValue] = [:]
+    private var protocolFallbackReason: String?
 
     init(
         host: String,
@@ -139,7 +140,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         caCertificatePath: String = "",
         clientCertificatePath: String = "",
         clientKeyPath: String = "",
-        preferredProtocolVersion: RESPProtocolVersion = .resp2
+        preferredProtocolVersion: RESPProtocolVersion = .resp3
     ) {
         self.host = host
         self.port = port
@@ -155,6 +156,10 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     func connect() async throws {
+        negotiatedProtocolVersion = .resp2
+        serverCapabilities = [:]
+        protocolFallbackReason = nil
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let continuationState = ConnectContinuationState()
 
@@ -250,15 +255,15 @@ class RedisClient: ObservableObject, @unchecked Sendable {
 
                         Task {
                             do {
-                                // Perform RESP3 handshake if preferred
+                                var authenticatedByHello = false
                                 if self?.preferredProtocolVersion == .resp3 {
-                                    try await self?.performResp3Handshake()
+                                    authenticatedByHello = try await self?.performResp3Handshake() ?? false
                                 }
 
                                 // Authenticate if credentials are provided.
                                 let user = self?.username ?? ""
                                 let pw = self?.password ?? ""
-                                if !user.isEmpty || !pw.isEmpty {
+                                if (!user.isEmpty || !pw.isEmpty) && !authenticatedByHello {
                                     let result: RESPValue
                                     if !user.isEmpty {
                                         result = try await self?.send("AUTH", user, pw) ?? .null
@@ -270,6 +275,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                                         throw RedisError.commandError(msg)
                                     }
                                 }
+                                self?.logNegotiatedProtocol(authenticatedByHello: authenticatedByHello)
 
                                 if continuationState.tryMarkResumed() {
                                     continuation.resume()
@@ -486,36 +492,45 @@ class RedisClient: ObservableObject, @unchecked Sendable {
 
     // MARK: - RESP3 Handshake
 
-    private func performResp3Handshake() async throws {
-        // Send HELLO 3 command to negotiate RESP3
-        // HELLO 3 [AUTH username password] [SETNAME clientname]
-        let result = try await sendHelloCommand()
+    @discardableResult
+    private func performResp3Handshake() async throws -> Bool {
+        let result = try await sendHelloCommand(protocolVersion: .resp3, includeAuthentication: helloCommandIncludesAuthentication)
+        let helloIncludesAuthentication = helloCommandIncludesAuthentication
 
         switch result {
         case .map(let entries):
             // RESP3 HELLO response is a map with server info
-            serverCapabilities = entries.reduce(into: [:]) { dict, entry in
-                if let keyString = entry.key.string {
-                    dict[keyString] = entry.value
-                }
-            }
+            serverCapabilities = normalizedHelloCapabilities(from: entries)
             negotiatedProtocolVersion = .resp3
+            if let fallbackReason = resp3FallbackReason(serverVersion: serverVersion) {
+                try await downgradeToResp2(serverVersion: serverVersion, fallbackReason: fallbackReason)
+            }
+            return helloIncludesAuthentication
 
         case .error(let message):
             // HELLO command failed, fall back to RESP2
             AppLogger.debug("RESP3 handshake failed: \(message), falling back to RESP2")
             negotiatedProtocolVersion = .resp2
+            protocolFallbackReason = "resp3_handshake_failed"
+            return false
 
         default:
             // Unexpected response, fall back to RESP2
             AppLogger.debug("Unexpected HELLO response, falling back to RESP2")
             negotiatedProtocolVersion = .resp2
+            protocolFallbackReason = "unexpected_hello_response"
+            return false
         }
     }
 
-    private func sendHelloCommand() async throws -> RESPValue {
-        // Build and send HELLO 3 command
-        let data = buildHelloCommand()
+    private func sendHelloCommand(
+        protocolVersion: RESPProtocolVersion,
+        includeAuthentication: Bool
+    ) async throws -> RESPValue {
+        let data = RESPEncoder.encode(
+            helloCommandArguments(protocolVersion: protocolVersion, includeAuthentication: includeAuthentication),
+            version: .resp2
+        )
 
         return try await withCheckedThrowingContinuation { continuation in
             let pendingCompletion = PendingCommand(continuation)
@@ -541,17 +556,106 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         }
     }
 
-    private func buildHelloCommand() -> Data {
-        // Build HELLO 3 command as RESP2 array
-        var data = Data()
-        data.append(contentsOf: "*2\r\n".utf8)
-        // First element: $5\r\nHELLO\r\n
-        data.append(contentsOf: "$5\r\n".utf8)
-        data.append(contentsOf: "HELLO\r\n".utf8)
-        // Second element: $1\r\n3\r\n
-        data.append(contentsOf: "$1\r\n".utf8)
-        data.append(contentsOf: "3\r\n".utf8)
-        return data
+    private var helloCommandIncludesAuthentication: Bool {
+        let user = username ?? ""
+        let pw = password ?? ""
+        return !user.isEmpty || !pw.isEmpty
+    }
+
+    private func helloCommandArguments(
+        protocolVersion: RESPProtocolVersion,
+        includeAuthentication: Bool
+    ) -> [String] {
+        var args = ["HELLO", protocolVersion.helloArgument]
+        guard includeAuthentication else { return args }
+
+        let user = username ?? ""
+        let pw = password ?? ""
+        args.append(contentsOf: ["AUTH", user.isEmpty ? "default" : user, pw])
+        return args
+    }
+
+    private var serverVersion: String? {
+        serverCapabilities["version"]?.string ?? serverCapabilities["redis_version"]?.string
+    }
+
+    private func normalizedHelloCapabilities(from entries: [RESPMapEntry]) -> [String: RESPValue] {
+        normalizedHelloCapabilities(from: entries.map { (key: $0.key, value: $0.value) })
+    }
+
+    private func normalizedHelloCapabilities(from pairs: [(key: RESPValue, value: RESPValue)]) -> [String: RESPValue] {
+        pairs.reduce(into: [:]) { dict, pair in
+            guard let keyString = pair.key.string?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+                !keyString.isEmpty
+            else {
+                return
+            }
+            dict[keyString] = pair.value
+        }
+    }
+
+    private func resp3FallbackReason(serverVersion: String?) -> String? {
+        guard let serverVersion else {
+            return "missing_server_version_after_hello3"
+        }
+
+        guard let majorVersion = serverMajorVersion(from: serverVersion) else {
+            return "unparseable_server_version_after_hello3"
+        }
+
+        guard majorVersion >= 7 else {
+            return "redis_resp3_experimental_before_7"
+        }
+
+        return nil
+    }
+
+    private func serverMajorVersion(from serverVersion: String) -> Int? {
+        let majorComponent = serverVersion.split(separator: ".", maxSplits: 1).first ?? Substring(serverVersion)
+        let majorDigits = majorComponent.prefix { $0.isNumber }
+        return Int(majorDigits)
+    }
+
+    private func downgradeToResp2(serverVersion: String?, fallbackReason: String) async throws {
+        let result = try await sendHelloCommand(protocolVersion: .resp2, includeAuthentication: false)
+        if case .error(let message) = result {
+            let serverDescription = serverVersion.map { "Redis \($0)" } ?? "Redis server"
+            throw RedisError.commandError("Unable to use RESP2 for \(serverDescription): \(message)")
+        }
+
+        serverCapabilities.merge(normalizedHelloCapabilities(from: result.keyValuePairs)) { _, new in new }
+        negotiatedProtocolVersion = .resp2
+        serverCapabilities["proto"] = .integer(2)
+        protocolFallbackReason = fallbackReason
+    }
+
+    private func logNegotiatedProtocol(authenticatedByHello: Bool) {
+        var fields = [
+            "auth_via_hello": "\(authenticatedByHello)",
+            "host": host,
+            "negotiated_protocol": negotiatedProtocolVersion.logName,
+            "port": "\(port)",
+            "preferred_protocol": preferredProtocolVersion.logName,
+            "tls_enabled": "\(tlsEnabled)",
+        ]
+        if let serverVersion {
+            fields["server_version"] = serverVersion
+        }
+        if serverVersion == nil, !serverCapabilities.isEmpty {
+            fields["hello_keys"] = serverCapabilities.keys.sorted().joined(separator: ",")
+        }
+        if let serverProtocol = serverCapabilities["proto"]?.intValue {
+            fields["server_protocol"] = "\(serverProtocol)"
+        }
+        if let protocolFallbackReason {
+            fields["fallback_reason"] = protocolFallbackReason
+        }
+
+        AppLogger.info(
+            "redis protocol negotiated",
+            category: "Connection",
+            fields: fields
+        )
     }
 
     deinit {

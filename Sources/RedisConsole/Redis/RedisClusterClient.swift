@@ -182,7 +182,7 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
         caCertificatePath: String = "",
         clientCertificatePath: String = "",
         clientKeyPath: String = "",
-        preferredProtocolVersion: RESPProtocolVersion = .resp2,
+        preferredProtocolVersion: RESPProtocolVersion = .resp3,
         endpointResolver: (any RedisClusterEndpointResolver)? = nil
     ) {
         self.seedNodes = RedisEndpoint.unique(seedNodes)
