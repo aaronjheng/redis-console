@@ -9,6 +9,11 @@ struct BrowserView: View {
     @State private var newKeyName = ""
     @State private var newKeyType = "string"
     @State private var newKeyValue = ""
+    @State private var isNamespaceGroupingEnabled = false
+    @State private var expandedNamespaces: Set<String> = []
+
+    private let listScanCount = 500
+    private let treeScanCount = 10_000
 
     var body: some View {
         PersistentSplitView(
@@ -22,6 +27,7 @@ struct BrowserView: View {
                             .textFieldStyle(.roundedBorder)
                             .onSubmit {
                                 app.keyFilter = searchText.isEmpty ? "*" : searchText
+                                app.keyScanCount = currentScanCount
                                 Task { await app.scanKeys(reset: true) }
                             }
                         HStack(spacing: 4) {
@@ -29,6 +35,7 @@ struct BrowserView: View {
                                 Button {
                                     searchText = ""
                                     app.keyFilter = "*"
+                                    app.keyScanCount = currentScanCount
                                     Task { await app.scanKeys(reset: true) }
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
@@ -58,7 +65,17 @@ struct BrowserView: View {
                         app.keyTypeFilter = newValue
                     }
                     Spacer()
+                    Toggle("Namespaces", isOn: $isNamespaceGroupingEnabled)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .onChange(of: isNamespaceGroupingEnabled) { _, isEnabled in
+                            app.keyScanCount = isEnabled ? treeScanCount : listScanCount
+                            expandedNamespaces = []
+                            Task { await app.scanKeys(reset: true) }
+                        }
+                        .help("Group keys by namespace")
                     Button {
+                        app.keyScanCount = currentScanCount
                         Task { await app.scanKeys(reset: true) }
                     } label: {
                         Image(systemName: "arrow.clockwise")
@@ -72,7 +89,7 @@ struct BrowserView: View {
 
                 Divider()
 
-                let filteredKeys = app.keys.filter { app.keyTypeFilter.isEmpty || $0.type == app.keyTypeFilter }
+                let displayedKeys = filteredKeys
 
                 if app.isLoadingKeys && app.keys.isEmpty {
                     Spacer()
@@ -96,13 +113,14 @@ struct BrowserView: View {
                             .padding(8)
                         } else {
                             Button("Load more") {
+                                app.keyScanCount = currentScanCount
                                 Task { await app.scanKeys() }
                             }
                             .padding(8)
                         }
                     }
                     Spacer()
-                } else if filteredKeys.isEmpty {
+                } else if displayedKeys.isEmpty {
                     Spacer()
                     EmptyStateView(
                         icon: "key.slash",
@@ -120,6 +138,7 @@ struct BrowserView: View {
                             .padding(8)
                         } else {
                             Button("Load more") {
+                                app.keyScanCount = currentScanCount
                                 Task { await app.scanKeys() }
                             }
                             .padding(8)
@@ -127,24 +146,27 @@ struct BrowserView: View {
                     }
                     Spacer()
                 } else {
-                    List(filteredKeys, selection: $app.selectedKey) { entry in
-                        KeyRow(entry: entry)
-                            .contextMenu {
-                                Button("Delete", role: .destructive) {
-                                    keyPendingDeletion = entry
-                                }
-                                Divider()
-                                Button("Copy Key") {
-                                    let pasteboard = NSPasteboard.general
-                                    pasteboard.clearContents()
-                                    pasteboard.setString(entry.key, forType: .string)
-                                }
-                            }
-                            .tag(entry)
+                    Group {
+                        if isNamespaceGroupingEnabled {
+                            KeyNamespaceList(
+                                tree: KeyNamespaceTree(entries: displayedKeys),
+                                selectedKey: $app.selectedKey,
+                                expandedNamespaces: $expandedNamespaces,
+                                onDeleteKey: { keyPendingDeletion = $0 },
+                                onCopyKey: copyKeyToPasteboard
+                            )
+                        } else {
+                            KeyFlatList(
+                                keys: displayedKeys,
+                                selectedKey: $app.selectedKey,
+                                onDeleteKey: { keyPendingDeletion = $0 },
+                                onCopyKey: copyKeyToPasteboard
+                            )
+                        }
                     }
-                    .listStyle(.plain)
                     .onChange(of: app.selectedKey) { _, newValue in
                         if let key = newValue {
+                            expandNamespaces(containing: key.key)
                             Task { await app.selectKey(key) }
                         }
                     }
@@ -161,6 +183,7 @@ struct BrowserView: View {
                             .padding(8)
                         } else {
                             Button("Load more") {
+                                app.keyScanCount = currentScanCount
                                 Task { await app.scanKeys() }
                             }
                             .padding(8)
@@ -231,6 +254,31 @@ struct BrowserView: View {
                 Text("This permanently deletes \(key.key).")
             }
         }
+        .onAppear {
+            app.keyScanCount = currentScanCount
+        }
+    }
+
+    private var filteredKeys: [RedisKeyEntry] {
+        app.keys.filter { app.keyTypeFilter.isEmpty || $0.type == app.keyTypeFilter }
+    }
+
+    private var currentScanCount: Int {
+        isNamespaceGroupingEnabled ? treeScanCount : listScanCount
+    }
+
+    private func copyKeyToPasteboard(_ entry: RedisKeyEntry) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(entry.key, forType: .string)
+    }
+
+    private func expandNamespaces(containing key: String) {
+        var namespacePath: [String] = []
+        for namespace in KeyNamespaceTree.namespaceSegments(for: key) {
+            namespacePath.append(namespace)
+            expandedNamespaces.insert(namespacePath.joined(separator: ":"))
+        }
     }
 
     private func addKey(name: String, type: String, value: String) async {
@@ -275,12 +323,229 @@ struct BrowserView: View {
         default:
             _ = try? await client.send("SET", name, value)
         }
+        app.keyScanCount = currentScanCount
         await app.scanKeys(reset: true)
+    }
+}
+
+private struct KeyFlatList: View {
+    let keys: [RedisKeyEntry]
+    @Binding var selectedKey: RedisKeyEntry?
+    let onDeleteKey: (RedisKeyEntry) -> Void
+    let onCopyKey: (RedisKeyEntry) -> Void
+
+    var body: some View {
+        List(selection: $selectedKey) {
+            ForEach(keys) { entry in
+                KeyRow(entry: entry)
+                    .contextMenu {
+                        Button("Delete", role: .destructive) {
+                            onDeleteKey(entry)
+                        }
+                        Divider()
+                        Button("Copy Key") {
+                            onCopyKey(entry)
+                        }
+                    }
+                    .tag(entry)
+            }
+        }
+        .listStyle(.plain)
+    }
+}
+
+private struct KeyNamespaceList: View {
+    let tree: KeyNamespaceTree
+    @Binding var selectedKey: RedisKeyEntry?
+    @Binding var expandedNamespaces: Set<String>
+    let onDeleteKey: (RedisKeyEntry) -> Void
+    let onCopyKey: (RedisKeyEntry) -> Void
+
+    var body: some View {
+        List(selection: $selectedKey) {
+            ForEach(tree.rootKeys) { entry in
+                KeyRow(entry: entry)
+                    .contextMenu {
+                        Button("Delete", role: .destructive) {
+                            onDeleteKey(entry)
+                        }
+                        Divider()
+                        Button("Copy Key") {
+                            onCopyKey(entry)
+                        }
+                    }
+                    .tag(entry)
+            }
+
+            ForEach(tree.namespaces) { namespace in
+                KeyNamespaceNodeView(
+                    namespace: namespace,
+                    selectedKey: $selectedKey,
+                    expandedNamespaces: $expandedNamespaces,
+                    onDeleteKey: onDeleteKey,
+                    onCopyKey: onCopyKey
+                )
+            }
+        }
+        .listStyle(.plain)
+    }
+}
+
+private struct KeyNamespaceNodeView: View {
+    let namespace: KeyNamespaceNode
+    @Binding var selectedKey: RedisKeyEntry?
+    @Binding var expandedNamespaces: Set<String>
+    let onDeleteKey: (RedisKeyEntry) -> Void
+    let onCopyKey: (RedisKeyEntry) -> Void
+
+    var body: some View {
+        DisclosureGroup(isExpanded: namespaceExpansion) {
+            ForEach(namespace.children) { childNamespace in
+                KeyNamespaceNodeView(
+                    namespace: childNamespace,
+                    selectedKey: $selectedKey,
+                    expandedNamespaces: $expandedNamespaces,
+                    onDeleteKey: onDeleteKey,
+                    onCopyKey: onCopyKey
+                )
+            }
+
+            ForEach(namespace.keys) { entry in
+                KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key))
+                    .contextMenu {
+                        Button("Delete", role: .destructive) {
+                            onDeleteKey(entry)
+                        }
+                        Divider()
+                        Button("Copy Key") {
+                            onCopyKey(entry)
+                        }
+                    }
+                    .tag(entry)
+            }
+        } label: {
+            KeyNamespaceRow(namespace: namespace)
+        }
+    }
+
+    private var namespaceExpansion: Binding<Bool> {
+        Binding {
+            expandedNamespaces.contains(namespace.id)
+        } set: { isExpanded in
+            if isExpanded {
+                expandedNamespaces.insert(namespace.id)
+            } else {
+                expandedNamespaces.remove(namespace.id)
+            }
+        }
+    }
+}
+
+private struct KeyNamespaceRow: View {
+    let namespace: KeyNamespaceNode
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "folder")
+                .foregroundStyle(.tint)
+            Text(namespace.name)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+            Text("\(namespace.keyCount)")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, AppTheme.spacing)
+        .accessibilityLabel("\(namespace.name), \(namespace.keyCount) keys")
+    }
+}
+
+private struct KeyNamespaceTree {
+    let rootKeys: [RedisKeyEntry]
+    let namespaces: [KeyNamespaceNode]
+
+    init(entries: [RedisKeyEntry]) {
+        var root = KeyNamespaceNode.root
+        for entry in entries {
+            root.insert(entry)
+        }
+        root.sortRecursively()
+        rootKeys = root.keys
+        namespaces = root.children
+    }
+
+    static func namespaceSegments(for key: String) -> [String] {
+        let segments = key.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
+        guard segments.count > 1 else { return [] }
+        return segments.dropLast().filter { !$0.isEmpty }
+    }
+
+    static func leafName(for key: String) -> String {
+        guard let separatorIndex = key.lastIndex(of: ":") else { return key }
+
+        let suffixStart = key.index(after: separatorIndex)
+        let suffix = String(key[suffixStart...])
+        return suffix.isEmpty ? key : suffix
+    }
+}
+
+private struct KeyNamespaceNode: Identifiable {
+    let id: String
+    let name: String
+    var keys: [RedisKeyEntry] = []
+    var children: [KeyNamespaceNode] = []
+
+    static var root: KeyNamespaceNode {
+        KeyNamespaceNode(id: "", name: "")
+    }
+
+    var keyCount: Int {
+        keys.count + children.reduce(0) { $0 + $1.keyCount }
+    }
+
+    mutating func insert(_ entry: RedisKeyEntry) {
+        insert(entry, namespaceSegments: KeyNamespaceTree.namespaceSegments(for: entry.key), segmentIndex: 0)
+    }
+
+    mutating func sortRecursively() {
+        keys.sort { lhs, rhs in
+            lhs.key.localizedStandardCompare(rhs.key) == .orderedAscending
+        }
+        children.sort { lhs, rhs in
+            lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+        }
+        for index in children.indices {
+            children[index].sortRecursively()
+        }
+    }
+
+    private mutating func insert(
+        _ entry: RedisKeyEntry,
+        namespaceSegments: [String],
+        segmentIndex: Int
+    ) {
+        guard segmentIndex < namespaceSegments.count else {
+            keys.append(entry)
+            return
+        }
+
+        let namespaceName = namespaceSegments[segmentIndex]
+        let namespaceID = id.isEmpty ? namespaceName : "\(id):\(namespaceName)"
+        if let childIndex = children.firstIndex(where: { $0.id == namespaceID }) {
+            children[childIndex].insert(entry, namespaceSegments: namespaceSegments, segmentIndex: segmentIndex + 1)
+        } else {
+            var child = KeyNamespaceNode(id: namespaceID, name: namespaceName)
+            child.insert(entry, namespaceSegments: namespaceSegments, segmentIndex: segmentIndex + 1)
+            children.append(child)
+        }
     }
 }
 
 struct KeyRow: View {
     let entry: RedisKeyEntry
+    var displayName: String?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -298,13 +563,15 @@ struct KeyRow: View {
                     .background(.quaternary)
                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
             }
-            Text(entry.key)
+            Text(displayName ?? entry.key)
                 .font(.body)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
         }
         .padding(.vertical, AppTheme.spacing)
+        .help(entry.key)
+        .accessibilityLabel(entry.key)
     }
 }
 

@@ -651,6 +651,7 @@ class ConnectionState: ObservableObject {
     @Published var hasMoreKeys = true
     @Published var keyFilter: String = "*"
     @Published var keyTypeFilter: String = ""
+    @Published var keyScanCount = 500
 
     @Published var shellHistory: [ShellHistoryEntry] = []
     @Published var shellInput: String = ""
@@ -930,7 +931,7 @@ class ConnectionState: ObservableObject {
                 var iterations = 0
                 let maxIterations = scanAll ? 1000 : 1
                 repeat {
-                    let result = try await client.scan(cursor: scanCursor, match: keyFilter, count: 1000)
+                    let result = try await client.scan(cursor: scanCursor, match: keyFilter, count: keyScanCount)
                     scanCursor = result.nextCursor
                     hasMoreKeys = scanCursor != "0"
                     let newKeyNames = result.keys
