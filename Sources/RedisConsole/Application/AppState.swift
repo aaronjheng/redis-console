@@ -440,6 +440,7 @@ class ConnectionState: ObservableObject {
 
     private var connectTask: Task<Void, Never>?
     private var sshTunnel: SSHTunnel?
+    private var sshClusterTunnelManager: SSHClusterTunnelManager?
     private var isScanningKeysRequest = false
     private var pendingResetScan = false
 
@@ -464,6 +465,9 @@ class ConnectionState: ObservableObject {
         activeClient?.disconnect()
         sshTunnel?.stop()
         sshTunnel = nil
+        let previousClusterTunnelManager = sshClusterTunnelManager
+        sshClusterTunnelManager = nil
+        await previousClusterTunnelManager?.disconnect()
 
         isConnecting = true
         connectionError = nil
@@ -478,11 +482,10 @@ class ConnectionState: ObservableObject {
             var connectHost = resolvedConfig.host
             var connectPort = resolvedConfig.port
             var client: (any RedisSession)?
+            var clusterTunnelManager: SSHClusterTunnelManager?
 
             do {
-                if resolvedConfig.mode == .cluster && resolvedConfig.ssh.enabled {
-                    throw RedisError.commandError("Redis Cluster over SSH tunnel is not supported yet")
-                }
+                var clusterEndpointResolver: (any RedisClusterEndpointResolver)?
 
                 if resolvedConfig.ssh.enabled {
                     let sshHost = resolvedConfig.ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -492,30 +495,43 @@ class ConnectionState: ObservableObject {
                         throw SSHTunnelError.connectionFailed("SSH host is required")
                     }
 
-                    let tunnel = SSHTunnel()
-                    sshTunnel = tunnel
-                    AppLogger.info(
-                        "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.ssh.port) "
-                            + "user=\(effectiveSSHUser) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
-                        category: "Connection"
-                    )
-                    try await withTimeout(12, context: "SSH tunnel setup") {
-                        try await tunnel.start(
-                            sshHost: sshHost,
-                            sshPort: resolvedConfig.ssh.port,
-                            sshUser: effectiveSSHUser,
-                            sshPassword: resolvedConfig.ssh.password.isEmpty ? nil : resolvedConfig.ssh.password,
-                            privateKeyPath: resolvedConfig.ssh.privateKeyPath.isEmpty ? nil : resolvedConfig.ssh.privateKeyPath,
-                            remoteHost: resolvedConfig.host,
-                            remotePort: resolvedConfig.port
+                    switch resolvedConfig.mode {
+                    case .standalone:
+                        let tunnel = SSHTunnel()
+                        sshTunnel = tunnel
+                        AppLogger.info(
+                            "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.ssh.port) "
+                                + "user=\(effectiveSSHUser) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
+                            category: "Connection"
+                        )
+                        try await withTimeout(12, context: "SSH tunnel setup") {
+                            try await tunnel.start(
+                                sshHost: sshHost,
+                                sshPort: resolvedConfig.ssh.port,
+                                sshUser: effectiveSSHUser,
+                                sshPassword: resolvedConfig.ssh.password.isEmpty ? nil : resolvedConfig.ssh.password,
+                                privateKeyPath: resolvedConfig.ssh.privateKeyPath.isEmpty ? nil : resolvedConfig.ssh.privateKeyPath,
+                                remoteHost: resolvedConfig.host,
+                                remotePort: resolvedConfig.port
+                            )
+                        }
+                        connectHost = "127.0.0.1"
+                        connectPort = tunnel.localPort
+                        AppLogger.info(
+                            "ssh tunnel ready mode=\(tunnel.mode.rawValue) local=127.0.0.1:\(connectPort)",
+                            category: "Connection"
+                        )
+                    case .cluster:
+                        let manager = SSHClusterTunnelManager(ssh: resolvedConfig.ssh)
+                        clusterTunnelManager = manager
+                        sshClusterTunnelManager = manager
+                        clusterEndpointResolver = manager
+                        AppLogger.info(
+                            "cluster ssh tunnel manager ready ssh=\(sshHost):\(resolvedConfig.ssh.port) "
+                                + "user=\(effectiveSSHUser)",
+                            category: "Connection"
                         )
                     }
-                    connectHost = "127.0.0.1"
-                    connectPort = tunnel.localPort
-                    AppLogger.info(
-                        "ssh tunnel ready mode=\(tunnel.mode.rawValue) local=127.0.0.1:\(connectPort)",
-                        category: "Connection"
-                    )
                 }
 
                 try Task.checkCancellation()
@@ -543,7 +559,8 @@ class ConnectionState: ObservableObject {
                         verifyServerCertificate: resolvedConfig.tls.verifyServerCertificate,
                         caCertificatePath: resolvedConfig.tls.caCertificatePath,
                         clientCertificatePath: resolvedConfig.tls.clientCertificatePath,
-                        clientKeyPath: resolvedConfig.tls.clientKeyPath
+                        clientKeyPath: resolvedConfig.tls.clientKeyPath,
+                        endpointResolver: clusterEndpointResolver
                     )
                 }
                 client = redis
@@ -564,6 +581,10 @@ class ConnectionState: ObservableObject {
                 AppLogger.info("connect completed name=\(resolvedConfig.name)", category: "Connection")
             } catch is CancellationError {
                 client?.disconnect()
+                clearClusterTunnelManagerIfCurrent(clusterTunnelManager)
+                if let clusterTunnelManager {
+                    await clusterTunnelManager.disconnect()
+                }
                 AppLogger.info("connect cancelled name=\(resolvedConfig.name)", category: "Connection")
             } catch {
                 client?.disconnect()
@@ -572,12 +593,22 @@ class ConnectionState: ObservableObject {
                 pendingConnection = nil
                 sshTunnel?.stop()
                 sshTunnel = nil
+                clearClusterTunnelManagerIfCurrent(clusterTunnelManager)
+                if let clusterTunnelManager {
+                    await clusterTunnelManager.disconnect()
+                }
                 AppLogger.error("connect failed name=\(resolvedConfig.name) error=\(error)", category: "Connection")
             }
         }
 
         connectTask = task
         await task.value
+    }
+
+    private func clearClusterTunnelManagerIfCurrent(_ manager: SSHClusterTunnelManager?) {
+        guard let current = sshClusterTunnelManager, let manager else { return }
+        guard ObjectIdentifier(current) == ObjectIdentifier(manager) else { return }
+        sshClusterTunnelManager = nil
     }
 
     func cancelConnection() {
@@ -587,6 +618,9 @@ class ConnectionState: ObservableObject {
         activeClient?.disconnect()
         sshTunnel?.stop()
         sshTunnel = nil
+        let clusterTunnelManager = sshClusterTunnelManager
+        sshClusterTunnelManager = nil
+        Task { await clusterTunnelManager?.disconnect() }
         isConnecting = false
         pendingConnection = nil
         connectionError = nil
@@ -598,6 +632,9 @@ class ConnectionState: ObservableObject {
         activeClient = nil
         sshTunnel?.stop()
         sshTunnel = nil
+        let clusterTunnelManager = sshClusterTunnelManager
+        sshClusterTunnelManager = nil
+        Task { await clusterTunnelManager?.disconnect() }
         selectedConnection = nil
         keys = []
         selectedKey = nil

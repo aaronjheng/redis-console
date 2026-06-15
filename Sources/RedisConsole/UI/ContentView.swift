@@ -949,20 +949,18 @@ struct ConnectionDetailView: View {
         testResult = nil
         var client: (any RedisSession)?
         var tunnel: SSHTunnel?
+        var clusterTunnelManager: SSHClusterTunnelManager?
         defer {
+            let manager = clusterTunnelManager
             client?.disconnect()
             tunnel?.stop()
+            Task { await manager?.disconnect() }
             isTesting = false
         }
 
         var connectHost = host
         var connectPort = port
-
-        if connectionMode == .cluster && ssh.enabled {
-            testResult = "Failed - Redis Cluster over SSH tunnel is not supported yet"
-            AppLogger.error("test failed: cluster ssh unsupported", category: "ConnectionTest")
-            return
-        }
+        var clusterEndpointResolver: (any RedisClusterEndpointResolver)?
 
         if ssh.enabled {
             let trimmedSSHHost = ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -974,30 +972,41 @@ struct ConnectionDetailView: View {
                 return
             }
 
-            let createdTunnel = SSHTunnel()
-            tunnel = createdTunnel
-            do {
-                try await withTimeout(12, context: "SSH tunnel setup") {
-                    try await createdTunnel.start(
-                        sshHost: trimmedSSHHost,
-                        sshPort: ssh.port,
-                        sshUser: effectiveSSHUser,
-                        sshPassword: ssh.password.isEmpty ? nil : ssh.password,
-                        privateKeyPath: ssh.privateKeyPath.isEmpty ? nil : ssh.privateKeyPath,
-                        remoteHost: host,
-                        remotePort: port
+            switch connectionMode {
+            case .standalone:
+                let createdTunnel = SSHTunnel()
+                tunnel = createdTunnel
+                do {
+                    try await withTimeout(12, context: "SSH tunnel setup") {
+                        try await createdTunnel.start(
+                            sshHost: trimmedSSHHost,
+                            sshPort: ssh.port,
+                            sshUser: effectiveSSHUser,
+                            sshPassword: ssh.password.isEmpty ? nil : ssh.password,
+                            privateKeyPath: ssh.privateKeyPath.isEmpty ? nil : ssh.privateKeyPath,
+                            remoteHost: host,
+                            remotePort: port
+                        )
+                    }
+                    connectHost = "127.0.0.1"
+                    connectPort = createdTunnel.localPort
+                    AppLogger.info(
+                        "test ssh tunnel ready mode=\(createdTunnel.mode.rawValue) local=127.0.0.1:\(connectPort)",
+                        category: "ConnectionTest"
                     )
+                } catch {
+                    testResult = "Failed — SSH tunnel: \(error.localizedDescription)"
+                    AppLogger.error("test ssh tunnel failed error=\(error)", category: "ConnectionTest")
+                    return
                 }
-                connectHost = "127.0.0.1"
-                connectPort = createdTunnel.localPort
+            case .cluster:
+                let manager = SSHClusterTunnelManager(ssh: ssh)
+                clusterTunnelManager = manager
+                clusterEndpointResolver = manager
                 AppLogger.info(
-                    "test ssh tunnel ready mode=\(createdTunnel.mode.rawValue) local=127.0.0.1:\(connectPort)",
+                    "test cluster ssh tunnel manager ready ssh=\(trimmedSSHHost):\(ssh.port) user=\(effectiveSSHUser)",
                     category: "ConnectionTest"
                 )
-            } catch {
-                testResult = "Failed — SSH tunnel: \(error.localizedDescription)"
-                AppLogger.error("test ssh tunnel failed error=\(error)", category: "ConnectionTest")
-                return
             }
         }
 
@@ -1024,7 +1033,8 @@ struct ConnectionDetailView: View {
                 verifyServerCertificate: tls.verifyServerCertificate,
                 caCertificatePath: tls.caCertificatePath,
                 clientCertificatePath: tls.clientCertificatePath,
-                clientKeyPath: tls.clientKeyPath
+                clientKeyPath: tls.clientKeyPath,
+                endpointResolver: clusterEndpointResolver
             )
         }
         client = createdClient

@@ -147,6 +147,11 @@ protocol RedisSession: AnyObject, Sendable {
     func scan(cursor: String, match: String, count: Int) async throws -> RedisScanResult
 }
 
+protocol RedisClusterEndpointResolver: Sendable {
+    func clientEndpoint(for endpoint: RedisEndpoint) async throws -> RedisEndpoint
+    func disconnect() async
+}
+
 extension RedisClient: RedisSession {
     var mode: RedisConnectionMode { .standalone }
 
@@ -159,6 +164,7 @@ extension RedisClient: RedisSession {
 final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Sendable {
     private let seedNodes: [RedisEndpoint]
     private let makeClient: @Sendable (RedisEndpoint) -> RedisClient
+    private let endpointResolver: (any RedisClusterEndpointResolver)?
     private let state = RedisClusterState()
 
     @Published var isConnected = false
@@ -175,9 +181,11 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
         caCertificatePath: String = "",
         clientCertificatePath: String = "",
         clientKeyPath: String = "",
-        preferredProtocolVersion: RESPProtocolVersion = .resp2
+        preferredProtocolVersion: RESPProtocolVersion = .resp2,
+        endpointResolver: (any RedisClusterEndpointResolver)? = nil
     ) {
         self.seedNodes = RedisEndpoint.unique(seedNodes)
+        self.endpointResolver = endpointResolver
         self.makeClient = { endpoint in
             RedisClient(
                 host: endpoint.host,
@@ -370,7 +378,11 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
     }
 
     private func sendDirect(_ args: [String], to endpoint: RedisEndpoint, asking: Bool) async throws -> RESPValue {
-        let client = try await state.client(for: endpoint, makeClient: makeClient)
+        let client = try await state.client(
+            for: endpoint,
+            endpointResolver: endpointResolver,
+            makeClient: makeClient
+        )
         if asking {
             let response = try await client.send("ASKING")
             if case .error = response {
@@ -392,7 +404,11 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
         var lastError: Error?
         for endpoint in candidates {
             do {
-                let client = try await state.client(for: endpoint, makeClient: makeClient)
+                let client = try await state.client(
+                    for: endpoint,
+                    endpointResolver: endpointResolver,
+                    makeClient: makeClient
+                )
                 let response = try await client.send("CLUSTER", "SLOTS")
                 if case .error(let message) = response {
                     throw RedisError.commandError(
@@ -477,14 +493,40 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
             isConnected = false
         }
         let state = state
-        Task { await state.disconnectAll() }
+        let endpointResolver = endpointResolver
+        Task {
+            await state.disconnectAll()
+            await endpointResolver?.disconnect()
+        }
     }
 }
 
 private actor RedisClusterState {
+    private final class PendingConnectionClientBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var storedClient: RedisClient?
+
+        func set(_ client: RedisClient) {
+            lock.lock()
+            storedClient = client
+            lock.unlock()
+        }
+
+        func client() -> RedisClient? {
+            lock.lock()
+            defer { lock.unlock() }
+            return storedClient
+        }
+
+        func disconnect() {
+            client()?.disconnect()
+        }
+    }
+
     private struct PendingConnection {
+        let id: UUID
         let generation: Int
-        let client: RedisClient
+        let clientBox: PendingConnectionClientBox
         let task: Task<RedisClient, Error>
     }
 
@@ -498,6 +540,7 @@ private actor RedisClusterState {
 
     func client(
         for endpoint: RedisEndpoint,
+        endpointResolver: (any RedisClusterEndpointResolver)?,
         makeClient: @Sendable @escaping (RedisEndpoint) -> RedisClient
     ) async throws -> RedisClient {
         if let client = clients[endpoint], client.isConnected {
@@ -508,12 +551,26 @@ private actor RedisClusterState {
             return try await resolveConnectionTask(pendingConnection, endpoint: endpoint)
         }
 
-        let client = makeClient(endpoint)
-        let task = Task {
+        let clientBox = PendingConnectionClientBox()
+        let task = Task { [endpointResolver, makeClient] in
+            let clientEndpoint: RedisEndpoint
+            if let endpointResolver {
+                clientEndpoint = try await endpointResolver.clientEndpoint(for: endpoint)
+            } else {
+                clientEndpoint = endpoint
+            }
+            try Task.checkCancellation()
+            let client = makeClient(clientEndpoint)
+            clientBox.set(client)
             try await client.connect()
             return client
         }
-        let pendingConnection = PendingConnection(generation: generation, client: client, task: task)
+        let pendingConnection = PendingConnection(
+            id: UUID(),
+            generation: generation,
+            clientBox: clientBox,
+            task: task
+        )
         connectionTasks[endpoint] = pendingConnection
 
         return try await resolveConnectionTask(pendingConnection, endpoint: endpoint)
@@ -535,17 +592,22 @@ private actor RedisClusterState {
             return client
         } catch {
             clearConnectionTask(pendingConnection, endpoint: endpoint)
-            if let client = clients[endpoint], client === pendingConnection.client {
-                clients[endpoint] = nil
-            }
+            removeCachedClient(for: endpoint, matching: pendingConnection)
+            pendingConnection.clientBox.disconnect()
             throw error
         }
+    }
+
+    private func removeCachedClient(for endpoint: RedisEndpoint, matching pendingConnection: PendingConnection) {
+        guard let pendingClient = pendingConnection.clientBox.client(), let client = clients[endpoint] else { return }
+        guard ObjectIdentifier(client) == ObjectIdentifier(pendingClient) else { return }
+        clients[endpoint] = nil
     }
 
     private func clearConnectionTask(_ pendingConnection: PendingConnection, endpoint: RedisEndpoint) {
         guard let current = connectionTasks[endpoint],
             current.generation == pendingConnection.generation,
-            current.client === pendingConnection.client
+            current.id == pendingConnection.id
         else {
             return
         }
@@ -641,7 +703,7 @@ private actor RedisClusterState {
 
         for pendingConnection in pendingConnections {
             pendingConnection.task.cancel()
-            pendingConnection.client.disconnect()
+            pendingConnection.clientBox.disconnect()
         }
 
         for client in connectedClients {
