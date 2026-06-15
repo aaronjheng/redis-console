@@ -363,12 +363,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         container.addSubview(label)
 
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            label.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            label.topAnchor.constraint(equalTo: container.topAnchor),
-            label.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            label.heightAnchor.constraint(equalToConstant: 16),
-            label.widthAnchor.constraint(greaterThanOrEqualToConstant: 34),
+            container.widthAnchor.constraint(equalToConstant: 34),
+            container.heightAnchor.constraint(equalToConstant: 16),
+            label.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
         ])
 
         return container
