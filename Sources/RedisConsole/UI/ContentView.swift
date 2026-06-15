@@ -417,6 +417,7 @@ struct TabContentView: View {
                 switch conn.currentView {
                 case .browser: BrowserView()
                 case .shell: ShellView()
+                case .profiler: ProfilerView()
                 case .serverInfo: ServerInfoView()
                 }
             } else if conn.isConnecting {

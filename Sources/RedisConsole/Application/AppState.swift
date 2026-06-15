@@ -202,6 +202,230 @@ struct ShellHistoryEntry: Identifiable {
     let isError: Bool
 }
 
+// MARK: - Profiler
+
+private final class RedisProfilerTaskBag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var tasks: [Task<Void, Never>] = []
+
+    func add(_ task: Task<Void, Never>) {
+        lock.lock()
+        tasks.append(task)
+        lock.unlock()
+    }
+
+    func cancelAll() {
+        lock.lock()
+        let tasks = tasks
+        self.tasks.removeAll()
+        lock.unlock()
+
+        for task in tasks {
+            task.cancel()
+        }
+    }
+}
+
+private struct RedisProfilerCapture: Sendable {
+    let node: RedisEndpoint?
+    let line: String
+}
+
+private struct RedisProfilerStream {
+    let stream: AsyncThrowingStream<RedisProfilerCapture, Error>
+    let monitorClients: [RedisMonitorClient]
+    let monitorTasks: RedisProfilerTaskBag?
+    let tunnel: SSHTunnel?
+    let tunnelManager: SSHClusterTunnelManager?
+}
+
+struct RedisProfilerEntry: Identifiable, Hashable {
+    private struct ParsedLine {
+        let timestamp: Date
+        let database: Int?
+        let source: String
+        let commandName: String
+        let commandText: String
+        let arguments: [String]
+    }
+
+    let id = UUID()
+    let timestamp: Date
+    let database: Int?
+    let source: String
+    let commandName: String
+    let commandText: String
+    let arguments: [String]
+    let rawLine: String
+    let node: RedisEndpoint?
+
+    init(rawLine: String, node: RedisEndpoint? = nil, capturedAt: Date = Date()) {
+        self.rawLine = rawLine
+        self.node = node
+
+        let parsed = Self.parse(rawLine: rawLine, capturedAt: capturedAt)
+        timestamp = parsed.timestamp
+        database = parsed.database
+        source = parsed.source
+        commandName = parsed.commandName
+        commandText = parsed.commandText
+        arguments = parsed.arguments
+    }
+
+    var databaseText: String {
+        database.map(String.init) ?? "-"
+    }
+
+    var nodeText: String {
+        node?.address ?? "-"
+    }
+
+    var timeText: String {
+        let components = Calendar.current.dateComponents([.hour, .minute, .second, .nanosecond], from: timestamp)
+        let hour = components.hour ?? 0
+        let minute = components.minute ?? 0
+        let second = components.second ?? 0
+        let millisecond = (components.nanosecond ?? 0) / 1_000_000
+        return String(format: "%02d:%02d:%02d.%03d", hour, minute, second, millisecond)
+    }
+
+    var argumentsText: String {
+        guard arguments.count > 1 else { return "" }
+        return arguments.dropFirst().map(Self.displayArgument).joined(separator: " ")
+    }
+
+    var searchText: String {
+        ([databaseText, nodeText, source, commandName, commandText, rawLine] + arguments)
+            .joined(separator: " ")
+            .lowercased()
+    }
+
+    var isNoiseCommand: Bool {
+        switch commandName {
+        case "PING":
+            return true
+        case "CLUSTER":
+            guard arguments.count > 1 else { return false }
+            return Self.noiseClusterSubcommands.contains(arguments[1].uppercased())
+        default:
+            return false
+        }
+    }
+
+    private static let noiseClusterSubcommands: Set<String> = [
+        "INFO",
+        "NODES",
+        "SHARDS",
+        "SLOTS",
+    ]
+
+    private static func parse(
+        rawLine: String,
+        capturedAt: Date
+    ) -> ParsedLine {
+        let trimmed = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        let timestampEnd = trimmed.firstIndex(of: " ") ?? trimmed.endIndex
+        let timestampText = String(trimmed[..<timestampEnd])
+        let timestamp = Double(timestampText).map { Date(timeIntervalSince1970: $0) } ?? capturedAt
+
+        var remainder =
+            timestampEnd < trimmed.endIndex
+            ? String(trimmed[trimmed.index(after: timestampEnd)...]).trimmingCharacters(in: .whitespaces)
+            : ""
+
+        var database: Int?
+        var source = "-"
+
+        if remainder.first == "[", let closeBracketIndex = remainder.firstIndex(of: "]") {
+            let metadataStart = remainder.index(after: remainder.startIndex)
+            let metadata = String(remainder[metadataStart..<closeBracketIndex])
+            let parts = metadata.split(separator: " ", maxSplits: 1).map(String.init)
+            database = parts.first.flatMap(Int.init)
+            if parts.count > 1 {
+                source = parts[1]
+            } else if !metadata.isEmpty {
+                source = metadata
+            }
+
+            let commandStart = remainder.index(after: closeBracketIndex)
+            remainder = String(remainder[commandStart...]).trimmingCharacters(in: .whitespaces)
+        }
+
+        let arguments = parseArguments(remainder)
+        let commandName = arguments.first?.uppercased() ?? "-"
+        let commandText = arguments.isEmpty ? remainder : arguments.map(displayArgument).joined(separator: " ")
+        return ParsedLine(
+            timestamp: timestamp,
+            database: database,
+            source: source,
+            commandName: commandName,
+            commandText: commandText,
+            arguments: arguments
+        )
+    }
+
+    private static func parseArguments(_ value: String) -> [String] {
+        var arguments: [String] = []
+        var current = ""
+        var isQuoted = false
+        var isEscaped = false
+
+        for character in value {
+            if isQuoted {
+                if isEscaped {
+                    current.append(unescaped(character))
+                    isEscaped = false
+                } else if character == "\\" {
+                    isEscaped = true
+                } else if character == "\"" {
+                    arguments.append(current)
+                    current = ""
+                    isQuoted = false
+                } else {
+                    current.append(character)
+                }
+            } else if character == "\"" {
+                isQuoted = true
+            }
+        }
+
+        if isQuoted || !current.isEmpty {
+            arguments.append(current)
+        }
+
+        return arguments
+    }
+
+    private static func unescaped(_ character: Character) -> Character {
+        switch character {
+        case "n": return "\n"
+        case "r": return "\r"
+        case "t": return "\t"
+        default: return character
+        }
+    }
+
+    private static func displayArgument(_ value: String) -> String {
+        if value.isEmpty {
+            return "\"\""
+        }
+
+        let needsQuoting = value.contains { character in
+            character.isWhitespace || character == "\""
+        }
+        guard needsQuoting else { return value }
+
+        let escaped =
+            value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "\t", with: "\\t")
+        return "\"\(escaped)\""
+    }
+}
+
 // MARK: - App Store (Global singleton, shared across all tabs)
 
 @MainActor
@@ -361,12 +585,14 @@ class AppStore: ObservableObject {
 enum AppView: String, CaseIterable {
     case browser = "Browser"
     case shell = "Shell"
+    case profiler = "Profiler"
     case serverInfo = "Server Info"
 
     var icon: String {
         switch self {
         case .browser: return "key"
         case .shell: return "terminal"
+        case .profiler: return "waveform.path.ecg"
         case .serverInfo: return "info.circle"
         }
     }
@@ -429,6 +655,12 @@ class ConnectionState: ObservableObject {
     @Published var shellHistory: [ShellHistoryEntry] = []
     @Published var shellInput: String = ""
 
+    @Published var profilerEntries: [RedisProfilerEntry] = []
+    @Published var profilerCapturedCount = 0
+    @Published var profilerError: String?
+    @Published var isProfilerRunning = false
+    @Published var isProfilerStarting = false
+
     @Published var serverInfo: [String: [String: String]] = [:]
     @Published var serverCapabilities: [RedisServerCapability] = []
     @Published var clusterInfo: [String: String] = [:]
@@ -443,6 +675,13 @@ class ConnectionState: ObservableObject {
     private var sshClusterTunnelManager: SSHClusterTunnelManager?
     private var isScanningKeysRequest = false
     private var pendingResetScan = false
+    private var profilerTask: Task<Void, Never>?
+    private var profilerMonitorClients: [RedisMonitorClient] = []
+    private var profilerMonitorTasks: RedisProfilerTaskBag?
+    private var profilerSSHTunnel: SSHTunnel?
+    private var profilerClusterTunnelManager: SSHClusterTunnelManager?
+    private var profilerGeneration = 0
+    private let profilerMaxEntries = 2_000
 
     var windowTitle: String {
         if let conn = selectedConnection {
@@ -461,6 +700,7 @@ class ConnectionState: ObservableObject {
                 + "sshEnabled=\(resolvedConfig.ssh.enabled) tlsEnabled=\(resolvedConfig.tls.enabled)",
             category: "Connection"
         )
+        stopProfiler(clearEntries: true)
         connectTask?.cancel()
         activeClient?.disconnect()
         sshTunnel?.stop()
@@ -613,6 +853,7 @@ class ConnectionState: ObservableObject {
 
     func cancelConnection() {
         AppLogger.info("cancel connection", category: "Connection")
+        stopProfiler(clearEntries: true)
         connectTask?.cancel()
         connectTask = nil
         activeClient?.disconnect()
@@ -628,6 +869,7 @@ class ConnectionState: ObservableObject {
 
     func disconnect() {
         AppLogger.info("disconnect current connection", category: "Connection")
+        stopProfiler(clearEntries: true)
         activeClient?.disconnect()
         activeClient = nil
         sshTunnel?.stop()
@@ -955,6 +1197,332 @@ class ConnectionState: ObservableObject {
             parts.append(current)
         }
         return parts
+    }
+
+    // MARK: - Profiler
+
+    func startProfiler() {
+        guard !isProfilerRunning && !isProfilerStarting else { return }
+        guard let config = selectedConnection else {
+            profilerError = "Connect to a Redis server before starting the profiler."
+            return
+        }
+
+        profilerGeneration += 1
+        let generation = profilerGeneration
+        cancelProfilerResources()
+        profilerError = nil
+        isProfilerStarting = true
+
+        profilerTask = Task { @MainActor in
+            await runProfiler(config: config, generation: generation)
+        }
+    }
+
+    func stopProfiler(clearEntries: Bool = false) {
+        profilerGeneration += 1
+        cancelProfilerResources()
+        isProfilerRunning = false
+        isProfilerStarting = false
+
+        if clearEntries {
+            clearProfiler()
+        }
+    }
+
+    func clearProfiler() {
+        profilerEntries = []
+        profilerCapturedCount = 0
+        profilerError = nil
+    }
+
+    private func cancelProfilerResources() {
+        profilerTask?.cancel()
+        profilerTask = nil
+
+        profilerMonitorTasks?.cancelAll()
+        profilerMonitorTasks = nil
+
+        for client in profilerMonitorClients {
+            client.disconnect()
+        }
+        profilerMonitorClients = []
+
+        profilerSSHTunnel?.stop()
+        profilerSSHTunnel = nil
+
+        let clusterTunnelManager = profilerClusterTunnelManager
+        profilerClusterTunnelManager = nil
+        Task {
+            await clusterTunnelManager?.disconnect()
+        }
+    }
+
+    private func runProfiler(config: RedisConnectionConfig, generation: Int) async {
+        var monitorClients: [RedisMonitorClient] = []
+        var monitorTasks: RedisProfilerTaskBag?
+        var tunnel: SSHTunnel?
+        var clusterTunnelManager: SSHClusterTunnelManager?
+
+        defer {
+            let shouldClearStoredResources = profilerGeneration == generation
+            let storedMonitorClients = shouldClearStoredResources ? profilerMonitorClients : []
+            let storedMonitorTasks = shouldClearStoredResources ? profilerMonitorTasks : nil
+            let storedTunnel = shouldClearStoredResources ? profilerSSHTunnel : nil
+            let storedClusterTunnelManager = shouldClearStoredResources ? profilerClusterTunnelManager : nil
+
+            monitorTasks?.cancelAll()
+            storedMonitorTasks?.cancelAll()
+            for client in monitorClients {
+                client.disconnect()
+            }
+            for client in storedMonitorClients {
+                client.disconnect()
+            }
+            tunnel?.stop()
+            storedTunnel?.stop()
+            let clusterTunnelManager = clusterTunnelManager
+            let clusterTunnelManagerFromStoredState = storedClusterTunnelManager
+            Task {
+                await clusterTunnelManager?.disconnect()
+                await clusterTunnelManagerFromStoredState?.disconnect()
+            }
+
+            if shouldClearStoredResources {
+                profilerMonitorClients = []
+                profilerMonitorTasks = nil
+                profilerSSHTunnel = nil
+                profilerClusterTunnelManager = nil
+                profilerTask = nil
+                isProfilerRunning = false
+                isProfilerStarting = false
+            }
+        }
+
+        do {
+            let profilerStream: RedisProfilerStream
+
+            switch config.mode {
+            case .standalone:
+                profilerStream = try await startStandaloneProfilerStream(config: config)
+            case .cluster:
+                profilerStream = try await startClusterProfilerStream(config: config)
+            }
+
+            monitorClients = profilerStream.monitorClients
+            monitorTasks = profilerStream.monitorTasks
+            tunnel = profilerStream.tunnel
+            clusterTunnelManager = profilerStream.tunnelManager
+
+            try Task.checkCancellation()
+
+            isProfilerStarting = false
+            isProfilerRunning = true
+            AppLogger.info("profiler started redis=\(config.address)", category: "Profiler")
+
+            for try await capture in profilerStream.stream {
+                try Task.checkCancellation()
+                appendProfilerCapture(capture)
+            }
+        } catch is CancellationError {
+            AppLogger.info("profiler stopped redis=\(config.address)", category: "Profiler")
+        } catch {
+            if profilerGeneration == generation {
+                profilerError = error.localizedDescription
+            }
+            AppLogger.error("profiler failed redis=\(config.address) error=\(error)", category: "Profiler")
+        }
+    }
+
+    private func startStandaloneProfilerStream(
+        config: RedisConnectionConfig
+    ) async throws -> RedisProfilerStream {
+        var connectHost = config.host
+        var connectPort = config.port
+        var tunnel: SSHTunnel?
+
+        if config.ssh.enabled {
+            let createdTunnel = try await startProfilerSSHTunnel(config: config, remoteHost: config.host, remotePort: config.port)
+            tunnel = createdTunnel
+            profilerSSHTunnel = createdTunnel
+            connectHost = "127.0.0.1"
+            connectPort = createdTunnel.localPort
+        }
+
+        try Task.checkCancellation()
+
+        let monitorClient = makeProfilerMonitorClient(config: config, host: connectHost, port: connectPort)
+        profilerMonitorClients = [monitorClient]
+
+        let rawStream = try await withTimeout(10, context: "Redis profiler connection") {
+            try await monitorClient.startMonitoring()
+        }
+
+        let (stream, continuation) = AsyncThrowingStream<RedisProfilerCapture, Error>.makeStream(
+            of: RedisProfilerCapture.self,
+            throwing: Error.self,
+            bufferingPolicy: .bufferingNewest(profilerMaxEntries)
+        )
+        let taskBag = RedisProfilerTaskBag()
+        profilerMonitorTasks = taskBag
+        taskBag.add(
+            monitorStreamTask(
+                rawStream: rawStream,
+                node: nil,
+                continuation: continuation
+            )
+        )
+
+        return RedisProfilerStream(
+            stream: stream,
+            monitorClients: [monitorClient],
+            monitorTasks: taskBag,
+            tunnel: tunnel,
+            tunnelManager: nil
+        )
+    }
+
+    private func startClusterProfilerStream(
+        config: RedisConnectionConfig
+    ) async throws -> RedisProfilerStream {
+        guard let clusterClient = activeClient as? RedisClusterClient else {
+            throw RedisError.commandError("Profiler requires an active Redis Cluster connection")
+        }
+
+        let nodes = try await clusterClient.clusterNodes()
+        let endpoints = RedisEndpoint.unique(nodes.map(\.endpoint))
+        guard !endpoints.isEmpty else {
+            throw RedisError.commandError("Redis Cluster topology has no nodes")
+        }
+
+        let tunnelManager = config.ssh.enabled ? SSHClusterTunnelManager(ssh: config.ssh) : nil
+        profilerClusterTunnelManager = tunnelManager
+
+        let (stream, continuation) = AsyncThrowingStream<RedisProfilerCapture, Error>.makeStream(
+            of: RedisProfilerCapture.self,
+            throwing: Error.self,
+            bufferingPolicy: .bufferingNewest(profilerMaxEntries)
+        )
+        let taskBag = RedisProfilerTaskBag()
+        profilerMonitorTasks = taskBag
+
+        var monitorClients: [RedisMonitorClient] = []
+
+        for endpoint in endpoints {
+            try Task.checkCancellation()
+
+            let clientEndpoint: RedisEndpoint
+            if let tunnelManager {
+                clientEndpoint = try await tunnelManager.clientEndpoint(for: endpoint)
+            } else {
+                clientEndpoint = endpoint
+            }
+
+            let monitorClient = makeProfilerMonitorClient(config: config, host: clientEndpoint.host, port: clientEndpoint.port)
+            monitorClients.append(monitorClient)
+            profilerMonitorClients = monitorClients
+
+            let rawStream = try await withTimeout(10, context: "Redis profiler connection to \(endpoint.address)") {
+                try await monitorClient.startMonitoring()
+            }
+
+            taskBag.add(
+                monitorStreamTask(
+                    rawStream: rawStream,
+                    node: endpoint,
+                    continuation: continuation
+                )
+            )
+        }
+
+        return RedisProfilerStream(
+            stream: stream,
+            monitorClients: monitorClients,
+            monitorTasks: taskBag,
+            tunnel: nil,
+            tunnelManager: tunnelManager
+        )
+    }
+
+    private func makeProfilerMonitorClient(
+        config: RedisConnectionConfig,
+        host: String,
+        port: UInt16
+    ) -> RedisMonitorClient {
+        RedisMonitorClient(
+            host: host,
+            port: port,
+            username: config.username.isEmpty ? nil : config.username,
+            password: config.password.isEmpty ? nil : config.password,
+            tlsEnabled: config.tls.enabled,
+            verifyServerCertificate: config.tls.verifyServerCertificate,
+            caCertificatePath: config.tls.caCertificatePath,
+            clientCertificatePath: config.tls.clientCertificatePath,
+            clientKeyPath: config.tls.clientKeyPath
+        )
+    }
+
+    private func startProfilerSSHTunnel(
+        config: RedisConnectionConfig,
+        remoteHost: String,
+        remotePort: UInt16
+    ) async throws -> SSHTunnel {
+        let sshHost = config.ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sshUser = config.ssh.user.trimmingCharacters(in: .whitespacesAndNewlines)
+        let effectiveSSHUser = sshUser.isEmpty ? NSUserName() : sshUser
+        guard !sshHost.isEmpty else {
+            throw SSHTunnelError.connectionFailed("SSH host is required")
+        }
+
+        let tunnel = SSHTunnel()
+        do {
+            try await withTimeout(12, context: "SSH tunnel setup") {
+                try await tunnel.start(
+                    sshHost: sshHost,
+                    sshPort: config.ssh.port,
+                    sshUser: effectiveSSHUser,
+                    sshPassword: config.ssh.password.isEmpty ? nil : config.ssh.password,
+                    privateKeyPath: config.ssh.privateKeyPath.isEmpty ? nil : config.ssh.privateKeyPath,
+                    remoteHost: remoteHost,
+                    remotePort: remotePort
+                )
+            }
+            return tunnel
+        } catch {
+            tunnel.stop()
+            throw error
+        }
+    }
+
+    private nonisolated func monitorStreamTask(
+        rawStream: AsyncThrowingStream<String, Error>,
+        node: RedisEndpoint?,
+        continuation: AsyncThrowingStream<RedisProfilerCapture, Error>.Continuation
+    ) -> Task<Void, Never> {
+        Task {
+            do {
+                for try await line in rawStream {
+                    try Task.checkCancellation()
+                    continuation.yield(RedisProfilerCapture(node: node, line: line))
+                }
+
+                if !Task.isCancelled {
+                    continuation.finish(throwing: RedisError.notConnected)
+                }
+            } catch is CancellationError {
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+    }
+
+    private func appendProfilerCapture(_ capture: RedisProfilerCapture) {
+        profilerCapturedCount += 1
+        profilerEntries.append(RedisProfilerEntry(rawLine: capture.line, node: capture.node))
+
+        if profilerEntries.count > profilerMaxEntries {
+            profilerEntries.removeFirst(profilerEntries.count - profilerMaxEntries)
+        }
     }
 
     // MARK: - Server Info
