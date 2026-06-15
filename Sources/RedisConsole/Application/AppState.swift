@@ -682,6 +682,7 @@ class ConnectionState: ObservableObject {
     private var profilerClusterTunnelManager: SSHClusterTunnelManager?
     private var profilerGeneration = 0
     private let profilerMaxEntries = 2_000
+    private let keyTypePipelineBatchSize = 100
 
     var windowTitle: String {
         if let conn = selectedConnection {
@@ -972,27 +973,21 @@ class ConnectionState: ObservableObject {
         guard let client = activeClient, client.isConnected else { return }
         let keyNames = keys.filter { $0.type.isEmpty }.map(\.key)
         Task {
-            let resolved = await withTaskGroup(of: (String, String)?.self, returning: [(String, String)].self) { group in
-                for keyName in keyNames {
-                    group.addTask {
-                        let typeResult = try? await client.send("TYPE", keyName)
-                        guard let typeName = typeResult?.string else { return nil }
-                        return (keyName, typeName)
-                    }
+            for batchStart in stride(from: 0, to: keyNames.count, by: keyTypePipelineBatchSize) {
+                let batchEnd = min(batchStart + keyTypePipelineBatchSize, keyNames.count)
+                let batchKeys = Array(keyNames[batchStart..<batchEnd])
+                let commands = batchKeys.map { ["TYPE", $0] }
+                guard let typeResults = try? await client.sendPipeline(commands) else {
+                    continue
                 }
 
-                var pairs: [(String, String)] = []
-                for await pair in group {
-                    if let pair {
-                        pairs.append(pair)
+                for (keyName, typeResult) in zip(batchKeys, typeResults) {
+                    guard let typeName = typeResult.string else {
+                        continue
                     }
-                }
-                return pairs
-            }
-
-            for (keyName, typeName) in resolved {
-                if let entry = keys.first(where: { $0.key == keyName }) {
-                    entry.type = typeName
+                    if let entry = keys.first(where: { $0.key == keyName }) {
+                        entry.type = typeName
+                    }
                 }
             }
         }

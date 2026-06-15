@@ -19,26 +19,89 @@ class RedisClient: ObservableObject, @unchecked Sendable {
 
     private final class PendingCommand: @unchecked Sendable {
         private let lock = NSLock()
-        private var continuation: CheckedContinuation<RESPValue, Error>?
+        private var completion: (@Sendable (Result<RESPValue, Error>) -> Void)?
 
         init(_ continuation: CheckedContinuation<RESPValue, Error>) {
-            self.continuation = continuation
+            completion = { result in
+                switch result {
+                case .success(let value):
+                    continuation.resume(returning: value)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+
+        init(completion: @escaping @Sendable (Result<RESPValue, Error>) -> Void) {
+            self.completion = completion
         }
 
         func complete(_ result: Result<RESPValue, Error>) {
-            let continuation: CheckedContinuation<RESPValue, Error>?
+            let completion: (@Sendable (Result<RESPValue, Error>) -> Void)?
             lock.lock()
-            continuation = self.continuation
-            self.continuation = nil
+            completion = self.completion
+            self.completion = nil
             lock.unlock()
 
-            guard let continuation else { return }
+            completion?(result)
+        }
+    }
 
-            switch result {
-            case .success(let value):
-                continuation.resume(returning: value)
+    private final class PendingPipeline: @unchecked Sendable {
+        private let lock = NSLock()
+        private var results: [RESPValue?]
+        private var remainingCount: Int
+        private var continuation: CheckedContinuation<[RESPValue], Error>?
+
+        init(count: Int, continuation: CheckedContinuation<[RESPValue], Error>) {
+            results = Array(repeating: nil, count: count)
+            remainingCount = count
+            self.continuation = continuation
+        }
+
+        func complete(index: Int, with result: Result<RESPValue, Error>) {
+            var continuationToResume: CheckedContinuation<[RESPValue], Error>?
+            var resultToResume: Result<[RESPValue], Error>?
+
+            lock.lock()
+            if let storedContinuation = continuation {
+                switch result {
+                case .success(let value):
+                    results[index] = value
+                    remainingCount -= 1
+                    if remainingCount == 0 {
+                        var values: [RESPValue] = []
+                        values.reserveCapacity(results.count)
+                        var missingResponse = false
+                        for response in results {
+                            guard let response else {
+                                missingResponse = true
+                                break
+                            }
+                            values.append(response)
+                        }
+
+                        continuationToResume = storedContinuation
+                        resultToResume =
+                            missingResponse
+                            ? .failure(RedisError.parseError("Missing Redis pipeline response"))
+                            : .success(values)
+                        continuation = nil
+                    }
+                case .failure(let error):
+                    continuationToResume = storedContinuation
+                    resultToResume = .failure(error)
+                    continuation = nil
+                }
+            }
+            lock.unlock()
+
+            guard let continuationToResume, let resultToResume else { return }
+            switch resultToResume {
+            case .success(let values):
+                continuationToResume.resume(returning: values)
             case .failure(let error):
-                continuation.resume(throwing: error)
+                continuationToResume.resume(throwing: error)
             }
         }
     }
@@ -367,6 +430,53 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                         if let error = error {
                             self.queue.async {
                                 self.failPendingCompletion(pendingCompletion, with: error)
+                            }
+                        }
+                    })
+            }
+        }
+    }
+
+    func sendPipeline(_ commands: [[String]]) async throws -> [RESPValue] {
+        guard isConnected else {
+            throw RedisError.notConnected
+        }
+        guard !commands.isEmpty else { return [] }
+        guard commands.allSatisfy({ !$0.isEmpty }) else {
+            throw RedisError.commandError("Redis command is empty")
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            var data = Data()
+            for command in commands {
+                data.append(RESPEncoder.encode(command, version: negotiatedProtocolVersion))
+            }
+
+            let pipeline = PendingPipeline(count: commands.count, continuation: continuation)
+            let pendingCommands = commands.indices.map { index in
+                PendingCommand { result in
+                    pipeline.complete(index: index, with: result)
+                }
+            }
+
+            self.queue.async {
+                guard let connection = self.connection else {
+                    for pendingCommand in pendingCommands {
+                        pendingCommand.complete(.failure(RedisError.notConnected))
+                    }
+                    return
+                }
+
+                self.pendingCompletions.append(contentsOf: pendingCommands)
+
+                connection.send(
+                    content: data,
+                    completion: .contentProcessed { error in
+                        if let error = error {
+                            self.queue.async {
+                                for pendingCommand in pendingCommands {
+                                    self.failPendingCompletion(pendingCommand, with: error)
+                                }
                             }
                         }
                     })

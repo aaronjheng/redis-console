@@ -144,6 +144,7 @@ protocol RedisSession: AnyObject, Sendable {
     func disconnect()
     func send(_ args: String...) async throws -> RESPValue
     func send(_ args: [String]) async throws -> RESPValue
+    func sendPipeline(_ commands: [[String]]) async throws -> [RESPValue]
     func scan(cursor: String, match: String, count: Int) async throws -> RedisScanResult
 }
 
@@ -275,6 +276,69 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
         throw RedisError.commandError("Too many Redis Cluster redirects")
     }
 
+    func sendPipeline(_ commands: [[String]]) async throws -> [RESPValue] {
+        guard isConnected else {
+            throw RedisError.notConnected
+        }
+        guard !commands.isEmpty else { return [] }
+        guard commands.allSatisfy({ !$0.isEmpty }) else {
+            throw RedisError.commandError("Redis command is empty")
+        }
+
+        var groupedCommands: [RedisEndpoint: [(index: Int, command: [String])]] = [:]
+        for (index, command) in commands.enumerated() {
+            let endpoint = try await routeEndpoint(for: command)
+            groupedCommands[endpoint, default: []].append((index, command))
+        }
+
+        let groupedBatches = groupedCommands.map { endpoint, commands in
+            (endpoint: endpoint, commands: commands)
+        }
+        var orderedResponses = [RESPValue?](repeating: nil, count: commands.count)
+
+        try await withThrowingTaskGroup(
+            of: [(index: Int, command: [String], endpoint: RedisEndpoint, response: RESPValue)].self
+        ) { group in
+            for batch in groupedBatches {
+                group.addTask { [self] in
+                    let batchCommands = batch.commands.map(\.command)
+                    let responses = try await sendDirectPipeline(batchCommands, to: batch.endpoint)
+                    return zip(batch.commands, responses).map { indexedCommand, response in
+                        (
+                            index: indexedCommand.index,
+                            command: indexedCommand.command,
+                            endpoint: batch.endpoint,
+                            response: response
+                        )
+                    }
+                }
+            }
+
+            for try await batchResponses in group {
+                for batchResponse in batchResponses {
+                    if case .error(let message) = batchResponse.response {
+                        let redirect = RedisClusterRedirect(message: message, fallbackHost: batchResponse.endpoint.host)
+                        if redirect != nil {
+                            orderedResponses[batchResponse.index] = try await send(batchResponse.command)
+                            continue
+                        }
+                    }
+                    orderedResponses[batchResponse.index] = batchResponse.response
+                }
+            }
+        }
+
+        var responses: [RESPValue] = []
+        responses.reserveCapacity(commands.count)
+        for response in orderedResponses {
+            guard let response else {
+                throw RedisError.parseError("Missing Redis pipeline response")
+            }
+            responses.append(response)
+        }
+        return responses
+    }
+
     func scan(cursor: String, match: String, count: Int) async throws -> RedisScanResult {
         guard isConnected else {
             throw RedisError.notConnected
@@ -390,6 +454,15 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
             }
         }
         return try await client.send(args)
+    }
+
+    private func sendDirectPipeline(_ commands: [[String]], to endpoint: RedisEndpoint) async throws -> [RESPValue] {
+        let client = try await state.client(
+            for: endpoint,
+            endpointResolver: endpointResolver,
+            makeClient: makeClient
+        )
+        return try await client.sendPipeline(commands)
     }
 
     private func refreshTopology(preferredEndpoint: RedisEndpoint?) async throws {
