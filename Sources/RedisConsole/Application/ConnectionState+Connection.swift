@@ -177,6 +177,12 @@ extension ConnectionState {
         isConnecting = false
         pendingConnection = nil
         connectionError = nil
+        scanCursor = "0"
+        hasMoreKeys = true
+        keyTotalCount = nil
+        keyScannedCount = 0
+        keyScanIterationCount = 0
+        keyScanLimitReached = false
     }
 
     func disconnect() {
@@ -192,6 +198,12 @@ extension ConnectionState {
         selectedConnection = nil
         keys = []
         selectedKey = nil
+        scanCursor = "0"
+        hasMoreKeys = true
+        keyTotalCount = nil
+        keyScannedCount = 0
+        keyScanIterationCount = 0
+        keyScanLimitReached = false
         keyDetail = ""
         serverInfo = [:]
         serverCapabilities = []

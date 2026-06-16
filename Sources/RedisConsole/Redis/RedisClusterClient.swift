@@ -74,19 +74,22 @@ enum RedisConnectionMode: String, Codable, CaseIterable, Hashable, Sendable {
 struct RedisScanResult: Sendable {
     let nextCursor: String
     let keys: [String]
+    let scannedCount: Int
 
-    init(nextCursor: String, keys: [String]) {
+    init(nextCursor: String, keys: [String], scannedCount: Int = 0) {
         self.nextCursor = nextCursor
         self.keys = keys
+        self.scannedCount = scannedCount
     }
 
-    init(response: RESPValue) throws {
+    init(response: RESPValue, scannedCount: Int = 0) throws {
         let values = response.arrayValues
         guard values.count >= 2, let cursor = values[0]?.string else {
             throw RedisError.parseError("Unexpected SCAN response")
         }
         nextCursor = cursor
         keys = values[1]?.arrayValues.compactMap { $0?.string } ?? []
+        self.scannedCount = scannedCount
     }
 }
 
@@ -146,6 +149,7 @@ protocol RedisSession: AnyObject, Sendable {
     func send(_ args: [String]) async throws -> RESPValue
     func sendPipeline(_ commands: [[String]]) async throws -> [RESPValue]
     func scan(cursor: String, match: String, count: Int) async throws -> RedisScanResult
+    func totalKeyCount() async throws -> Int?
 }
 
 protocol RedisClusterEndpointResolver: Sendable {
@@ -158,7 +162,13 @@ extension RedisClient: RedisSession {
 
     func scan(cursor: String, match: String, count: Int) async throws -> RedisScanResult {
         let response = try await send("SCAN", cursor, "MATCH", match, "COUNT", "\(count)")
-        return try RedisScanResult(response: response)
+        return try RedisScanResult(response: response, scannedCount: count)
+    }
+
+    func totalKeyCount() async throws -> Int? {
+        try await fetchRedisTotalKeyCount { command in
+            try await self.send(command)
+        }
     }
 }
 
@@ -340,19 +350,7 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
     }
 
     func scan(cursor: String, match: String, count: Int) async throws -> RedisScanResult {
-        guard isConnected else {
-            throw RedisError.notConnected
-        }
-
-        var primaries = await state.primaryEndpoints()
-        if primaries.isEmpty {
-            try await refreshTopology(preferredEndpoint: nil)
-            primaries = await state.primaryEndpoints()
-        }
-        guard !primaries.isEmpty else {
-            throw RedisError.commandError("Redis Cluster topology has no primary nodes")
-        }
-
+        let primaries = try await primaryEndpointsForCommand()
         var scanCursor = RedisClusterScanCursor.parse(cursor)
         if scanCursor.nodeIndex >= primaries.count {
             scanCursor = RedisClusterScanCursor(nodeIndex: 0, nodeCursor: "0")
@@ -360,6 +358,7 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
 
         var keys: [String] = []
         var nextCursor = cursor
+        var scannedCount = 0
         var attempts = 0
         let targetKeyCount = max(1, count)
         let maxAttempts = max(1, primaries.count * 3)
@@ -375,8 +374,9 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
                 throw RedisError.commandError(message)
             }
 
-            let result = try RedisScanResult(response: response)
+            let result = try RedisScanResult(response: response, scannedCount: count)
             keys.append(contentsOf: result.keys)
+            scannedCount += result.scannedCount
 
             if result.nextCursor == "0" {
                 scanCursor = RedisClusterScanCursor(nodeIndex: scanCursor.nodeIndex + 1, nodeCursor: "0")
@@ -393,7 +393,24 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
             attempts += 1
         } while keys.count < targetKeyCount && nextCursor != "0" && attempts < maxAttempts
 
-        return RedisScanResult(nextCursor: nextCursor, keys: keys)
+        return RedisScanResult(nextCursor: nextCursor, keys: keys, scannedCount: scannedCount)
+    }
+
+    func totalKeyCount() async throws -> Int? {
+        let primaries = try await primaryEndpointsForCommand()
+        var total = 0
+
+        for endpoint in primaries {
+            let keyCount = try await fetchRedisTotalKeyCount { command in
+                try await self.sendDirect(command, to: endpoint, asking: false)
+            }
+            guard let keyCount else {
+                return nil
+            }
+            total += keyCount
+        }
+
+        return total
     }
 
     func clusterNodes() async throws -> [RedisClusterNodeSummary] {
@@ -440,6 +457,22 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
         }
 
         throw RedisError.commandError("Redis Cluster topology does not cover slot \(slot)")
+    }
+
+    private func primaryEndpointsForCommand() async throws -> [RedisEndpoint] {
+        guard isConnected else {
+            throw RedisError.notConnected
+        }
+
+        var primaries = await state.primaryEndpoints()
+        if primaries.isEmpty {
+            try await refreshTopology(preferredEndpoint: nil)
+            primaries = await state.primaryEndpoints()
+        }
+        guard !primaries.isEmpty else {
+            throw RedisError.commandError("Redis Cluster topology has no primary nodes")
+        }
+        return primaries
     }
 
     private func sendDirect(_ args: [String], to endpoint: RedisEndpoint, asking: Bool) async throws -> RESPValue {
@@ -572,6 +605,50 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
             await state.disconnectAll()
             await endpointResolver?.disconnect()
         }
+    }
+}
+
+private func fetchRedisTotalKeyCount(
+    _ sendCommand: ([String]) async throws -> RESPValue
+) async throws -> Int? {
+    do {
+        let dbSizeResponse = try await sendCommand(["DBSIZE"])
+        try throwIfRedisError(dbSizeResponse)
+        if let count = dbSizeResponse.intValue {
+            return count
+        }
+    } catch {
+        AppLogger.debug("DBSIZE failed while counting keys: \(error)", category: "Redis")
+    }
+
+    let infoResponse = try await sendCommand(["INFO", "keyspace"])
+    try throwIfRedisError(infoResponse)
+    guard let info = infoResponse.string else { return nil }
+    return keyCountFromKeyspaceInfo(info, database: 0)
+}
+
+private func keyCountFromKeyspaceInfo(_ info: String, database: Int) -> Int? {
+    let databasePrefix = "db\(database):"
+
+    for rawLine in info.components(separatedBy: .newlines) {
+        let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard line.hasPrefix(databasePrefix) else { continue }
+
+        let fields = line.dropFirst(databasePrefix.count).split(separator: ",")
+        for field in fields {
+            let parts = field.split(separator: "=", maxSplits: 1)
+            guard parts.count == 2, parts[0] == "keys" else { continue }
+            return Int(parts[1])
+        }
+        return nil
+    }
+
+    return nil
+}
+
+private func throwIfRedisError(_ value: RESPValue) throws {
+    if case .error(let message) = value {
+        throw RedisError.commandError(message)
     }
 }
 

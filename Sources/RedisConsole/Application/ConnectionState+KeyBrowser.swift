@@ -21,7 +21,8 @@ extension ConnectionState {
             keys = []
             clearSelectedKeyDetail()
             hasMoreKeys = true
-            keyScanReturnedCount = 0
+            keyTotalCount = nil
+            keyScannedCount = 0
             keyScanIterationCount = 0
             keyScanLimitReached = false
         }
@@ -30,19 +31,22 @@ extension ConnectionState {
         let isPattern = keyFilter.contains("*") || keyFilter.contains("?") || keyFilter.contains("[")
 
         do {
+            if reset {
+                await refreshKeyTotalCount(using: client)
+            }
+
             if !isPattern {
                 let typeResult = try? await client.send("TYPE", keyFilter)
                 if let typeName = typeResult?.string, typeName != "none" {
                     let entry = RedisKeyEntry(key: keyFilter, type: typeName, ttl: nil, size: nil)
                     keys = [entry]
-                    keyScanReturnedCount = 1
                     loadKeyMetadata(for: [entry])
                 } else {
                     keys = []
-                    keyScanReturnedCount = 0
                     clearSelectedKeyDetail()
                 }
                 hasMoreKeys = false
+                keyScannedCount = keyTotalCount ?? keys.count
             } else {
                 let scanAll = keyFilter != "*"
                 var iterations = 0
@@ -52,7 +56,8 @@ extension ConnectionState {
                     scanCursor = result.nextCursor
                     hasMoreKeys = scanCursor != "0"
                     let newKeyNames = result.keys
-                    keyScanReturnedCount += newKeyNames.count
+                    keyScannedCount += result.scannedCount
+                    normalizeKeyScanProgress()
                     var seenKeys = Set(keys.map { $0.key })
                     let newEntries = newKeyNames.compactMap { keyName -> RedisKeyEntry? in
                         guard seenKeys.insert(keyName).inserted else { return nil }
@@ -63,6 +68,7 @@ extension ConnectionState {
                     keyScanIterationCount += 1
                 } while hasMoreKeys && iterations < maxIterations && (scanAll || keys.isEmpty)
                 keyScanLimitReached = hasMoreKeys && iterations >= maxIterations
+                normalizeKeyScanProgress()
             }
         } catch {
             connectionError = error.localizedDescription
@@ -103,21 +109,23 @@ extension ConnectionState {
 
     @discardableResult
     func insertCreatedKeyIntoBrowser(name: String, type: String) -> RedisKeyEntry? {
+        noteKeyCreated()
         guard keyMatchesCurrentFilter(name) else { return nil }
 
         let entry = RedisKeyEntry(key: name, type: type, ttl: nil, size: nil)
         if isCurrentKeyFilterPattern {
             keys.removeAll { $0.key == name }
             keys.insert(entry, at: 0)
-            keyScanReturnedCount = max(keyScanReturnedCount, keys.count)
+            keyScannedCount = max(keyScannedCount, keys.count)
         } else {
             keys = [entry]
             scanCursor = "0"
             hasMoreKeys = false
-            keyScanReturnedCount = 1
+            keyScannedCount = keyTotalCount ?? 1
             keyScanIterationCount = 0
             keyScanLimitReached = false
         }
+        normalizeKeyScanProgress()
 
         loadKeyMetadata(for: [entry])
         return entry
@@ -134,6 +142,38 @@ extension ConnectionState {
             return pattern == keyName
         }
         return fnmatch(pattern, keyName, 0) == 0
+    }
+
+    private func refreshKeyTotalCount(using client: any RedisSession) async {
+        do {
+            keyTotalCount = try await client.totalKeyCount()
+        } catch {
+            keyTotalCount = nil
+            AppLogger.debug("failed to load key total: \(error)", category: "Browser")
+        }
+    }
+
+    private func normalizeKeyScanProgress() {
+        guard let total = keyTotalCount else { return }
+        if !hasMoreKeys || keyScannedCount > total {
+            keyScannedCount = total
+        }
+    }
+
+    private func noteKeyCreated() {
+        if let total = keyTotalCount {
+            keyTotalCount = total + 1
+        }
+        keyScannedCount += 1
+        normalizeKeyScanProgress()
+    }
+
+    private func noteKeyDeleted() {
+        if let total = keyTotalCount {
+            keyTotalCount = max(0, total - 1)
+        }
+        keyScannedCount = max(0, keyScannedCount - 1)
+        normalizeKeyScanProgress()
     }
 
     private func loadKeyMetadata(for entries: [RedisKeyEntry]) {
@@ -648,6 +688,9 @@ extension ConnectionState {
         do {
             let result = try await client.send("DEL", entry.key)
             try throwIfRedisError(result)
+            if (result.intValue ?? 0) > 0 {
+                noteKeyDeleted()
+            }
             keys.removeAll { $0.key == entry.key }
             if selectedKey?.key == entry.key {
                 clearSelectedKeyDetail()
@@ -688,6 +731,9 @@ extension ConnectionState {
                 let result = try await client.send("EXPIRE", entry.key, "\(ttl)")
                 try throwIfRedisError(result)
                 if result.intValue == 0 || ttl == 0 {
+                    if ttl == 0 {
+                        noteKeyDeleted()
+                    }
                     keys.removeAll { $0.key == entry.key }
                     if selectedKey?.key == entry.key {
                         clearSelectedKeyDetail()

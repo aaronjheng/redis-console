@@ -36,7 +36,8 @@ class ConnectionState: ObservableObject {
         didSet { saveBrowserPreferences() }
     }
     @Published var keyScanCount = 500
-    @Published var keyScanReturnedCount = 0
+    @Published var keyTotalCount: Int?
+    @Published var keyScannedCount = 0
     @Published var keyScanIterationCount = 0
     @Published var keyScanLimitReached = false
     @Published var isNamespaceGroupingEnabled = false {

@@ -378,9 +378,15 @@ struct BrowserView: View {
     }
 
     private func browserFooterText(displayedCount: Int) -> String {
-        let totalText = app.hasMoreKeys ? "total unknown" : "total \(app.keys.count)"
-        let limitText = app.keyScanLimitReached ? " · threshold reached" : ""
-        return "\(totalText) · \(app.keyScanReturnedCount) scanned · \(app.keys.count) loaded · \(displayedCount) shown\(limitText)"
+        let totalText = app.keyTotalCount.map(String.init) ?? "-"
+        let limitText = app.keyScanLimitReached ? " · Threshold Reached" : ""
+        let countText = "\(app.keys.count) Loaded · \(displayedCount) Shown\(limitText)"
+        let showsScanProgress = app.keyFilter != "*" || !app.keyTypeFilter.isEmpty || app.isNamespaceGroupingEnabled
+
+        if showsScanProgress {
+            return "Results \(displayedCount) · Scanned \(app.keyScannedCount) / \(totalText) · \(countText)"
+        }
+        return "Total \(totalText) · \(countText)"
     }
 
     private func prepareBulkDelete() async {
