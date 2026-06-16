@@ -290,7 +290,7 @@ struct ConnectionDetailView: View {
                 let createdTunnel = SSHTunnel()
                 tunnel = createdTunnel
                 do {
-                    try await withTimeout(12, context: "SSH tunnel setup") {
+                    try await withTimeout(SSHTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
                         try await createdTunnel.start(
                             sshHost: trimmedSSHHost,
                             sshPort: ssh.port,

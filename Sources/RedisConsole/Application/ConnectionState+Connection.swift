@@ -55,7 +55,7 @@ extension ConnectionState {
                                 + "user=\(effectiveSSHUser) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
                             category: "Connection"
                         )
-                        try await withTimeout(12, context: "SSH tunnel setup") {
+                        try await withTimeout(SSHTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
                             try await tunnel.start(
                                 sshHost: sshHost,
                                 sshPort: resolvedConfig.ssh.port,

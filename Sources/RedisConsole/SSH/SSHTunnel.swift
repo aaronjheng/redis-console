@@ -2,15 +2,26 @@ import Crypto
 import Foundation
 import NIO
 import NIOCore
-import NIOPosix
 @preconcurrency import NIOSSH
+import NIOTransportServices
+import Network
 
 class SSHTunnel: @unchecked Sendable {
     enum TunnelMode: String {
         case nioSSH
     }
 
-    private var group: MultiThreadedEventLoopGroup?
+    static let setupTimeoutSeconds: TimeInterval = 30
+
+    private static let connectionAttemptTimeout: TimeAmount = .seconds(5)
+    private static let maxConnectionAttempts = 4
+    private static let connectionRetryDelaysNanoseconds: [UInt64] = [
+        300_000_000,
+        800_000_000,
+        1_600_000_000,
+    ]
+
+    private var group: NIOTSEventLoopGroup?
     private var channel: Channel?
     private var localServer: Channel?
     private(set) var localPort: UInt16 = 0
@@ -62,14 +73,14 @@ class SSHTunnel: @unchecked Sendable {
         // Find available local port
         self.localPort = findAvailablePort()
 
-        // Create event loop group
-        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        // Create Network.framework-backed event loop group.
+        let group = NIOTSEventLoopGroup(loopCount: 1)
         self.group = group
 
         do {
             AppLogger.info("starting tunnel mode=nioSSH", category: "SSHTunnel")
             // Connect SSH channel
-            let sshChannel = try await connectSSH(group: group)
+            let sshChannel = try await connectSSHWithRetry(group: group)
             self.channel = sshChannel
 
             // Start local TCP server
@@ -111,14 +122,46 @@ class SSHTunnel: @unchecked Sendable {
 
     // MARK: - SSH Connection
 
-    private func connectSSH(group: EventLoopGroup) async throws -> Channel {
+    private func connectSSHWithRetry(group: NIOTSEventLoopGroup) async throws -> Channel {
+        var lastError: Error?
+
+        for attempt in 1...Self.maxConnectionAttempts {
+            try Task.checkCancellation()
+
+            do {
+                return try await connectSSH(group: group)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                let mappedError = mappedSSHError(error)
+                lastError = mappedError
+
+                guard attempt < Self.maxConnectionAttempts, isRetriableConnectionError(error) else {
+                    throw mappedError
+                }
+
+                let retryDelay = Self.connectionRetryDelayNanoseconds(after: attempt)
+                AppLogger.warn(
+                    "ssh connect attempt failed ssh=\(sshHost):\(sshPort) "
+                        + "attempt=\(attempt)/\(Self.maxConnectionAttempts) "
+                        + "retryInMs=\(retryDelay / 1_000_000) error=\(mappedError)",
+                    category: "SSHTunnel"
+                )
+                try await Task.sleep(nanoseconds: retryDelay)
+            }
+        }
+
+        throw lastError ?? SSHTunnelError.connectionFailed("SSH connection failed")
+    }
+
+    private func connectSSH(group: NIOTSEventLoopGroup) async throws -> Channel {
         let authDelegate = SSHAuthDelegateBox(value: createAuthDelegate())
         let serverHostKeyDelegate = SSHServerAuthDelegateBox(value: AcceptAllServerHostKeysDelegate())
         let handshakePromise = group.next().makePromise(of: Void.self)
 
-        let bootstrap = ClientBootstrap(group: group)
-            .connectTimeout(.seconds(10))
-            .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
+        let bootstrap = NIOTSConnectionBootstrap(group: group)
+            .connectTimeout(Self.connectionAttemptTimeout)
+            .channelOption(NIOTSChannelOptions.waitForActivity, value: true)
             .channelInitializer { channel in
                 let sshHandler = NIOSSHHandler(
                     role: .client(
@@ -162,6 +205,65 @@ class SSHTunnel: @unchecked Sendable {
         }
     }
 
+    private static func connectionRetryDelayNanoseconds(after attempt: Int) -> UInt64 {
+        let index = max(0, min(attempt - 1, connectionRetryDelaysNanoseconds.count - 1))
+        return connectionRetryDelaysNanoseconds[index]
+    }
+
+    private func isRetriableConnectionError(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return false
+        }
+
+        if let connectionError = error as? NIOConnectionError {
+            if !connectionError.connectionErrors.isEmpty {
+                return connectionError.connectionErrors.allSatisfy {
+                    isRetriableConnectionError($0.error)
+                }
+            }
+
+            return isLocalHostname(sshHost)
+                && (connectionError.dnsAError != nil || connectionError.dnsAAAAError != nil)
+        }
+
+        if let channelError = error as? ChannelError, case .connectTimeout = channelError {
+            return true
+        }
+
+        if let nwError = error as? NWError {
+            return isRetriableNWError(nwError)
+        }
+
+        guard let ioError = error as? IOError else { return false }
+        return isRetriableErrno(ioError.errnoCode)
+    }
+
+    private func isLocalHostname(_ host: String) -> Bool {
+        host.lowercased().hasSuffix(".local")
+    }
+
+    private func isRetriableNWError(_ error: NWError) -> Bool {
+        switch error {
+        case .posix(let code):
+            return isRetriableErrno(code.rawValue)
+        case .dns:
+            return isLocalHostname(sshHost)
+        case .tls:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+
+    private func isRetriableErrno(_ errnoCode: CInt) -> Bool {
+        switch errnoCode {
+        case ECONNREFUSED, EHOSTDOWN, EHOSTUNREACH, ENETDOWN, ENETUNREACH, ETIMEDOUT, EADDRNOTAVAIL:
+            return true
+        default:
+            return false
+        }
+    }
+
     private func mappedSSHError(_ error: Error) -> Error {
         guard let sshError = error as? NIOSSHError else {
             return error
@@ -192,14 +294,13 @@ class SSHTunnel: @unchecked Sendable {
 
     // MARK: - Local TCP Server
 
-    private func startLocalServer(group: EventLoopGroup, sshChannel: Channel) async throws -> Channel {
+    private func startLocalServer(group: NIOTSEventLoopGroup, sshChannel: Channel) async throws -> Channel {
         let sshHandler = try await sshChannel.pipeline.handler(type: NIOSSHHandler.self)
             .map { SSHHandlerBox(value: $0) }
             .get()
 
-        let bootstrap = ServerBootstrap(group: group)
-            .serverChannelOption(ChannelOptions.backlog, value: 256)
-            .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
+        let bootstrap = NIOTSListenerBootstrap(group: group)
+            .serverChannelOption(NIOTSChannelOptions.allowLocalEndpointReuse, value: true)
             .childChannelInitializer { channel in
                 self.forwardToSSHChannel(
                     localChannel: channel,
@@ -349,7 +450,7 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
         )
 
         do {
-            try await withTimeout(12, context: "SSH tunnel setup") {
+            try await withTimeout(SSHTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
                 try await tunnel.start(
                     sshHost: configuredSSHHost,
                     sshPort: configuredSSHPort,

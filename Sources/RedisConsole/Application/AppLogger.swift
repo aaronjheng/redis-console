@@ -35,6 +35,11 @@ enum AppLogger {
         write(level: .error, category: category, message: message, fields: fields)
     }
 
+    /// Log warning level message
+    static func warn(_ message: String, category: String = "App", fields: [String: String] = [:]) {
+        write(level: .warn, category: category, message: message, fields: fields)
+    }
+
     /// Log debug level message (only in DEBUG builds)
     static func debug(_ message: String, category: String = "App", fields: [String: String] = [:]) {
         #if DEBUG

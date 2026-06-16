@@ -278,7 +278,7 @@ extension ConnectionState {
 
         let tunnel = SSHTunnel()
         do {
-            try await withTimeout(12, context: "SSH tunnel setup") {
+            try await withTimeout(SSHTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
                 try await tunnel.start(
                     sshHost: sshHost,
                     sshPort: config.ssh.port,
