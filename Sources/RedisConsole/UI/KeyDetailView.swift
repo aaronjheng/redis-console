@@ -94,15 +94,17 @@ struct KeyDetailView: View {
                 Text("This permanently deletes \(key.key).")
             }
         }
-        .sheet(isPresented: Binding(
-            get: { keyPendingDeletion != nil && isProduction },
-            set: { isPresented in
-                if !isPresented {
-                    keyPendingDeletion = nil
-                    productionConfirmText = ""
+        .sheet(
+            isPresented: Binding(
+                get: { keyPendingDeletion != nil && isProduction },
+                set: { isPresented in
+                    if !isPresented {
+                        keyPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
                 }
-            }
-        )) {
+            )
+        ) {
             if let key = keyPendingDeletion {
                 ProductionConfirmView(
                     title: "Delete Key?",
@@ -403,40 +405,13 @@ struct KeyDetailView: View {
                 .font(.subheadline)
             }
             Spacer()
-            Toggle(
-                isOn: $isAutoRefreshEnabled,
-                label: {
-                    Image(systemName: "timer")
-                }
-            )
-            .labelsHidden()
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            .disabled(app.isLoadingDetail)
-            .help("Auto refresh")
-
-            Picker(
-                "",
-                selection: $autoRefreshInterval
+            KeyDetailRefreshControl(
+                isAutoRefreshEnabled: $isAutoRefreshEnabled,
+                autoRefreshInterval: $autoRefreshInterval,
+                isDisabled: app.isLoadingDetail
             ) {
-                Text("2s").tag(2)
-                Text("5s").tag(5)
-                Text("10s").tag(10)
-                Text("30s").tag(30)
-            }
-            .labelsHidden()
-            .frame(width: 74)
-            .disabled(!isAutoRefreshEnabled || app.isLoadingDetail)
-            .help("Refresh interval")
-
-            Button {
                 Task { await app.refreshSelectedKey() }
-            } label: {
-                Image(systemName: "arrow.clockwise")
             }
-            .buttonStyle(.borderless)
-            .disabled(app.isLoadingDetail)
-            .help("Refresh")
 
             Button {
                 copyToPasteboard(key.key)
@@ -586,5 +561,133 @@ private struct KeyTTLEditorPopover: View {
         }
         .padding()
         .frame(width: 260)
+    }
+}
+
+private struct KeyDetailRefreshControl: View {
+    @Binding var isAutoRefreshEnabled: Bool
+    @Binding var autoRefreshInterval: Int
+    var isDisabled: Bool
+    var onRefresh: () -> Void
+
+    private static let intervals = [3, 5, 10, 30]
+
+    @State private var isRefreshHovering = false
+    @State private var isMenuHovering = false
+
+    var body: some View {
+        HStack(spacing: 0) {
+            refreshButton
+            separator
+            intervalMenu
+        }
+        .frame(height: 22)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(.background.secondary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(.separator, lineWidth: 0.5)
+        )
+        .opacity(isDisabled ? 0.5 : 1)
+    }
+
+    private var refreshButton: some View {
+        Button(action: onRefresh) {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 26, height: 22)
+                .contentShape(Rectangle())
+                .background(
+                    isRefreshHovering && !isDisabled
+                        ? Color.primary.opacity(0.08)
+                        : Color.clear
+                )
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 6,
+                        bottomLeadingRadius: 6,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 0,
+                        style: .continuous
+                    )
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .onHover { isRefreshHovering = $0 }
+        .help("Refresh")
+    }
+
+    private var separator: some View {
+        Rectangle()
+            .fill(.separator)
+            .frame(width: 0.5, height: 14)
+    }
+
+    private var intervalMenu: some View {
+        Menu {
+            Button {
+                isAutoRefreshEnabled = false
+            } label: {
+                menuItemLabel(text: "Off", checked: !isAutoRefreshEnabled)
+            }
+            Divider()
+            ForEach(Self.intervals, id: \.self) { interval in
+                Button {
+                    isAutoRefreshEnabled = true
+                    autoRefreshInterval = interval
+                } label: {
+                    menuItemLabel(
+                        text: "\(interval)s",
+                        checked: isAutoRefreshEnabled && autoRefreshInterval == interval
+                    )
+                }
+            }
+        } label: {
+            HStack(spacing: 0) {
+                if isAutoRefreshEnabled {
+                    Text("\(autoRefreshInterval)s")
+                        .font(.system(size: 11, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.tint)
+                        .padding(.horizontal, 6)
+                } else {
+                    Color.clear.frame(width: 18, height: 22)
+                }
+            }
+            .frame(height: 22)
+            .contentShape(Rectangle())
+            .background(
+                isMenuHovering && !isDisabled
+                    ? Color.primary.opacity(0.08)
+                    : Color.clear
+            )
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 6,
+                    topTrailingRadius: 6,
+                    style: .continuous
+                )
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.visible)
+        .fixedSize()
+        .disabled(isDisabled)
+        .onHover { isMenuHovering = $0 }
+        .help(isAutoRefreshEnabled ? "Auto refresh every \(autoRefreshInterval)s" : "Auto refresh off")
+    }
+
+    private func menuItemLabel(text: String, checked: Bool) -> some View {
+        HStack {
+            Text(text)
+            if checked {
+                Image(systemName: "checkmark")
+            }
+        }
     }
 }
