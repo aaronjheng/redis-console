@@ -361,6 +361,7 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
         var keys: [String] = []
         var nextCursor = cursor
         var attempts = 0
+        let targetKeyCount = max(1, count)
         let maxAttempts = max(1, primaries.count * 3)
 
         repeat {
@@ -390,7 +391,7 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
             }
 
             attempts += 1
-        } while keys.isEmpty && nextCursor != "0" && attempts < maxAttempts
+        } while keys.count < targetKeyCount && nextCursor != "0" && attempts < maxAttempts
 
         return RedisScanResult(nextCursor: nextCursor, keys: keys)
     }

@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 extension ConnectionState {
@@ -52,9 +53,10 @@ extension ConnectionState {
                     hasMoreKeys = scanCursor != "0"
                     let newKeyNames = result.keys
                     keyScanReturnedCount += newKeyNames.count
-                    let existingKeys = Set(keys.map { $0.key })
-                    let newEntries = newKeyNames.filter { !existingKeys.contains($0) }.map {
-                        RedisKeyEntry(key: $0, type: "", ttl: nil, size: nil)
+                    var seenKeys = Set(keys.map { $0.key })
+                    let newEntries = newKeyNames.compactMap { keyName -> RedisKeyEntry? in
+                        guard seenKeys.insert(keyName).inserted else { return nil }
+                        return RedisKeyEntry(key: keyName, type: "", ttl: nil, size: nil)
                     }
                     keys.append(contentsOf: newEntries)
                     iterations += 1
@@ -97,6 +99,41 @@ extension ConnectionState {
         keyDetailSearchText = ""
         keyDetailLastRefreshedAt = nil
         isLoadingDetail = false
+    }
+
+    @discardableResult
+    func insertCreatedKeyIntoBrowser(name: String, type: String) -> RedisKeyEntry? {
+        guard keyMatchesCurrentFilter(name) else { return nil }
+
+        let entry = RedisKeyEntry(key: name, type: type, ttl: nil, size: nil)
+        if isCurrentKeyFilterPattern {
+            keys.removeAll { $0.key == name }
+            keys.insert(entry, at: 0)
+            keyScanReturnedCount = max(keyScanReturnedCount, keys.count)
+        } else {
+            keys = [entry]
+            scanCursor = "0"
+            hasMoreKeys = false
+            keyScanReturnedCount = 1
+            keyScanIterationCount = 0
+            keyScanLimitReached = false
+        }
+
+        loadKeyMetadata(for: [entry])
+        return entry
+    }
+
+    private var isCurrentKeyFilterPattern: Bool {
+        keyFilter.contains("*") || keyFilter.contains("?") || keyFilter.contains("[")
+    }
+
+    private func keyMatchesCurrentFilter(_ keyName: String) -> Bool {
+        let filter = keyFilter.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pattern = filter.isEmpty ? "*" : filter
+        guard pattern.contains("*") || pattern.contains("?") || pattern.contains("[") else {
+            return pattern == keyName
+        }
+        return fnmatch(pattern, keyName, 0) == 0
     }
 
     private func loadKeyMetadata(for entries: [RedisKeyEntry]) {

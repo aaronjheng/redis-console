@@ -13,6 +13,7 @@ struct BrowserView: View {
     @State private var newKeyType = "string"
     @State private var newKeyValue = ""
     @State private var expandedNamespaces: Set<String> = []
+    @State private var keyListScrollTarget: String?
 
     private let listScanCount = 500
     private let treeScanCount = 10_000
@@ -186,6 +187,7 @@ struct BrowserView: View {
                                 tree: KeyNamespaceTree(entries: displayedKeys, separator: app.namespaceSeparator),
                                 selectedKey: $app.selectedKey,
                                 expandedNamespaces: $expandedNamespaces,
+                                scrollTargetKey: keyListScrollTarget,
                                 onDeleteKey: { keyPendingDeletion = $0 },
                                 onCopyKey: copyKeyToPasteboard
                             )
@@ -193,6 +195,7 @@ struct BrowserView: View {
                             KeyFlatList(
                                 keys: displayedKeys,
                                 selectedKey: $app.selectedKey,
+                                scrollTargetKey: keyListScrollTarget,
                                 onDeleteKey: { keyPendingDeletion = $0 },
                                 onCopyKey: copyKeyToPasteboard
                             )
@@ -497,8 +500,12 @@ struct BrowserView: View {
                 }
             }
             app.connectionError = nil
-            app.keyScanCount = currentScanCount
-            await app.scanKeys(reset: true)
+            let createdKey = app.insertCreatedKeyIntoBrowser(name: name, type: type)
+            let isCreatedKeyVisible = app.keyTypeFilter.isEmpty || app.keyTypeFilter == type
+            if let createdKey, isCreatedKeyVisible {
+                app.selectedKey = createdKey
+                keyListScrollTarget = createdKey.key
+            }
         } catch {
             app.connectionError = error.localizedDescription
             app.keyDetailError = error.localizedDescription
@@ -512,29 +519,44 @@ struct BrowserView: View {
     }
 }
 
+private func scrollToKey(_ key: String?, using proxy: ScrollViewProxy) {
+    guard let key else { return }
+    proxy.scrollTo(key, anchor: .top)
+}
+
 private struct KeyFlatList: View {
     let keys: [RedisKeyEntry]
     @Binding var selectedKey: RedisKeyEntry?
+    let scrollTargetKey: String?
     let onDeleteKey: (RedisKeyEntry) -> Void
     let onCopyKey: (RedisKeyEntry) -> Void
 
     var body: some View {
-        List(selection: $selectedKey) {
-            ForEach(keys) { entry in
-                KeyRow(entry: entry)
-                    .contextMenu {
-                        Button("Delete", role: .destructive) {
-                            onDeleteKey(entry)
+        ScrollViewReader { proxy in
+            List(selection: $selectedKey) {
+                ForEach(keys) { entry in
+                    KeyRow(entry: entry)
+                        .id(entry.key)
+                        .contextMenu {
+                            Button("Delete", role: .destructive) {
+                                onDeleteKey(entry)
+                            }
+                            Divider()
+                            Button("Copy Key") {
+                                onCopyKey(entry)
+                            }
                         }
-                        Divider()
-                        Button("Copy Key") {
-                            onCopyKey(entry)
-                        }
-                    }
-                    .tag(entry)
+                        .tag(entry)
+                }
+            }
+            .listStyle(.plain)
+            .onAppear {
+                scrollToKey(scrollTargetKey, using: proxy)
+            }
+            .onChange(of: scrollTargetKey) { _, newValue in
+                scrollToKey(newValue, using: proxy)
             }
         }
-        .listStyle(.plain)
     }
 }
 
@@ -542,37 +564,47 @@ private struct KeyNamespaceList: View {
     let tree: KeyNamespaceTree
     @Binding var selectedKey: RedisKeyEntry?
     @Binding var expandedNamespaces: Set<String>
+    let scrollTargetKey: String?
     let onDeleteKey: (RedisKeyEntry) -> Void
     let onCopyKey: (RedisKeyEntry) -> Void
 
     var body: some View {
-        List(selection: $selectedKey) {
-            ForEach(tree.rootKeys) { entry in
-                KeyRow(entry: entry)
-                    .contextMenu {
-                        Button("Delete", role: .destructive) {
-                            onDeleteKey(entry)
+        ScrollViewReader { proxy in
+            List(selection: $selectedKey) {
+                ForEach(tree.rootKeys) { entry in
+                    KeyRow(entry: entry)
+                        .id(entry.key)
+                        .contextMenu {
+                            Button("Delete", role: .destructive) {
+                                onDeleteKey(entry)
+                            }
+                            Divider()
+                            Button("Copy Key") {
+                                onCopyKey(entry)
+                            }
                         }
-                        Divider()
-                        Button("Copy Key") {
-                            onCopyKey(entry)
-                        }
-                    }
-                    .tag(entry)
-            }
+                        .tag(entry)
+                }
 
-            ForEach(tree.namespaces) { namespace in
-                KeyNamespaceNodeView(
-                    namespace: namespace,
-                    separator: tree.separator,
-                    selectedKey: $selectedKey,
-                    expandedNamespaces: $expandedNamespaces,
-                    onDeleteKey: onDeleteKey,
-                    onCopyKey: onCopyKey
-                )
+                ForEach(tree.namespaces) { namespace in
+                    KeyNamespaceNodeView(
+                        namespace: namespace,
+                        separator: tree.separator,
+                        selectedKey: $selectedKey,
+                        expandedNamespaces: $expandedNamespaces,
+                        onDeleteKey: onDeleteKey,
+                        onCopyKey: onCopyKey
+                    )
+                }
+            }
+            .listStyle(.plain)
+            .onAppear {
+                scrollToKey(scrollTargetKey, using: proxy)
+            }
+            .onChange(of: scrollTargetKey) { _, newValue in
+                scrollToKey(newValue, using: proxy)
             }
         }
-        .listStyle(.plain)
     }
 }
 
@@ -599,6 +631,7 @@ private struct KeyNamespaceNodeView: View {
 
             ForEach(namespace.keys) { entry in
                 KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
+                    .id(entry.key)
                     .contextMenu {
                         Button("Delete", role: .destructive) {
                             onDeleteKey(entry)
