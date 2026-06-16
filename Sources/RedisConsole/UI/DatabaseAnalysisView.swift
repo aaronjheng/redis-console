@@ -321,7 +321,8 @@ struct DatabaseAnalysisView: View {
             "Type Distribution:",
         ]
         for (type, stats) in analysis.typeDistribution.sorted(by: { $0.value.count > $1.value.count }) {
-            lines.append("  \(type): \(stats.count) keys, \(ByteCountFormatter.string(fromByteCount: Int64(stats.memory), countStyle: .file))")
+            let memStr = ByteCountFormatter.string(fromByteCount: Int64(stats.memory), countStyle: .file)
+            lines.append("  \(type): \(stats.count) keys, \(memStr)")
         }
         lines.append("")
         lines.append("Top Keys by Memory:")

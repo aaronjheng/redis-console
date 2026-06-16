@@ -18,7 +18,7 @@ struct DatabaseAnalysis: Sendable {
 struct TypeStats: Sendable {
     var count: Int = 0
     var memory: Int = 0
-    var avgSize: Int { count > 0 ? memory / count : 0 }
+    var avgSize: Int { count != 0 ? memory / count : 0 } // swiftlint:disable:this empty_count
 }
 
 struct KeyMemoryEntry: Identifiable, Sendable {

@@ -81,7 +81,7 @@ extension ConnectionState {
 
         if isPattern {
             let entriesNeedingMetadata = keys.filter { entry in
-                entry.type.isEmpty || entry.ttl == nil || entry.size == nil || entry.length == nil
+                entry.type.isEmpty
             }
             loadKeyMetadata(for: entriesNeedingMetadata)
         }
@@ -184,18 +184,13 @@ extension ConnectionState {
             for batchStart in stride(from: 0, to: entries.count, by: keyMetadataPipelineBatchSize) {
                 let batchEnd = min(batchStart + keyMetadataPipelineBatchSize, entries.count)
                 let batchEntries = Array(entries[batchStart..<batchEnd])
-                let commands = batchEntries.flatMap { entry in
-                    [
-                        ["TYPE", entry.key],
-                        ["TTL", entry.key],
-                        ["MEMORY", "USAGE", entry.key, "SAMPLES", "0"],
-                    ]
+                let commands = batchEntries.map { entry in
+                    ["TYPE", entry.key]
                 }
 
                 do {
                     let metadataResults = try await client.sendPipeline(commands)
                     applyMetadataResults(metadataResults, to: batchEntries)
-                    await loadKeyLengths(for: batchEntries, using: client)
                 } catch {
                     connectionError = error.localizedDescription
                 }
@@ -205,10 +200,9 @@ extension ConnectionState {
 
     private func applyMetadataResults(_ results: [RESPValue], to entries: [RedisKeyEntry]) {
         for (entryIndex, entry) in entries.enumerated() {
-            let resultIndex = entryIndex * 3
-            guard resultIndex + 2 < results.count else { continue }
+            guard entryIndex < results.count else { continue }
 
-            if let typeName = results[resultIndex].string {
+            if let typeName = results[entryIndex].string {
                 if typeName == "none" {
                     keys.removeAll { $0.key == entry.key }
                     if selectedKey?.key == entry.key {
@@ -218,48 +212,10 @@ extension ConnectionState {
                 }
                 entry.type = typeName
             }
-            entry.ttl = results[resultIndex + 1].intValue
-            entry.size = results[resultIndex + 2].intValue
 
             if selectedKey?.key == entry.key {
                 keyType = entry.type
-                valueSize = entry.size
             }
-        }
-    }
-
-    private func loadKeyLengths(for entries: [RedisKeyEntry], using client: any RedisSession) async {
-        var commands: [[String]] = []
-        var targets: [RedisKeyEntry] = []
-        for entry in entries {
-            guard let command = keyLengthCommand(type: entry.type, key: entry.key) else { continue }
-            commands.append(command)
-            targets.append(entry)
-        }
-        guard !commands.isEmpty else { return }
-
-        do {
-            let lengthResults = try await client.sendPipeline(commands)
-            for (entry, result) in zip(targets, lengthResults) {
-                guard let length = result.intValue else { continue }
-                entry.length = length
-                if selectedKey?.key == entry.key {
-                    keyDetailLength = length
-                }
-            }
-        } catch {
-            connectionError = error.localizedDescription
-        }
-    }
-
-    private func keyLengthCommand(type: String, key: String) -> [String]? {
-        switch type {
-        case "string": return ["STRLEN", key]
-        case "list": return ["LLEN", key]
-        case "hash": return ["HLEN", key]
-        case "set": return ["SCARD", key]
-        case "zset": return ["ZCARD", key]
-        default: return nil
         }
     }
 
@@ -370,8 +326,16 @@ extension ConnectionState {
     }
 
     private func loadLength(for key: String, type: String, using client: any RedisSession) async -> Int? {
-        guard let command = keyLengthCommand(type: type, key: key) else { return nil }
-        guard let result = try? await client.send(command) else { return nil }
+        let command: [String]?
+        switch type {
+        case "string": command = ["STRLEN", key]
+        case "list": command = ["LLEN", key]
+        case "hash": command = ["HLEN", key]
+        case "set": command = ["SCARD", key]
+        case "zset": command = ["ZCARD", key]
+        default: command = nil
+        }
+        guard let command, let result = try? await client.send(command) else { return nil }
         return result.intValue
     }
 
@@ -578,18 +542,24 @@ extension ConnectionState {
         } catch let error as RedisError where error.isUnknownCommand {
             let fallbackResult = try await deleteKeys(preview.keys, command: "DEL", using: client)
             await scanKeys(reset: true)
+            bulkDeleteProgress = 1.0
+            bulkDeleteProgressText = ""
             return BulkDeleteResult(
                 processed: fallbackResult.processed,
                 deleted: fallbackResult.deleted,
+                deletedKeys: fallbackResult.deletedKeys,
                 usedFallback: true,
                 duration: Date().timeIntervalSince(startedAt)
             )
         }
 
         await scanKeys(reset: true)
+        bulkDeleteProgress = 1.0
+        bulkDeleteProgressText = ""
         return BulkDeleteResult(
             processed: unlinkResult.processed,
             deleted: unlinkResult.deleted,
+            deletedKeys: unlinkResult.deletedKeys,
             usedFallback: false,
             duration: Date().timeIntervalSince(startedAt)
         )
@@ -655,6 +625,7 @@ extension ConnectionState {
     private struct BulkDeleteCommandResult {
         let processed: Int
         let deleted: Int
+        let deletedKeys: [String]
     }
 
     private struct BulkDeleteScanResult {
@@ -670,17 +641,25 @@ extension ConnectionState {
     ) async throws -> BulkDeleteCommandResult {
         var processed = 0
         var deleted = 0
+        var deletedKeyNames: [String] = []
         for batchStart in stride(from: 0, to: keyNames.count, by: bulkDeleteBatchSize) {
             let batchEnd = min(batchStart + bulkDeleteBatchSize, keyNames.count)
             let batchKeys = Array(keyNames[batchStart..<batchEnd])
             let responses = try await client.sendPipeline(batchKeys.map { [command, $0] })
-            for response in responses {
+            for (index, response) in responses.enumerated() {
                 try throwIfRedisError(response)
                 processed += 1
-                deleted += response.intValue ?? 0
+                if (response.intValue ?? 0) > 0 {
+                    deleted += 1
+                    deletedKeyNames.append(batchKeys[index])
+                }
+            }
+            await MainActor.run {
+                bulkDeleteProgress = Double(processed) / Double(keyNames.count)
+                bulkDeleteProgressText = "Deleting \(processed)/\(keyNames.count) keys..."
             }
         }
-        return BulkDeleteCommandResult(processed: processed, deleted: deleted)
+        return BulkDeleteCommandResult(processed: processed, deleted: deleted, deletedKeys: deletedKeyNames)
     }
 
     func deleteKey(_ entry: RedisKeyEntry) async {

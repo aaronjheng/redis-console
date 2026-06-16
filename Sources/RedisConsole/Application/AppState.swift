@@ -98,6 +98,8 @@ class ConnectionState: ObservableObject {
     let keyPatternScanIterationLimit = 1_000
     let bulkDeleteScanLimit = 20_000
     let bulkDeleteBatchSize = 100
+    var bulkDeleteProgress: Double = 0
+    var bulkDeleteProgressText: String = ""
     let shellHistoryLimit = 200
     static let browserPreferencesKey = "com.redisconsole.browserPreferences"
     static let shellHistoryKeyPrefix = "com.redisconsole.shellHistory."

@@ -18,6 +18,7 @@ struct ConnectionDetailView: View {
 
     @State private var ssh = SSHConfig()
     @State private var tls = TLSConfig()
+    @State private var environment: ConnectionEnvironment = .unspecified
     @State private var uriInput = ""
     @State private var isCreatingNew = false
     @State private var cachedConfig: RedisConnectionConfig?
@@ -121,6 +122,16 @@ struct ConnectionDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+
+                    Section("Environment") {
+                        Picker("Environment", selection: $environment) {
+                            ForEach(ConnectionEnvironment.allCases, id: \.self) { env in
+                                Label(env.rawValue, systemImage: env.icon)
+                                    .foregroundStyle(env.color)
+                                    .tag(env)
+                            }
+                        }
+                    }
                 }
                 .formStyle(.grouped)
             }
@@ -161,6 +172,7 @@ struct ConnectionDetailView: View {
                         updated.password = password
                         updated.ssh = ssh
                         updated.tls = tls
+                        updated.environment = environment
                         store.updateConnection(updated)
                         conn.selectedConnection = updated
                     }
@@ -206,6 +218,7 @@ struct ConnectionDetailView: View {
         config.password = password
         config.ssh = ssh
         config.tls = tls
+        config.environment = environment
         return config
     }
 
@@ -223,6 +236,7 @@ struct ConnectionDetailView: View {
             password = config.password
             ssh = config.ssh
             tls = config.tls
+            environment = config.environment
         case .newConnection:
             isCreatingNew = true
             cachedConfig = nil
@@ -234,6 +248,7 @@ struct ConnectionDetailView: View {
             password = ""
             ssh = SSHConfig()
             tls = TLSConfig()
+            environment = .unspecified
         default: break
         }
     }

@@ -67,9 +67,15 @@ enum ShellSyntaxHighlighter {
         ])
     }()
 
-    private static let numberPattern = try! NSRegularExpression(pattern: #"^-?\d+(\.\d+)?([eE][+-]?\d+)?"#)
-    private static let quotedStringPattern = try! NSRegularExpression(pattern: #""[^"\\]*(\\.[^"\\]*)*"|'[^']*'"#)
-    private static let commentPattern = try! NSRegularExpression(pattern: "#.*$", options: .anchorsMatchLines)
+    private static let numberPattern = try! NSRegularExpression( // swiftlint:disable:this force_try
+        pattern: #"^-?\d+(\.\d+)?([eE][+-]?\d+)?"#
+    )
+    private static let quotedStringPattern = try! NSRegularExpression( // swiftlint:disable:this force_try
+        pattern: #""[^"\\]*(\\.[^"\\]*)*"|'[^']*'"#
+    )
+    private static let commentPattern = try! NSRegularExpression( // swiftlint:disable:this force_try
+        pattern: "#.*$", options: .anchorsMatchLines
+    )
 
     enum TokenType {
         case command
@@ -146,14 +152,14 @@ enum ShellSyntaxHighlighter {
     private static func isRangeInsideQuotedString(_ text: String, range: NSRange) -> Bool {
         var inString = false
         var quoteChar: Character = "\""
-        var i = text.startIndex
+        var index = text.startIndex
 
-        while i < text.endIndex {
-            let char = text[i]
+        while index < text.endIndex {
+            let char = text[index]
             if char == "\\" {
-                i = text.index(after: i)
-                if i < text.endIndex {
-                    i = text.index(after: i)
+                index = text.index(after: index)
+                if index < text.endIndex {
+                    index = text.index(after: index)
                 }
                 continue
             }
@@ -166,13 +172,13 @@ enum ShellSyntaxHighlighter {
                 }
             }
             if !inString {
-                let pos = i
+                let pos = index
                 let nsPos = NSRange(pos...pos, in: text)
                 if nsPos.location >= range.location {
                     return false
                 }
             }
-            i = text.index(after: i)
+            index = text.index(after: index)
         }
         return false
     }

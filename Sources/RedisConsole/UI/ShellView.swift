@@ -5,7 +5,13 @@ struct ShellView: View {
     @State private var input = ""
     @State private var historyIndex = -1
     @State private var showCompletions = false
+    @State private var showDangerousCommandAlert = false
+    @State private var pendingCommand = ""
     @FocusState private var inputFocused: Bool
+
+    private let dangerousCommands: Set<String> = ["FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "KEYS", "KEYS *", "DEBUG", "SHUTDOWN", "SLAVEOF", "REPLICAOF", "CONFIG RESETSTAT", "BGREWRITEAOF", "BGSAVE", "SAVE", "LASTSAVE", "MONITOR", "SYNC", "PSYNC", "CLIENT PAUSE", "DEBUG SET-ACTIVE-EXPIRE", "MIGRATE", "RESTORE", "SORT", "EVAL", "EVALSHA", "SCRIPT", "ACL", "AUTH", "ROLE", "SWAPDB", "MOVE", "RENAME", "RENAMENX", "DEL", "UNLINK", "WAIT", "REPLCONF", "PING", "ECHO", "QUIT", "SELECT"]
+
+    private let criticalDangerousCommands: Set<String> = ["FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "SHUTDOWN", "DEBUG", "SLAVEOF", "REPLICAOF", "CONFIG RESETSTAT", "SWAPDB", "MOVE"]
 
     var filteredCompletions: [String] {
         guard !input.isEmpty else { return [] }
@@ -123,6 +129,19 @@ struct ShellView: View {
             .background(.bar)
         }
         .onAppear { inputFocused = true }
+        .alert("Dangerous Command", isPresented: $showDangerousCommandAlert) {
+            Button("Cancel", role: .cancel) {
+                pendingCommand = ""
+            }
+            Button("Execute", role: .destructive) {
+                input = ""
+                let cmd = pendingCommand
+                pendingCommand = ""
+                Task { await app.executeCommand(cmd) }
+            }
+        } message: {
+            Text("This is a PRODUCTION database. Are you sure you want to execute:\n\n\(pendingCommand)")
+        }
     }
 
     private func executeCommand() {
@@ -130,6 +149,16 @@ struct ShellView: View {
         guard !cmd.isEmpty else { return }
         historyIndex = -1
         showCompletions = false
+
+        let cmdUpper = cmd.uppercased().trimmingCharacters(in: .whitespaces)
+        let isDangerous = criticalDangerousCommands.contains { cmdUpper.hasPrefix($0) }
+
+        if isDangerous && app.selectedConnection?.environment == .production {
+            pendingCommand = cmd
+            showDangerousCommandAlert = true
+            return
+        }
+
         input = ""
         Task { await app.executeCommand(cmd) }
     }

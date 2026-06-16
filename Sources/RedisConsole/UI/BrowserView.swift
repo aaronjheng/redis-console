@@ -14,6 +14,9 @@ struct BrowserView: View {
     @State private var newKeyValue = ""
     @State private var expandedNamespaces: Set<String> = []
     @State private var keyListScrollTarget: String?
+    @State private var productionDeleteKey: RedisKeyEntry?
+    @State private var productionBulkDelete: BulkDeletePreview?
+    @State private var productionConfirmText = ""
 
     private let listScanCount = 500
     private let treeScanCount = 10_000
@@ -283,7 +286,7 @@ struct BrowserView: View {
         .confirmationDialog(
             "Bulk Delete Keys?",
             isPresented: Binding(
-                get: { bulkDeletePreview != nil },
+                get: { bulkDeletePreview != nil && !isProduction },
                 set: { isPresented in
                     if !isPresented {
                         bulkDeletePreview = nil
@@ -307,6 +310,36 @@ struct BrowserView: View {
                 Text(bulkDeletePreviewMessage(preview))
             }
         }
+        .sheet(isPresented: Binding(
+            get: { bulkDeletePreview != nil && isProduction },
+            set: { isPresented in
+                if !isPresented {
+                    bulkDeletePreview = nil
+                    productionBulkDelete = nil
+                    productionConfirmText = ""
+                }
+            }
+        )) {
+            if let preview = bulkDeletePreview ?? productionBulkDelete {
+                ProductionConfirmView(
+                    title: "Delete \(preview.keys.count) Keys?",
+                    message: bulkDeletePreviewMessage(preview),
+                    confirmText: "DELETE",
+                    input: $productionConfirmText,
+                    onConfirm: {
+                        Task { await executeBulkDelete(preview) }
+                        bulkDeletePreview = nil
+                        productionBulkDelete = nil
+                        productionConfirmText = ""
+                    },
+                    onCancel: {
+                        bulkDeletePreview = nil
+                        productionBulkDelete = nil
+                        productionConfirmText = ""
+                    }
+                )
+            }
+        }
         .alert(
             "Bulk Delete Complete",
             isPresented: Binding(
@@ -318,18 +351,30 @@ struct BrowserView: View {
                 }
             )
         ) {
+            if let result = bulkDeleteResult, !result.deletedKeys.isEmpty {
+                Button("Export Deleted Keys") {
+                    exportDeletedKeys(result.deletedKeys)
+                    bulkDeleteResult = nil
+                }
+            }
             Button("OK") {
                 bulkDeleteResult = nil
             }
         } message: {
             if let result = bulkDeleteResult {
-                Text(bulkDeleteResultMessage(result))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(bulkDeleteResultMessage(result))
+                    if !result.deletedKeys.isEmpty {
+                        Text("\(result.deletedKeys.count) keys were deleted.")
+                            .font(.caption)
+                    }
+                }
             }
         }
         .confirmationDialog(
             "Delete Key?",
             isPresented: Binding(
-                get: { keyPendingDeletion != nil },
+                get: { keyPendingDeletion != nil && !isProduction },
                 set: { isPresented in
                     if !isPresented {
                         keyPendingDeletion = nil
@@ -352,9 +397,47 @@ struct BrowserView: View {
                 Text("This permanently deletes \(key.key).")
             }
         }
+        .sheet(isPresented: Binding(
+            get: { keyPendingDeletion != nil && isProduction },
+            set: { isPresented in
+                if !isPresented {
+                    keyPendingDeletion = nil
+                    productionDeleteKey = nil
+                    productionConfirmText = ""
+                }
+            }
+        )) {
+            if let key = productionDeleteKey ?? keyPendingDeletion {
+                ProductionConfirmView(
+                    title: "Delete Key?",
+                    message: "This permanently deletes \(key.key).",
+                    confirmText: "DELETE",
+                    input: $productionConfirmText,
+                    onConfirm: {
+                        Task { await app.deleteKey(key) }
+                        keyPendingDeletion = nil
+                        productionDeleteKey = nil
+                        productionConfirmText = ""
+                    },
+                    onCancel: {
+                        keyPendingDeletion = nil
+                        productionDeleteKey = nil
+                        productionConfirmText = ""
+                    }
+                )
+            }
+        }
         .onAppear {
             app.keyScanCount = currentScanCount
             searchText = app.keyFilter == "*" ? "" : app.keyFilter
+        }
+        .overlay {
+            if isDeletingBulkKeys && app.bulkDeleteProgress > 0 && app.bulkDeleteProgress < 1.0 {
+                ProgressOverlayView(
+                    progress: app.bulkDeleteProgress,
+                    text: app.bulkDeleteProgressText
+                )
+            }
         }
     }
 
@@ -364,6 +447,10 @@ struct BrowserView: View {
 
     private var currentScanCount: Int {
         app.isNamespaceGroupingEnabled ? treeScanCount : listScanCount
+    }
+
+    private var isProduction: Bool {
+        app.selectedConnection?.environment == .production
     }
 
     private func copyKeyToPasteboard(_ entry: RedisKeyEntry) {
@@ -524,6 +611,22 @@ struct BrowserView: View {
             throw RedisError.commandError(message)
         }
     }
+
+    private func exportDeletedKeys(_ keys: [String]) {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+        let filename = "deleted-keys-\(formatter.string(from: Date())).txt"
+
+        let panel = NSSavePanel()
+        panel.title = "Export Deleted Keys"
+        panel.nameFieldStringValue = filename
+        panel.message = "Save the list of deleted keys"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        let content = keys.joined(separator: "\n")
+        try? content.write(to: url, atomically: true, encoding: .utf8)
+    }
 }
 
 private func scrollToKey(_ key: String?, using proxy: ScrollViewProxy) {
@@ -597,6 +700,7 @@ private struct KeyNamespaceList: View {
                     KeyNamespaceNodeView(
                         namespace: namespace,
                         separator: tree.separator,
+                        allKeys: tree.allKeys,
                         selectedKey: $selectedKey,
                         expandedNamespaces: $expandedNamespaces,
                         onDeleteKey: onDeleteKey,
@@ -618,10 +722,13 @@ private struct KeyNamespaceList: View {
 private struct KeyNamespaceNodeView: View {
     let namespace: KeyNamespaceNode
     let separator: String
+    let allKeys: [RedisKeyEntry]
     @Binding var selectedKey: RedisKeyEntry?
     @Binding var expandedNamespaces: Set<String>
     let onDeleteKey: (RedisKeyEntry) -> Void
     let onCopyKey: (RedisKeyEntry) -> Void
+
+    private let pageSize = 500
 
     var body: some View {
         DisclosureGroup(isExpanded: namespaceExpansion) {
@@ -629,6 +736,7 @@ private struct KeyNamespaceNodeView: View {
                 KeyNamespaceNodeView(
                     namespace: childNamespace,
                     separator: separator,
+                    allKeys: allKeys,
                     selectedKey: $selectedKey,
                     expandedNamespaces: $expandedNamespaces,
                     onDeleteKey: onDeleteKey,
@@ -636,7 +744,11 @@ private struct KeyNamespaceNodeView: View {
                 )
             }
 
-            ForEach(namespace.keys) { entry in
+            let namespaceKeys = self.namespaceKeys
+            let displayedKeys = Array(namespaceKeys.prefix(pageSize))
+            let hasMore = namespaceKeys.count > pageSize
+
+            ForEach(displayedKeys) { entry in
                 KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
                     .id(entry.key)
                     .contextMenu {
@@ -650,9 +762,25 @@ private struct KeyNamespaceNodeView: View {
                     }
                     .tag(entry)
             }
+
+            if hasMore {
+                HStack {
+                    Spacer()
+                    Text("\(namespaceKeys.count - pageSize) more keys...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.vertical, 4)
+            }
         } label: {
             KeyNamespaceRow(namespace: namespace)
         }
+    }
+
+    private var namespaceKeys: [RedisKeyEntry] {
+        let prefix = namespace.id.isEmpty ? "" : "\(namespace.id)\(separator)"
+        return allKeys.filter { $0.key.hasPrefix(prefix) || $0.key == namespace.id }
     }
 
     private var namespaceExpansion: Binding<Bool> {
@@ -693,9 +821,11 @@ private struct KeyNamespaceTree {
     let rootKeys: [RedisKeyEntry]
     let namespaces: [KeyNamespaceNode]
     let separator: String
+    let allKeys: [RedisKeyEntry]
 
     init(entries: [RedisKeyEntry], separator: String) {
         self.separator = KeyNamespaceTree.normalizedSeparator(separator)
+        self.allKeys = entries
         var root = KeyNamespaceNode.root
         for entry in entries {
             root.insert(entry, separator: self.separator)
@@ -790,6 +920,96 @@ private struct KeyNamespaceNode: Identifiable {
                 separator: separator
             )
             children.append(child)
+        }
+    }
+}
+
+// MARK: - Production Confirmation View
+
+struct ProductionConfirmView: View {
+    let title: String
+    let message: String
+    let confirmText: String
+    @Binding var input: String
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.red)
+
+            Text(title)
+                .font(.title2)
+                .bold()
+
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: 0) {
+                Image(systemName: "shield")
+                    .foregroundStyle(.red)
+                Text("This is a PRODUCTION database.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            HStack(spacing: 4) {
+                Text("Type \"\(confirmText)\" to confirm:")
+                    .font(.caption)
+                Spacer()
+            }
+
+            TextField("", text: $input)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(confirmIfValid)
+
+            HStack {
+                Button("Cancel", role: .cancel, action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
+                Button("Delete", role: .destructive, action: onConfirm)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(input != confirmText)
+            }
+        }
+        .padding()
+        .frame(width: 320)
+    }
+
+    private func confirmIfValid() {
+        if input == confirmText {
+            onConfirm()
+        }
+    }
+}
+
+// MARK: - Progress Overlay View
+
+struct ProgressOverlayView: View {
+    let progress: Double
+    let text: String
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                ProgressView(value: progress, total: 1.0)
+                    .progressViewStyle(.linear)
+                    .frame(width: 200)
+
+                Text(text)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+            }
+            .padding()
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 }

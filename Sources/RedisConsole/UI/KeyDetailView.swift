@@ -22,6 +22,7 @@ struct KeyDetailView: View {
     @State private var ttlEditorError: String?
     @State private var isAutoRefreshEnabled = false
     @State private var autoRefreshInterval = 5
+    @State private var productionConfirmText = ""
 
     private let maxTTL = 2_147_483_647
 
@@ -70,7 +71,7 @@ struct KeyDetailView: View {
         .confirmationDialog(
             "Delete Key?",
             isPresented: Binding(
-                get: { keyPendingDeletion != nil },
+                get: { keyPendingDeletion != nil && !isProduction },
                 set: { isPresented in
                     if !isPresented {
                         keyPendingDeletion = nil
@@ -93,6 +94,33 @@ struct KeyDetailView: View {
                 Text("This permanently deletes \(key.key).")
             }
         }
+        .sheet(isPresented: Binding(
+            get: { keyPendingDeletion != nil && isProduction },
+            set: { isPresented in
+                if !isPresented {
+                    keyPendingDeletion = nil
+                    productionConfirmText = ""
+                }
+            }
+        )) {
+            if let key = keyPendingDeletion {
+                ProductionConfirmView(
+                    title: "Delete Key?",
+                    message: "This permanently deletes \(key.key).",
+                    confirmText: "DELETE",
+                    input: $productionConfirmText,
+                    onConfirm: {
+                        Task { await app.deleteKey(key) }
+                        keyPendingDeletion = nil
+                        productionConfirmText = ""
+                    },
+                    onCancel: {
+                        keyPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                )
+            }
+        }
         .onChange(of: app.selectedKey?.key) {
             showingTTLEditor = false
             ttlEditorError = nil
@@ -109,6 +137,10 @@ struct KeyDetailView: View {
 
     private var autoRefreshTaskID: String {
         "\(app.selectedKey?.key ?? "")|\(isAutoRefreshEnabled)|\(autoRefreshInterval)"
+    }
+
+    private var isProduction: Bool {
+        app.selectedConnection?.environment == .production
     }
 
     @ViewBuilder

@@ -1,4 +1,29 @@
 import Foundation
+import SwiftUI
+
+// MARK: - Connection Environment
+
+enum ConnectionEnvironment: String, Codable, CaseIterable {
+    case unspecified = "Unspecified"
+    case development = "Development"
+    case production = "Production"
+
+    var color: Color {
+        switch self {
+        case .unspecified: return .secondary
+        case .development: return .green
+        case .production: return .red
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .unspecified: return "circle"
+        case .development: return "hammer"
+        case .production: return "shield"
+        }
+    }
+}
 
 // MARK: - Connection Config
 
@@ -33,6 +58,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
 
     var ssh: SSHConfig = SSHConfig()
     var tls: TLSConfig = TLSConfig()
+    var environment: ConnectionEnvironment = .unspecified
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -45,6 +71,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         case ssh
         case password
         case tls
+        case environment
     }
 
     static let `default` = RedisConnectionConfig(name: "localhost", host: "127.0.0.1")
@@ -72,7 +99,8 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         username: String = "",
         password: String = "",
         ssh: SSHConfig = SSHConfig(),
-        tls: TLSConfig = TLSConfig()
+        tls: TLSConfig = TLSConfig(),
+        environment: ConnectionEnvironment = .unspecified
     ) {
         self.id = id
         self.name = name
@@ -84,6 +112,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         self.password = password
         self.ssh = ssh
         self.tls = tls
+        self.environment = environment
     }
 
     static func parseURI(_ uri: String) -> RedisConnectionConfig? {
@@ -130,6 +159,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
         ssh = try container.decodeIfPresent(SSHConfig.self, forKey: .ssh) ?? SSHConfig()
         tls = try container.decodeIfPresent(TLSConfig.self, forKey: .tls) ?? TLSConfig()
+        environment = try container.decodeIfPresent(ConnectionEnvironment.self, forKey: .environment) ?? .unspecified
     }
 
     func encode(to encoder: Encoder) throws {
@@ -143,5 +173,6 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         try container.encode(username, forKey: .username)
         try container.encode(ssh, forKey: .ssh)
         try container.encode(tls, forKey: .tls)
+        try container.encode(environment, forKey: .environment)
     }
 }

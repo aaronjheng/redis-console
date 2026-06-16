@@ -6,6 +6,12 @@ extension ConnectionState {
     private static let analysisSampleLimit = 10_000
     private static let analysisTopKeysCount = 50
 
+    private struct NamespaceAgg {
+        var count = 0
+        var memory = 0
+        var types: [String: Int] = [:]
+    }
+
     func runDatabaseAnalysis() async {
         guard let client = activeClient, client.isConnected else { return }
         isLoadingAnalysis = true
@@ -116,17 +122,19 @@ extension ConnectionState {
 
                 // Namespace aggregation
                 let separator = namespaceSeparator.isEmpty ? ":" : namespaceSeparator
-                var namespaceAgg: [String: (count: Int, memory: Int, types: [String: Int])] = [:]
+                var namespaceAgg: [String: NamespaceAgg] = [:]
                 for entry in keyMemoryEntries {
                     let ns = namespaceFromKey(entry.key, separator: separator)
-                    var agg = namespaceAgg[ns] ?? (0, 0, [:])
+                    var agg = namespaceAgg[ns] ?? NamespaceAgg()
                     agg.count += 1
                     agg.memory += entry.memory
                     agg.types[entry.type, default: 0] += 1
                     namespaceAgg[ns] = agg
                 }
                 result.topNamespaces = namespaceAgg
-                    .map { NamespaceStats(namespace: $0.key, keyCount: $0.value.count, totalMemory: $0.value.memory, types: $0.value.types) }
+                    .map { ns, agg in
+                        NamespaceStats(namespace: ns, keyCount: agg.count, totalMemory: agg.memory, types: agg.types)
+                    }
                     .sorted { $0.totalMemory > $1.totalMemory }
                     .prefix(20)
                     .map { $0 }

@@ -104,6 +104,7 @@ struct BulkDeletePreview: Identifiable {
 struct BulkDeleteResult {
     let processed: Int
     let deleted: Int
+    let deletedKeys: [String]
     let usedFallback: Bool
     let duration: TimeInterval
 }
