@@ -40,16 +40,16 @@ struct WorkspaceSidebarView: View {
 
             Divider()
 
-            Button(role: .destructive) {
-                conn.disconnect()
-            } label: {
-                Label("Disconnect", systemImage: "power")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            WorkspaceFooterBar {
+                Button(role: .destructive) {
+                    conn.disconnect()
+                } label: {
+                    Label("Disconnect", systemImage: "power")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .help("Disconnect")
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal)
-            .padding(.vertical, AppTheme.spacing)
-            .help("Disconnect")
         }
     }
 }

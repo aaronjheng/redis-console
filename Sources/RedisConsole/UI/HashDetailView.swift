@@ -79,12 +79,13 @@ struct HashDetailView: View {
 
             Divider()
 
-            HStack {
+            WorkspaceFooterBar {
                 Button {
                     onAddField()
                 } label: {
                     Image(systemName: "plus")
                 }
+                .font(.body)
                 .buttonStyle(.borderless)
                 .help("Add field")
 
@@ -101,7 +102,6 @@ struct HashDetailView: View {
                     countText: detailCountText(loaded: rows.count, total: keyLength, noun: "fields")
                 )
             }
-            .padding(AppTheme.spacing)
         }
         .onAppear {
             pendingSearchText = searchText

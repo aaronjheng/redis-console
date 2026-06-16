@@ -16,6 +16,7 @@ enum AppTheme {
 
     static let tabBarHeight: CGFloat = 32
     static let sheetWidth: CGFloat = 400
+    static let workspaceFooterHeight: CGFloat = 34
 
     // MARK: - Background Colors
     static var sidebarBackground: Color {
@@ -116,6 +117,24 @@ struct SheetLayout<Content: View>: View {
 
 // MARK: - Reusable Status Footer
 
+struct WorkspaceFooterBar<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        HStack(spacing: AppTheme.spacing) {
+            content
+        }
+        .font(.caption)
+        .controlSize(.regular)
+        .imageScale(.medium)
+        .lineLimit(1)
+        .padding(.horizontal, AppTheme.spacing)
+        .frame(height: AppTheme.workspaceFooterHeight)
+        .frame(maxWidth: .infinity)
+        .background(.bar)
+    }
+}
+
 struct StatusFooterView: View {
     let countText: String
     var sizeText: String?
@@ -135,6 +154,7 @@ struct StatusFooterView: View {
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+        .lineLimit(1)
     }
 }
 

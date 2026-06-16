@@ -392,16 +392,13 @@ private struct ProfilerFooterView: View {
                 Divider()
             }
 
-            HStack {
+            WorkspaceFooterBar {
                 StatusFooterView(
                     countText: "Showing \(filteredCount) of \(retainedCount)",
                     sizeText: "Captured \(capturedCount)"
                 )
                 Spacer()
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(.bar)
         }
     }
 }

@@ -98,12 +98,13 @@ struct ListDetailView: View {
 
             Divider()
 
-            HStack {
+            WorkspaceFooterBar {
                 Button {
                     onAddElement()
                 } label: {
                     Image(systemName: "plus")
                 }
+                .font(.body)
                 .buttonStyle(.borderless)
                 .help("Add element")
 
@@ -120,7 +121,6 @@ struct ListDetailView: View {
                     countText: detailCountText(loaded: rows.count, total: keyLength, noun: "elements")
                 )
             }
-            .padding(AppTheme.spacing)
         }
     }
 }

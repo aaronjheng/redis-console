@@ -230,7 +230,7 @@ struct BrowserView: View {
 
                 Divider()
 
-                HStack {
+                WorkspaceFooterBar {
                     Button {
                         newKeyName = ""
                         newKeyType = "string"
@@ -239,6 +239,7 @@ struct BrowserView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .font(.body)
                     .buttonStyle(.borderless)
                     .help("Add key")
 
@@ -252,17 +253,17 @@ struct BrowserView: View {
                             Image(systemName: "trash.slash")
                         }
                     }
+                    .font(.body)
                     .buttonStyle(.borderless)
                     .disabled(isPreparingBulkDelete || isDeletingBulkKeys || app.keys.isEmpty)
                     .help("Bulk delete current filter")
 
                     Spacer()
 
-                    Text(browserFooterText(displayedCount: displayedKeys.count))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    StatusFooterView(
+                        countText: browserFooterText(displayedCount: displayedKeys.count)
+                    )
                 }
-                .padding(8)
             }
         } right: {
             KeyDetailView()

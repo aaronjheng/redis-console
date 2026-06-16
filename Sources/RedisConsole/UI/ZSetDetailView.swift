@@ -101,12 +101,13 @@ struct ZSetDetailView: View {
 
             Divider()
 
-            HStack {
+            WorkspaceFooterBar {
                 Button {
                     onAddMember()
                 } label: {
                     Image(systemName: "plus")
                 }
+                .font(.body)
                 .buttonStyle(.borderless)
                 .help("Add member")
 
@@ -123,7 +124,6 @@ struct ZSetDetailView: View {
                     countText: detailCountText(loaded: rows.count, total: keyLength, noun: "members")
                 )
             }
-            .padding(AppTheme.spacing)
         }
         .onAppear {
             pendingSearchText = searchText
