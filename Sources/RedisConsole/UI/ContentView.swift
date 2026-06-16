@@ -65,6 +65,7 @@ struct WorkspaceView: View {
             case .shell: ShellView()
             case .profiler: ProfilerView()
             case .slowLog: SlowLogView()
+            case .databaseAnalysis: DatabaseAnalysisView()
             case .serverInfo: ServerInfoView()
             }
         }

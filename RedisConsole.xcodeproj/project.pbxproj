@@ -138,6 +138,9 @@
 				<string>B84C59C6043D482F8DFD3112</string>
 				<string>9EC4428D0FA54FB68D6B4A52</string>
 				<string>D40A3ED953B1431590D304AA</string>
+				<string>5F3D8B79A05147879D96CC46</string>
+				<string>EF88D75BB4254D1BB711C93B</string>
+				<string>4802E28E6C154B3FA32C51DD</string>
 				<string>6AC6C4B80F017969CEB19B06</string>
 			</array>
 			<key>isa</key>
@@ -526,6 +529,17 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>4802E28E6C154B3FA32C51DD</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/DatabaseAnalysisView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>491A36E51AE41F8C761D6514</key>
 		<dict>
 			<key>fileRef</key>
@@ -548,6 +562,13 @@
 		<dict>
 			<key>fileRef</key>
 			<string>EED2F3356F2FD347D2FE4EA4</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>53AF0CC868B84D76BF9AF9E8</key>
+		<dict>
+			<key>fileRef</key>
+			<string>5F3D8B79A05147879D96CC46</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -621,11 +642,25 @@
 				<string>F9C6BA72B69944C5B807904F</string>
 				<string>26D28D976EFD4A1A9893B37F</string>
 				<string>F3A1B33BA3AC468D82C2C7C9</string>
+				<string>53AF0CC868B84D76BF9AF9E8</string>
+				<string>CF8BEF2A3CBD4F6FA7A656CC</string>
+				<string>D4F731F3E4344143B8D697A3</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
 			<key>runOnlyForDeploymentPostprocessing</key>
 			<string>0</string>
+		</dict>
+		<key>5F3D8B79A05147879D96CC46</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/DatabaseAnalysisModels.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
 		</dict>
 		<key>60EF99E12856CCC43E82E2BB</key>
 		<dict>
@@ -1355,6 +1390,13 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>CF8BEF2A3CBD4F6FA7A656CC</key>
+		<dict>
+			<key>fileRef</key>
+			<string>EF88D75BB4254D1BB711C93B</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>CFBF582DD63B199731500A76</key>
 		<dict>
 			<key>isa</key>
@@ -1383,6 +1425,13 @@
 			<string>UI/ShellSyntaxHighlighter.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
+		</dict>
+		<key>D4F731F3E4344143B8D697A3</key>
+		<dict>
+			<key>fileRef</key>
+			<string>4802E28E6C154B3FA32C51DD</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
 		</dict>
 		<key>D620F14F7D75D74C01119464</key>
 		<dict>
@@ -1540,6 +1589,17 @@
 			<string>sourcecode.swift</string>
 			<key>path</key>
 			<string>UI/WelcomeView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>EF88D75BB4254D1BB711C93B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionState+DatabaseAnalysis.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>

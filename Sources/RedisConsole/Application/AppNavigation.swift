@@ -8,6 +8,7 @@ enum AppView: String, CaseIterable {
     case shell = "Shell"
     case profiler = "Profiler"
     case slowLog = "Slow Log"
+    case databaseAnalysis = "Analysis"
     case serverInfo = "Server Info"
 
     var icon: String {
@@ -16,6 +17,7 @@ enum AppView: String, CaseIterable {
         case .shell: return "terminal"
         case .profiler: return "waveform.path.ecg"
         case .slowLog: return "tortoise"
+        case .databaseAnalysis: return "chart.pie"
         case .serverInfo: return "info.circle"
         }
     }

@@ -61,6 +61,11 @@ class ConnectionState: ObservableObject {
     @Published var slowLogError: String?
     @Published var slowLogFetchCount = 128
 
+    @Published var analysis: DatabaseAnalysis?
+    @Published var isLoadingAnalysis = false
+    @Published var analysisError: String?
+    var analysisTaskHandle: Task<Void, Never>?
+
     @Published var profilerEntries: [RedisProfilerEntry] = []
     @Published var profilerCapturedCount = 0
     @Published var profilerError: String?
