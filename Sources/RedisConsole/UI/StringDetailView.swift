@@ -40,6 +40,12 @@ struct StringDetailView: View {
             return asciiValue
         case .hex:
             return hexValue
+        case .base64:
+            return base64DecodedValue
+        case .base64Encode:
+            return base64EncodedValue
+        case .gzip:
+            return gzipDecompressedValue
         }
     }
 
@@ -81,6 +87,38 @@ struct StringDetailView: View {
             let prefix = index == 0 ? "" : separator
             return prefix + String(format: "%02X", byte)
         }.joined()
+    }
+
+    private var base64DecodedValue: String {
+        guard let data = Data(base64Encoded: value),
+              let decoded = String(data: data, encoding: .utf8)
+        else {
+            return "Invalid Base64 data"
+        }
+        return decoded
+    }
+
+    private var base64EncodedValue: String {
+        guard let data = value.data(using: .utf8) else {
+            return "Unable to encode"
+        }
+        return data.base64EncodedString()
+    }
+
+    private var gzipDecompressedValue: String {
+        guard let data = Data(base64Encoded: value) ?? value.data(using: .utf8) else {
+            return "Unable to read data"
+        }
+        guard !data.isEmpty else { return value }
+        do {
+            let decompressed = try (data as NSData).decompressed(using: .zlib) as Data
+            guard let result = String(data: decompressed, encoding: .utf8) else {
+                return "Decompressed data is not valid UTF-8"
+            }
+            return result
+        } catch {
+            return "GZip decompression failed: \(error.localizedDescription)"
+        }
     }
 
     var body: some View {

@@ -73,6 +73,9 @@ enum StringValueFormat: String, CaseIterable, Identifiable, Codable {
     case json
     case ascii
     case hex
+    case base64
+    case base64Encode
+    case gzip
 
     var id: String { rawValue }
 
@@ -83,6 +86,9 @@ enum StringValueFormat: String, CaseIterable, Identifiable, Codable {
         case .json: return "JSON"
         case .ascii: return "ASCII"
         case .hex: return "Hex"
+        case .base64: return "Base64"
+        case .base64Encode: return "Base64(Encode)"
+        case .gzip: return "GZip"
         }
     }
 }

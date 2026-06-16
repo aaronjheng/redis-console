@@ -142,6 +142,8 @@
 				<string>EF88D75BB4254D1BB711C93B</string>
 				<string>4802E28E6C154B3FA32C51DD</string>
 				<string>6AC6C4B80F017969CEB19B06</string>
+				<string>4CA6B3946EE148E4AB3E6C47</string>
+				<string>E994FEAA98244EA48541FD5F</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -558,6 +560,17 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>4CA6B3946EE148E4AB3E6C47</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ClusterTopologyView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>5229483C61015293F62DB68B</key>
 		<dict>
 			<key>fileRef</key>
@@ -645,6 +658,8 @@
 				<string>53AF0CC868B84D76BF9AF9E8</string>
 				<string>CF8BEF2A3CBD4F6FA7A656CC</string>
 				<string>D4F731F3E4344143B8D697A3</string>
+				<string>BB9EAE77079349349F2EE621</string>
+				<string>887B11D2D2F941D3B9F989DA</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -811,6 +826,13 @@
 		<dict>
 			<key>fileRef</key>
 			<string>E1202E9EAD648CAADB72313E</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>887B11D2D2F941D3B9F989DA</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E994FEAA98244EA48541FD5F</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -1320,6 +1342,13 @@
 			<key>productType</key>
 			<string>com.apple.product-type.application</string>
 		</dict>
+		<key>BB9EAE77079349349F2EE621</key>
+		<dict>
+			<key>fileRef</key>
+			<string>4CA6B3946EE148E4AB3E6C47</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>BE71ED9FA189175A079FB476</key>
 		<dict>
 			<key>fileRef</key>
@@ -1543,6 +1572,17 @@
 			<string>Debug</string>
 			<key>isa</key>
 			<string>XCConfigurationList</string>
+		</dict>
+		<key>E994FEAA98244EA48541FD5F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ProfilerStatsView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
 		</dict>
 		<key>EBBB9DD78140920F3F35D5A6</key>
 		<dict>

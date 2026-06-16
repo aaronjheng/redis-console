@@ -9,6 +9,8 @@ struct ServerInfoView: View {
             .sorted()
     }
 
+    @State private var showTopology = false
+
     private var isClusterMode: Bool {
         app.selectedConnection?.mode == .cluster || !app.clusterNodes.isEmpty
     }
@@ -50,8 +52,19 @@ struct ServerInfoView: View {
             clusterSummaryBar
             Divider()
             HStack(spacing: 0) {
-                clusterNodeList
-                    .frame(width: 280)
+                if showTopology {
+                    ClusterTopologyView(
+                        nodes: app.clusterNodes,
+                        selectedEndpoint: $app.selectedServerInfoNode,
+                        onSelectNode: { endpoint in
+                            Task { await app.selectServerInfoNode(endpoint) }
+                        }
+                    )
+                    .frame(minWidth: 300)
+                } else {
+                    clusterNodeList
+                        .frame(width: 280)
+                }
                 Divider()
                 VStack(spacing: 0) {
                     selectedNodeHeader
@@ -71,6 +84,13 @@ struct ServerInfoView: View {
             summaryItem("Slots", app.clusterInfo["cluster_slots_assigned"] ?? "\(assignedSlotCount)")
             summaryItem("OK Slots", app.clusterInfo["cluster_slots_ok"] ?? "-")
             Spacer()
+            if isClusterMode && !app.clusterNodes.isEmpty {
+                Toggle(isOn: $showTopology) {
+                    Image(systemName: "point.connected.arcs")
+                }
+                .toggleStyle(.button)
+                .help("Toggle topology view")
+            }
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
