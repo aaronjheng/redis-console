@@ -9,9 +9,6 @@ struct WorkspaceSidebarView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Image(systemName: "circle.fill")
-                    .foregroundStyle(.green)
-                    .font(.system(size: 8))
                 VStack(alignment: .leading, spacing: 1) {
                     if let selectedConnection = conn.selectedConnection {
                         HStack(spacing: AppTheme.spacingSmall) {
