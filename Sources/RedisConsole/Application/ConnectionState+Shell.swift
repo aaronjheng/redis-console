@@ -3,8 +3,85 @@ import Foundation
 extension ConnectionState {
     // MARK: - Shell
 
+    func connectShellClient() async {
+        guard let config = selectedConnection else { return }
+        shellClient?.disconnect()
+        shellClient = nil
+
+        do {
+            var connectHost = config.host
+            var connectPort = config.port
+
+            if config.ssh.enabled {
+                // Reuse existing SSH tunnel if available
+                if let existingTunnel = sshTunnel, existingTunnel.isRunning {
+                    connectHost = "127.0.0.1"
+                    connectPort = existingTunnel.localPort
+                } else if let clusterManager = sshClusterTunnelManager {
+                    let resolver = clusterManager
+                    let endpoint = try await resolver.clientEndpoint(for: RedisEndpoint(host: config.host, port: config.port))
+                    connectHost = endpoint.host
+                    connectPort = endpoint.port
+                } else {
+                    // Create a dedicated tunnel for shell
+                    let tunnel = SSHTunnel()
+                    try await tunnel.start(
+                        sshHost: config.ssh.host,
+                        sshPort: config.ssh.port,
+                        sshUser: config.ssh.user.isEmpty ? NSUserName() : config.ssh.user,
+                        sshPassword: config.ssh.password.isEmpty ? nil : config.ssh.password,
+                        privateKeyPath: config.ssh.privateKeyPath.isEmpty ? nil : config.ssh.privateKeyPath,
+                        remoteHost: config.host,
+                        remotePort: config.port
+                    )
+                    connectHost = "127.0.0.1"
+                    connectPort = tunnel.localPort
+                }
+            }
+
+            let client: any RedisSession
+            switch config.mode {
+            case .standalone:
+                client = RedisClient(
+                    host: connectHost,
+                    port: connectPort,
+                    username: config.username.isEmpty ? nil : config.username,
+                    password: config.password.isEmpty ? nil : config.password,
+                    tlsEnabled: config.tls.enabled,
+                    verifyServerCertificate: config.tls.verifyServerCertificate,
+                    caCertificatePath: config.tls.caCertificatePath,
+                    clientCertificatePath: config.tls.clientCertificatePath,
+                    clientKeyPath: config.tls.clientKeyPath
+                )
+            case .cluster:
+                client = RedisClusterClient(
+                    seedNodes: config.effectiveSeedNodes,
+                    username: config.username.isEmpty ? nil : config.username,
+                    password: config.password.isEmpty ? nil : config.password,
+                    tlsEnabled: config.tls.enabled,
+                    verifyServerCertificate: config.tls.verifyServerCertificate,
+                    caCertificatePath: config.tls.caCertificatePath,
+                    clientCertificatePath: config.tls.clientCertificatePath,
+                    clientKeyPath: config.tls.clientKeyPath,
+                    endpointResolver: sshClusterTunnelManager
+                )
+            }
+
+            try await client.connect()
+            shellClient = client
+        } catch {
+            AppLogger.error("shell client connect failed error=\(error)", category: "Shell")
+        }
+    }
+
+    func disconnectShellClient() {
+        shellClient?.disconnect()
+        shellClient = nil
+    }
+
     func executeCommand(_ input: String) async {
-        guard let client = activeClient, client.isConnected else { return }
+        let client = shellClient ?? activeClient
+        guard let client, client.isConnected else { return }
         do {
             let parts = try parseCommand(input)
             guard !parts.isEmpty else { return }

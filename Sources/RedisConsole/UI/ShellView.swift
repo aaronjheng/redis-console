@@ -141,10 +141,13 @@ struct ShellHistoryRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("> \(entry.command)")
+                Text("> ")
                     .font(.system(.body, design: .monospaced))
                     .bold()
                     .foregroundStyle(Color.accentColor)
+                + Text(ShellSyntaxHighlighter.highlight(entry.command))
+                    .font(.system(.body, design: .monospaced))
+                    .bold()
                 Spacer()
                 Text(entry.timestamp, style: .time)
                     .font(.caption2)

@@ -53,6 +53,13 @@ class ConnectionState: ObservableObject {
 
     @Published var shellHistory: [ShellHistoryEntry] = []
     @Published var shellInput: String = ""
+    @Published var shellClient: (any RedisSession)?
+
+    @Published var slowLogEntries: [SlowLogEntry] = []
+    @Published var slowLogConfig = SlowLogConfig()
+    @Published var isLoadingSlowLog = false
+    @Published var slowLogError: String?
+    @Published var slowLogFetchCount = 128
 
     @Published var profilerEntries: [RedisProfilerEntry] = []
     @Published var profilerCapturedCount = 0

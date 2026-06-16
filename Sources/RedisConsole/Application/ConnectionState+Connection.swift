@@ -130,6 +130,7 @@ extension ConnectionState {
                 pendingConnection = nil
                 await loadServerInfo()
                 await scanKeys(reset: true)
+                await connectShellClient()
                 AppLogger.info("connect completed name=\(resolvedConfig.name)", category: "Connection")
             } catch is CancellationError {
                 client?.disconnect()
@@ -188,6 +189,7 @@ extension ConnectionState {
     func disconnect() {
         AppLogger.info("disconnect current connection", category: "Connection")
         stopProfiler(clearEntries: true)
+        disconnectShellClient()
         activeClient?.disconnect()
         activeClient = nil
         sshTunnel?.stop()

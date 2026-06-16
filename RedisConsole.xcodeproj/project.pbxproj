@@ -1,558 +1,1647 @@
-// !$*UTF8*$!
-{
-	archiveVersion = 1;
-	classes = {
-	};
-	objectVersion = 77;
-	objects = {
-
-/* Begin PBXBuildFile section */
-		08095B79379073E5CDB6A8AF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88C421BA492019C7EFFFFEC2 /* Assets.xcassets */; };
-		8C7EB7331C3F5EADCC6E5E3F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88C421BA492019C7EFFFFEC2 /* Assets.xcassets */; };
-		08CAE39503D01547D187531D /* UI/ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF606A6964524077E9B2C2AC /* UI/ContentView.swift */; };
-		0CDB668F1E8A810797CB0465 /* SSH/SSHTunnel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC6C4B80F017969CEB19B06 /* SSH/SSHTunnel.swift */; };
-		491A36E51AE41F8C761D6514 /* Infrastructure/KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05662699AFF90DD439C2E9F5 /* Infrastructure/KeychainStore.swift */; };
-		6344D9938425496018D4A0B5 /* UI/ServerInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288450F3CEC2CFCC1BF4B8C8 /* UI/ServerInfoView.swift */; };
-		7EEE9F0E74615C5D4FBC55CD /* Infrastructure/AsyncTimeout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1202E9EAD648CAADB72313E /* Infrastructure/AsyncTimeout.swift */; };
-		8EB4B86D1FCDB0A2C0F4451A /* Application/AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BE6CF64F60ACC797244A8A /* Application/AppTheme.swift */; };
-		9FB4F5632F37B1E97961E43E /* Redis/RESPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192713478BAB4601F8037492 /* Redis/RESPParser.swift */; };
-		C1A5F0E7A4B94C3D9E613002 /* Redis/RedisClusterClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A5F0E7A4B94C3D9E613001 /* Redis/RedisClusterClient.swift */; };
-		E31A8F9B6C2D4A5F90123456 /* Redis/RedisMonitorClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E31A8F9B6C2D4A5F90123457 /* Redis/RedisMonitorClient.swift */; };
-		AB6F7C1F3AC67F0D90BD9528 /* Redis/RedisClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC45097D404559C7802F7F8 /* Redis/RedisClient.swift */; };
-		A4E7282B6C5D4E9F80123456 /* NIOTransportServices in Frameworks */ = {isa = PBXBuildFile; productRef = A4E7282D6C5D4E9F80123456 /* NIOTransportServices */; };
-		B9C592A7C9F4F9D39812897B /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = 6FBB135E6C4D2D0FB8D15AC7 /* NIOSSH */; };
-		BE71ED9FA189175A079FB476 /* Application/AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D620F14F7D75D74C01119464 /* Application/AppState.swift */; };
-		E31A8F9B6C2D4A5F90123458 /* UI/ProfilerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E31A8F9B6C2D4A5F90123459 /* UI/ProfilerView.swift */; };
-		D6C7D69ABDED21BD3BD0090B /* UI/ShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8D6099DE77854253F3FD15 /* UI/ShellView.swift */; };
-		D88BEDDC62ACB7432ACD4694 /* UI/BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACEB586CD12D0873A8718B1 /* UI/BrowserView.swift */; };
-		A1B2C3D4E5F6789012345678 /* UI/PersistentSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9E8D7C6B5A43210FEDCBA09 /* UI/PersistentSplitView.swift */; };
-		F0DD9FE630F55BD002EE819B /* Application/AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E8633A52269F80A7F6FDA1 /* Application/AppLogger.swift */; };
-		027F421A3802B3F7AA0FF5C4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88C421BA492019C7EFFFFEC2 /* Assets.xcassets */; };
-		C4166411BD7E73C24B17A9B2 /* Application/ConnectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8284803F8863D0A2876D242 /* Application/ConnectionModels.swift */; };
-		A871A43D5B5961206589CE85 /* Application/RedisKeyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710CED61DCB593AB5FAB3D09 /* Application/RedisKeyModels.swift */; };
-		17D52614402A8F13019977E4 /* Application/ShellHistoryEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AD6F67E69F6D7F21DBA9918 /* Application/ShellHistoryEntry.swift */; };
-		1308F6C13A5CC23A9D3F8CA7 /* Application/RedisProfilerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A045CD0D1ACB98D3834EB9 /* Application/RedisProfilerModels.swift */; };
-		38CC641D3286AA0C9E3F13BA /* Application/AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F59767EE7E02A667EEC3A156 /* Application/AppStore.swift */; };
-		F865DB7D7F787DD945326BA6 /* Application/AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54B11C3DFA1C686E6B6AF38 /* Application/AppNavigation.swift */; };
-		01357278E87488A50704F862 /* Application/ConnectionState+Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 663CB7525567058CB1C35306 /* Application/ConnectionState+Preferences.swift */; };
-		439B9C6C1A7DE367C9F3924B /* Application/ConnectionState+Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10036C3BACF480C5794DAFEE /* Application/ConnectionState+Connection.swift */; };
-		8BE9CBD40BFD041B7042C52E /* Application/ConnectionState+KeyBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60EF99E12856CCC43E82E2BB /* Application/ConnectionState+KeyBrowser.swift */; };
-		B1AED59A58308EED93593B40 /* Application/ConnectionState+Shell.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE342F3B0E0C074C869BA16F /* Application/ConnectionState+Shell.swift */; };
-		54857C7C66D87EF5CC23F244 /* Application/ConnectionState+Profiler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E896A2BE4208032CB46914C /* Application/ConnectionState+Profiler.swift */; };
-		351CFE6BEDC3FBBEF81093D2 /* Application/ConnectionState+ServerInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A590DA6965842B47C2B666C4 /* Application/ConnectionState+ServerInfo.swift */; };
-		CF6F27934F0499D08A3A867E /* Application/ConnectionState+Completions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CC8C138EFAF41CE1D233E5B /* Application/ConnectionState+Completions.swift */; };
-		057B6A6C484AE6189C6553B1 /* UI/Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6223746D934AF4A47B07CAB7 /* UI/Clipboard.swift */; };
-		1EE8D581409B1B7A2AB96384 /* UI/KeyRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 307922DA0FD1DFBC0AE1C390 /* UI/KeyRow.swift */; };
-		6E2E4B02051F42F6A1E7C6A2 /* UI/KeyTypeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2CC6E9D5D9430486D7C644 /* UI/KeyTypeBadge.swift */; };
-		90AD1D72C1B73A0DFBEB14BC /* UI/KeyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBF582DD63B199731500A76 /* UI/KeyDetailView.swift */; };
-		30519E80DAA108581A7E0940 /* UI/StringDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D767E06402B486180E8833 /* UI/StringDetailView.swift */; };
-		FAA3E1F18B30985AE358C5BF /* UI/CollectionDetailControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF8415C586FF6FD461002505 /* UI/CollectionDetailControls.swift */; };
-		A59DF5B6151F93A5CBF4453E /* UI/HashDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710A7EA408D4C4107D58570D /* UI/HashDetailView.swift */; };
-		F9356B862B03B07C3EC56A48 /* UI/ListDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B133F8196C81269D04A526BB /* UI/ListDetailView.swift */; };
-		D2D28BF0BE748CE51D64A1F5 /* UI/SetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5F564BA2D1E0F1AD0B00339 /* UI/SetDetailView.swift */; };
-		C04CD7C654C0F2EDF797682D /* UI/ZSetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A157CCBF9ADB6B699C6416FA /* UI/ZSetDetailView.swift */; };
-		59AC308B35EAC800725934A3 /* UI/KeyEditSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32A834210EBBC9DF44554827 /* UI/KeyEditSheets.swift */; };
-		12E4521C5CF120098DD00D86 /* Application/AppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34DCE9E49BA70BF20F6F82E8 /* Application/AppLifecycle.swift */; };
-		3BC8D42C86FD17A97AF500D1 /* UI/TabSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF0092A0D2058DD291ECD3F /* UI/TabSidebarView.swift */; };
-		10693750F69F859FC4E80EB5 /* UI/ConnectingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 075617E28FD0E7BB40A29BCF /* UI/ConnectingView.swift */; };
-		5229483C61015293F62DB68B /* UI/WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED2F3356F2FD347D2FE4EA4 /* UI/WelcomeView.swift */; };
-		73DFE7FD90FC7B63E795E8C5 /* UI/ConnectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF94C12BB25368F858F2D60A /* UI/ConnectionDetailView.swift */; };
-		ACB9A5A0F74DD02D7C5C6927 /* UI/ConnectionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47D8EAB9242B4058BB99D900 /* UI/ConnectionRow.swift */; };
-/* End PBXBuildFile section */
-
-/* Begin PBXFileReference section */
-		05662699AFF90DD439C2E9F5 /* Infrastructure/KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Infrastructure/KeychainStore.swift; sourceTree = "<group>"; };
-		05BE6CF64F60ACC797244A8A /* Application/AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppTheme.swift; sourceTree = "<group>"; };
-		192713478BAB4601F8037492 /* Redis/RESPParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redis/RESPParser.swift; sourceTree = "<group>"; };
-		288450F3CEC2CFCC1BF4B8C8 /* UI/ServerInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ServerInfoView.swift; sourceTree = "<group>"; };
-		34157211EC112A834E4073C9 /* RedisConsole.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RedisConsole.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4A8D6099DE77854253F3FD15 /* UI/ShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ShellView.swift; sourceTree = "<group>"; };
-		6AC6C4B80F017969CEB19B06 /* SSH/SSHTunnel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSH/SSHTunnel.swift; sourceTree = "<group>"; };
-		6FC45097D404559C7802F7F8 /* Redis/RedisClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redis/RedisClient.swift; sourceTree = "<group>"; };
-		89E8633A52269F80A7F6FDA1 /* Application/AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppLogger.swift; sourceTree = "<group>"; };
-		C1A5F0E7A4B94C3D9E613001 /* Redis/RedisClusterClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redis/RedisClusterClient.swift; sourceTree = "<group>"; };
-		E31A8F9B6C2D4A5F90123457 /* Redis/RedisMonitorClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redis/RedisMonitorClient.swift; sourceTree = "<group>"; };
-		CF606A6964524077E9B2C2AC /* UI/ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ContentView.swift; sourceTree = "<group>"; };
-		D620F14F7D75D74C01119464 /* Application/AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppState.swift; sourceTree = "<group>"; };
-		E1202E9EAD648CAADB72313E /* Infrastructure/AsyncTimeout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Infrastructure/AsyncTimeout.swift; sourceTree = "<group>"; };
-		E31A8F9B6C2D4A5F90123459 /* UI/ProfilerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ProfilerView.swift; sourceTree = "<group>"; };
-		EC5F6AF1EE8514832416133F /* swift-nio-ssh */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-nio-ssh"; path = "Vendor/swift-nio-ssh"; sourceTree = SOURCE_ROOT; };
-		FACEB586CD12D0873A8718B1 /* UI/BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/BrowserView.swift; sourceTree = "<group>"; };
-		F9E8D7C6B5A43210FEDCBA09 /* UI/PersistentSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/PersistentSplitView.swift; sourceTree = "<group>"; };
-		88C421BA492019C7EFFFFEC2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Assets.xcassets; sourceTree = SOURCE_ROOT; };
-		B8284803F8863D0A2876D242 /* Application/ConnectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/ConnectionModels.swift; sourceTree = "<group>"; };
-		710CED61DCB593AB5FAB3D09 /* Application/RedisKeyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/RedisKeyModels.swift; sourceTree = "<group>"; };
-		7AD6F67E69F6D7F21DBA9918 /* Application/ShellHistoryEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/ShellHistoryEntry.swift; sourceTree = "<group>"; };
-		17A045CD0D1ACB98D3834EB9 /* Application/RedisProfilerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/RedisProfilerModels.swift; sourceTree = "<group>"; };
-		F59767EE7E02A667EEC3A156 /* Application/AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppStore.swift; sourceTree = "<group>"; };
-		B54B11C3DFA1C686E6B6AF38 /* Application/AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppNavigation.swift; sourceTree = "<group>"; };
-		663CB7525567058CB1C35306 /* Application/ConnectionState+Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Preferences.swift"; sourceTree = "<group>"; };
-		10036C3BACF480C5794DAFEE /* Application/ConnectionState+Connection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Connection.swift"; sourceTree = "<group>"; };
-		60EF99E12856CCC43E82E2BB /* Application/ConnectionState+KeyBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+KeyBrowser.swift"; sourceTree = "<group>"; };
-		EE342F3B0E0C074C869BA16F /* Application/ConnectionState+Shell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Shell.swift"; sourceTree = "<group>"; };
-		6E896A2BE4208032CB46914C /* Application/ConnectionState+Profiler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Profiler.swift"; sourceTree = "<group>"; };
-		A590DA6965842B47C2B666C4 /* Application/ConnectionState+ServerInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+ServerInfo.swift"; sourceTree = "<group>"; };
-		6CC8C138EFAF41CE1D233E5B /* Application/ConnectionState+Completions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/ConnectionState+Completions.swift"; sourceTree = "<group>"; };
-		6223746D934AF4A47B07CAB7 /* UI/Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/Clipboard.swift; sourceTree = "<group>"; };
-		307922DA0FD1DFBC0AE1C390 /* UI/KeyRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/KeyRow.swift; sourceTree = "<group>"; };
-		8B2CC6E9D5D9430486D7C644 /* UI/KeyTypeBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/KeyTypeBadge.swift; sourceTree = "<group>"; };
-		CFBF582DD63B199731500A76 /* UI/KeyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/KeyDetailView.swift; sourceTree = "<group>"; };
-		E2D767E06402B486180E8833 /* UI/StringDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/StringDetailView.swift; sourceTree = "<group>"; };
-		AF8415C586FF6FD461002505 /* UI/CollectionDetailControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/CollectionDetailControls.swift; sourceTree = "<group>"; };
-		710A7EA408D4C4107D58570D /* UI/HashDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/HashDetailView.swift; sourceTree = "<group>"; };
-		B133F8196C81269D04A526BB /* UI/ListDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ListDetailView.swift; sourceTree = "<group>"; };
-		B5F564BA2D1E0F1AD0B00339 /* UI/SetDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/SetDetailView.swift; sourceTree = "<group>"; };
-		A157CCBF9ADB6B699C6416FA /* UI/ZSetDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ZSetDetailView.swift; sourceTree = "<group>"; };
-		32A834210EBBC9DF44554827 /* UI/KeyEditSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/KeyEditSheets.swift; sourceTree = "<group>"; };
-		34DCE9E49BA70BF20F6F82E8 /* Application/AppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application/AppLifecycle.swift; sourceTree = "<group>"; };
-		FEF0092A0D2058DD291ECD3F /* UI/TabSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/TabSidebarView.swift; sourceTree = "<group>"; };
-		075617E28FD0E7BB40A29BCF /* UI/ConnectingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ConnectingView.swift; sourceTree = "<group>"; };
-		EED2F3356F2FD347D2FE4EA4 /* UI/WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/WelcomeView.swift; sourceTree = "<group>"; };
-		FF94C12BB25368F858F2D60A /* UI/ConnectionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ConnectionDetailView.swift; sourceTree = "<group>"; };
-		47D8EAB9242B4058BB99D900 /* UI/ConnectionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI/ConnectionRow.swift; sourceTree = "<group>"; };
-/* End PBXFileReference section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		107D1B0E6473A23309C0DEA1 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A4E7282B6C5D4E9F80123456 /* NIOTransportServices in Frameworks */,
-				B9C592A7C9F4F9D39812897B /* NIOSSH in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
-/* Begin PBXGroup section */
-		0F2812CECCF9A2C39AD8DE80 /* RedisConsole */ = {
-			isa = PBXGroup;
-			children = (
-			89E8633A52269F80A7F6FDA1 /* Application/AppLogger.swift */,
-				D620F14F7D75D74C01119464 /* Application/AppState.swift */,
-				B8284803F8863D0A2876D242 /* Application/ConnectionModels.swift */,
-				710CED61DCB593AB5FAB3D09 /* Application/RedisKeyModels.swift */,
-				7AD6F67E69F6D7F21DBA9918 /* Application/ShellHistoryEntry.swift */,
-				17A045CD0D1ACB98D3834EB9 /* Application/RedisProfilerModels.swift */,
-				F59767EE7E02A667EEC3A156 /* Application/AppStore.swift */,
-				B54B11C3DFA1C686E6B6AF38 /* Application/AppNavigation.swift */,
-				663CB7525567058CB1C35306 /* Application/ConnectionState+Preferences.swift */,
-				10036C3BACF480C5794DAFEE /* Application/ConnectionState+Connection.swift */,
-				60EF99E12856CCC43E82E2BB /* Application/ConnectionState+KeyBrowser.swift */,
-				EE342F3B0E0C074C869BA16F /* Application/ConnectionState+Shell.swift */,
-				6E896A2BE4208032CB46914C /* Application/ConnectionState+Profiler.swift */,
-				A590DA6965842B47C2B666C4 /* Application/ConnectionState+ServerInfo.swift */,
-				6CC8C138EFAF41CE1D233E5B /* Application/ConnectionState+Completions.swift */,
-				6223746D934AF4A47B07CAB7 /* UI/Clipboard.swift */,
-				307922DA0FD1DFBC0AE1C390 /* UI/KeyRow.swift */,
-				8B2CC6E9D5D9430486D7C644 /* UI/KeyTypeBadge.swift */,
-				CFBF582DD63B199731500A76 /* UI/KeyDetailView.swift */,
-				E2D767E06402B486180E8833 /* UI/StringDetailView.swift */,
-				AF8415C586FF6FD461002505 /* UI/CollectionDetailControls.swift */,
-				710A7EA408D4C4107D58570D /* UI/HashDetailView.swift */,
-				B133F8196C81269D04A526BB /* UI/ListDetailView.swift */,
-				B5F564BA2D1E0F1AD0B00339 /* UI/SetDetailView.swift */,
-				A157CCBF9ADB6B699C6416FA /* UI/ZSetDetailView.swift */,
-				32A834210EBBC9DF44554827 /* UI/KeyEditSheets.swift */,
-				34DCE9E49BA70BF20F6F82E8 /* Application/AppLifecycle.swift */,
-				FEF0092A0D2058DD291ECD3F /* UI/TabSidebarView.swift */,
-				075617E28FD0E7BB40A29BCF /* UI/ConnectingView.swift */,
-				EED2F3356F2FD347D2FE4EA4 /* UI/WelcomeView.swift */,
-				FF94C12BB25368F858F2D60A /* UI/ConnectionDetailView.swift */,
-				47D8EAB9242B4058BB99D900 /* UI/ConnectionRow.swift */,
-				05BE6CF64F60ACC797244A8A /* Application/AppTheme.swift */,
-				E1202E9EAD648CAADB72313E /* Infrastructure/AsyncTimeout.swift */,
-				FACEB586CD12D0873A8718B1 /* UI/BrowserView.swift */,
-				F9E8D7C6B5A43210FEDCBA09 /* UI/PersistentSplitView.swift */,
-				CF606A6964524077E9B2C2AC /* UI/ContentView.swift */,
-				E31A8F9B6C2D4A5F90123459 /* UI/ProfilerView.swift */,
-				05662699AFF90DD439C2E9F5 /* Infrastructure/KeychainStore.swift */,
-				C1A5F0E7A4B94C3D9E613001 /* Redis/RedisClusterClient.swift */,
-				6FC45097D404559C7802F7F8 /* Redis/RedisClient.swift */,
-				E31A8F9B6C2D4A5F90123457 /* Redis/RedisMonitorClient.swift */,
-				192713478BAB4601F8037492 /* Redis/RESPParser.swift */,
-				288450F3CEC2CFCC1BF4B8C8 /* UI/ServerInfoView.swift */,
-				4A8D6099DE77854253F3FD15 /* UI/ShellView.swift */,
-				6AC6C4B80F017969CEB19B06 /* SSH/SSHTunnel.swift */,
-			);
-			path = RedisConsole;
-			sourceTree = "<group>";
-		};
-		B3D974DB8863C491649CE938 /* Packages */ = {
-			isa = PBXGroup;
-			children = (
-				EC5F6AF1EE8514832416133F /* swift-nio-ssh */,
-			);
-			name = Packages;
-			sourceTree = "<group>";
-		};
-		CBC7648DD685A71D5D0DA5CE /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				34157211EC112A834E4073C9 /* RedisConsole.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		E4CC206328F4F250C17D5DA5 = {
-			isa = PBXGroup;
-			children = (
-				88C421BA492019C7EFFFFEC2 /* Assets.xcassets */,
-				B3D974DB8863C491649CE938 /* Packages */,
-				EBBB9DD78140920F3F35D5A6 /* Sources */,
-				CBC7648DD685A71D5D0DA5CE /* Products */,
-);
-			sourceTree = "<group>";
-		};
-		EBBB9DD78140920F3F35D5A6 /* Sources */ = {
-			isa = PBXGroup;
-			children = (
-				0F2812CECCF9A2C39AD8DE80 /* RedisConsole */,
-			);
-			path = Sources;
-			sourceTree = "<group>";
-		};
-/* End PBXGroup section */
-
-/* Begin PBXNativeTarget section */
-		BB93DA1DE052699890633FD1 /* RedisConsole */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = E86C4C52E6E99946D8C66204 /* Build configuration list for PBXNativeTarget "RedisConsole" */;
-			buildPhases = (
-				5DD21926085FF34100EBEC5D /* Sources */,
-				107D1B0E6473A23309C0DEA1 /* Frameworks */,
-				B0D18C7A3823D8F1CF5998A3 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = RedisConsole;
-			packageProductDependencies = (
-				6FBB135E6C4D2D0FB8D15AC7 /* NIOSSH */,
-				A4E7282D6C5D4E9F80123456 /* NIOTransportServices */,
-			);
-			productName = RedisConsole;
-			productReference = 34157211EC112A834E4073C9 /* RedisConsole.app */;
-			productType = "com.apple.product-type.application";
-		};
-/* End PBXNativeTarget section */
-
-/* Begin PBXProject section */
-		B03968E34D94ABAFB37875CE /* Project object */ = {
-			isa = PBXProject;
-			attributes = {
-				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1430;
-			};
-			buildConfigurationList = 111F38255585C4A9001B8D7B /* Build configuration list for PBXProject "RedisConsole" */;
-			developmentRegion = en;
-			hasScannedForEncodings = 0;
-			knownRegions = (
-				Base,
-				en,
-			);
-			mainGroup = E4CC206328F4F250C17D5DA5;
-			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				6314E9EE4C496B693C196D78 /* XCLocalSwiftPackageReference "Vendor/swift-nio-ssh" */,
-				A4E7282C6C5D4E9F80123456 /* XCRemoteSwiftPackageReference "swift-nio-transport-services" */,
-			);
-			preferredProjectObjectVersion = 77;
-			productRefGroup = CBC7648DD685A71D5D0DA5CE /* Products */;
-			projectDirPath = "";
-			projectRoot = "";
-			targets = (
-				BB93DA1DE052699890633FD1 /* RedisConsole */,
-			);
-		};
-/* End PBXProject section */
-
-/* Begin PBXSourcesBuildPhase section */
-		5DD21926085FF34100EBEC5D /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F0DD9FE630F55BD002EE819B /* Application/AppLogger.swift in Sources */,
-				BE71ED9FA189175A079FB476 /* Application/AppState.swift in Sources */,
-				C4166411BD7E73C24B17A9B2 /* Application/ConnectionModels.swift in Sources */,
-				A871A43D5B5961206589CE85 /* Application/RedisKeyModels.swift in Sources */,
-				17D52614402A8F13019977E4 /* Application/ShellHistoryEntry.swift in Sources */,
-				1308F6C13A5CC23A9D3F8CA7 /* Application/RedisProfilerModels.swift in Sources */,
-				38CC641D3286AA0C9E3F13BA /* Application/AppStore.swift in Sources */,
-				F865DB7D7F787DD945326BA6 /* Application/AppNavigation.swift in Sources */,
-				01357278E87488A50704F862 /* Application/ConnectionState+Preferences.swift in Sources */,
-				439B9C6C1A7DE367C9F3924B /* Application/ConnectionState+Connection.swift in Sources */,
-				8BE9CBD40BFD041B7042C52E /* Application/ConnectionState+KeyBrowser.swift in Sources */,
-				B1AED59A58308EED93593B40 /* Application/ConnectionState+Shell.swift in Sources */,
-				54857C7C66D87EF5CC23F244 /* Application/ConnectionState+Profiler.swift in Sources */,
-				351CFE6BEDC3FBBEF81093D2 /* Application/ConnectionState+ServerInfo.swift in Sources */,
-				CF6F27934F0499D08A3A867E /* Application/ConnectionState+Completions.swift in Sources */,
-				057B6A6C484AE6189C6553B1 /* UI/Clipboard.swift in Sources */,
-				1EE8D581409B1B7A2AB96384 /* UI/KeyRow.swift in Sources */,
-				6E2E4B02051F42F6A1E7C6A2 /* UI/KeyTypeBadge.swift in Sources */,
-				90AD1D72C1B73A0DFBEB14BC /* UI/KeyDetailView.swift in Sources */,
-				30519E80DAA108581A7E0940 /* UI/StringDetailView.swift in Sources */,
-				FAA3E1F18B30985AE358C5BF /* UI/CollectionDetailControls.swift in Sources */,
-				A59DF5B6151F93A5CBF4453E /* UI/HashDetailView.swift in Sources */,
-				F9356B862B03B07C3EC56A48 /* UI/ListDetailView.swift in Sources */,
-				D2D28BF0BE748CE51D64A1F5 /* UI/SetDetailView.swift in Sources */,
-				C04CD7C654C0F2EDF797682D /* UI/ZSetDetailView.swift in Sources */,
-				59AC308B35EAC800725934A3 /* UI/KeyEditSheets.swift in Sources */,
-				12E4521C5CF120098DD00D86 /* Application/AppLifecycle.swift in Sources */,
-				3BC8D42C86FD17A97AF500D1 /* UI/TabSidebarView.swift in Sources */,
-				10693750F69F859FC4E80EB5 /* UI/ConnectingView.swift in Sources */,
-				5229483C61015293F62DB68B /* UI/WelcomeView.swift in Sources */,
-				73DFE7FD90FC7B63E795E8C5 /* UI/ConnectionDetailView.swift in Sources */,
-				ACB9A5A0F74DD02D7C5C6927 /* UI/ConnectionRow.swift in Sources */,
-				8EB4B86D1FCDB0A2C0F4451A /* Application/AppTheme.swift in Sources */,
-				7EEE9F0E74615C5D4FBC55CD /* Infrastructure/AsyncTimeout.swift in Sources */,
-				D88BEDDC62ACB7432ACD4694 /* UI/BrowserView.swift in Sources */,
-				A1B2C3D4E5F6789012345678 /* UI/PersistentSplitView.swift in Sources */,
-				08CAE39503D01547D187531D /* UI/ContentView.swift in Sources */,
-				491A36E51AE41F8C761D6514 /* Infrastructure/KeychainStore.swift in Sources */,
-				C1A5F0E7A4B94C3D9E613002 /* Redis/RedisClusterClient.swift in Sources */,
-				9FB4F5632F37B1E97961E43E /* Redis/RESPParser.swift in Sources */,
-				AB6F7C1F3AC67F0D90BD9528 /* Redis/RedisClient.swift in Sources */,
-				E31A8F9B6C2D4A5F90123456 /* Redis/RedisMonitorClient.swift in Sources */,
-				0CDB668F1E8A810797CB0465 /* SSH/SSHTunnel.swift in Sources */,
-				E31A8F9B6C2D4A5F90123458 /* UI/ProfilerView.swift in Sources */,
-				6344D9938425496018D4A0B5 /* UI/ServerInfoView.swift in Sources */,
-				D6C7D69ABDED21BD3BD0090B /* UI/ShellView.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXSourcesBuildPhase section */
-
-/* Begin PBXResourcesBuildPhase section */
-		B0D18C7A3823D8F1CF5998A3 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				08095B79379073E5CDB6A8AF /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
-
-/* Begin XCBuildConfiguration section */
-		2B5AD09BA69DA97463912AAE /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				EXCLUDED_ARCHS = x86_64;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"$(inherited)",
-					"DEBUG=1",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = redis.console;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 6.3;
-			};
-			name = Debug;
-		};
-		3363820C7CB1D380067B3186 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				ASSETCATALOG_COMPILER_APPICON_NAME = RedisConsole;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = Resources/RedisConsole.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = Q6F678BLZJ;
-				INFOPLIST_FILE = "Resources/RedisConsole-Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		90C99F6D7952369DB2D68ACC /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				ASSETCATALOG_COMPILER_APPICON_NAME = RedisConsole;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = Resources/RedisConsole.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = Q6F678BLZJ;
-				INFOPLIST_FILE = "Resources/RedisConsole-Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		98DE6C7B1302C1E98AA9A634 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				EXCLUDED_ARCHS = x86_64;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = redis.console;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 6.3;
-			};
-			name = Release;
-		};
-/* End XCBuildConfiguration section */
-
-/* Begin XCConfigurationList section */
-		111F38255585C4A9001B8D7B /* Build configuration list for PBXProject "RedisConsole" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				2B5AD09BA69DA97463912AAE /* Debug */,
-				98DE6C7B1302C1E98AA9A634 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-		E86C4C52E6E99946D8C66204 /* Build configuration list for PBXNativeTarget "RedisConsole" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				90C99F6D7952369DB2D68ACC /* Debug */,
-				3363820C7CB1D380067B3186 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-/* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		6314E9EE4C496B693C196D78 /* XCLocalSwiftPackageReference "Vendor/swift-nio-ssh" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "Vendor/swift-nio-ssh";
-		};
-/* End XCLocalSwiftPackageReference section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		A4E7282C6C5D4E9F80123456 /* XCRemoteSwiftPackageReference "swift-nio-transport-services" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-nio-transport-services.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.28.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		6FBB135E6C4D2D0FB8D15AC7 /* NIOSSH */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = NIOSSH;
-		};
-		A4E7282D6C5D4E9F80123456 /* NIOTransportServices */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A4E7282C6C5D4E9F80123456 /* XCRemoteSwiftPackageReference "swift-nio-transport-services" */;
-			productName = NIOTransportServices;
-		};
-/* End XCSwiftPackageProductDependency section */
-	};
-	rootObject = B03968E34D94ABAFB37875CE /* Project object */;
-}
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>archiveVersion</key>
+	<string>1</string>
+	<key>classes</key>
+	<dict/>
+	<key>objectVersion</key>
+	<string>77</string>
+	<key>objects</key>
+	<dict>
+		<key>01357278E87488A50704F862</key>
+		<dict>
+			<key>fileRef</key>
+			<string>663CB7525567058CB1C35306</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>027F421A3802B3F7AA0FF5C4</key>
+		<dict>
+			<key>fileRef</key>
+			<string>88C421BA492019C7EFFFFEC2</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>05662699AFF90DD439C2E9F5</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Infrastructure/KeychainStore.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>057B6A6C484AE6189C6553B1</key>
+		<dict>
+			<key>fileRef</key>
+			<string>6223746D934AF4A47B07CAB7</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>05BE6CF64F60ACC797244A8A</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/AppTheme.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>075617E28FD0E7BB40A29BCF</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ConnectingView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>08095B79379073E5CDB6A8AF</key>
+		<dict>
+			<key>fileRef</key>
+			<string>88C421BA492019C7EFFFFEC2</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>08CAE39503D01547D187531D</key>
+		<dict>
+			<key>fileRef</key>
+			<string>CF606A6964524077E9B2C2AC</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>0CDB668F1E8A810797CB0465</key>
+		<dict>
+			<key>fileRef</key>
+			<string>6AC6C4B80F017969CEB19B06</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>0F2812CECCF9A2C39AD8DE80</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>89E8633A52269F80A7F6FDA1</string>
+				<string>D620F14F7D75D74C01119464</string>
+				<string>B8284803F8863D0A2876D242</string>
+				<string>710CED61DCB593AB5FAB3D09</string>
+				<string>7AD6F67E69F6D7F21DBA9918</string>
+				<string>17A045CD0D1ACB98D3834EB9</string>
+				<string>F59767EE7E02A667EEC3A156</string>
+				<string>B54B11C3DFA1C686E6B6AF38</string>
+				<string>663CB7525567058CB1C35306</string>
+				<string>10036C3BACF480C5794DAFEE</string>
+				<string>60EF99E12856CCC43E82E2BB</string>
+				<string>EE342F3B0E0C074C869BA16F</string>
+				<string>6E896A2BE4208032CB46914C</string>
+				<string>A590DA6965842B47C2B666C4</string>
+				<string>6CC8C138EFAF41CE1D233E5B</string>
+				<string>6223746D934AF4A47B07CAB7</string>
+				<string>307922DA0FD1DFBC0AE1C390</string>
+				<string>8B2CC6E9D5D9430486D7C644</string>
+				<string>CFBF582DD63B199731500A76</string>
+				<string>E2D767E06402B486180E8833</string>
+				<string>AF8415C586FF6FD461002505</string>
+				<string>710A7EA408D4C4107D58570D</string>
+				<string>B133F8196C81269D04A526BB</string>
+				<string>B5F564BA2D1E0F1AD0B00339</string>
+				<string>A157CCBF9ADB6B699C6416FA</string>
+				<string>32A834210EBBC9DF44554827</string>
+				<string>34DCE9E49BA70BF20F6F82E8</string>
+				<string>FEF0092A0D2058DD291ECD3F</string>
+				<string>075617E28FD0E7BB40A29BCF</string>
+				<string>EED2F3356F2FD347D2FE4EA4</string>
+				<string>FF94C12BB25368F858F2D60A</string>
+				<string>47D8EAB9242B4058BB99D900</string>
+				<string>05BE6CF64F60ACC797244A8A</string>
+				<string>E1202E9EAD648CAADB72313E</string>
+				<string>FACEB586CD12D0873A8718B1</string>
+				<string>F9E8D7C6B5A43210FEDCBA09</string>
+				<string>CF606A6964524077E9B2C2AC</string>
+				<string>E31A8F9B6C2D4A5F90123459</string>
+				<string>05662699AFF90DD439C2E9F5</string>
+				<string>C1A5F0E7A4B94C3D9E613001</string>
+				<string>6FC45097D404559C7802F7F8</string>
+				<string>E31A8F9B6C2D4A5F90123457</string>
+				<string>192713478BAB4601F8037492</string>
+				<string>288450F3CEC2CFCC1BF4B8C8</string>
+				<string>4A8D6099DE77854253F3FD15</string>
+				<string>1F32709210594BD89762AEBC</string>
+				<string>B84C59C6043D482F8DFD3112</string>
+				<string>9EC4428D0FA54FB68D6B4A52</string>
+				<string>D40A3ED953B1431590D304AA</string>
+				<string>6AC6C4B80F017969CEB19B06</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>path</key>
+			<string>RedisConsole</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>10036C3BACF480C5794DAFEE</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionState+Connection.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>10693750F69F859FC4E80EB5</key>
+		<dict>
+			<key>fileRef</key>
+			<string>075617E28FD0E7BB40A29BCF</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>107D1B0E6473A23309C0DEA1</key>
+		<dict>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>A4E7282B6C5D4E9F80123456</string>
+				<string>B9C592A7C9F4F9D39812897B</string>
+			</array>
+			<key>isa</key>
+			<string>PBXFrameworksBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>111F38255585C4A9001B8D7B</key>
+		<dict>
+			<key>buildConfigurations</key>
+			<array>
+				<string>2B5AD09BA69DA97463912AAE</string>
+				<string>98DE6C7B1302C1E98AA9A634</string>
+			</array>
+			<key>defaultConfigurationIsVisible</key>
+			<string>0</string>
+			<key>defaultConfigurationName</key>
+			<string>Debug</string>
+			<key>isa</key>
+			<string>XCConfigurationList</string>
+		</dict>
+		<key>12E4521C5CF120098DD00D86</key>
+		<dict>
+			<key>fileRef</key>
+			<string>34DCE9E49BA70BF20F6F82E8</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>1308F6C13A5CC23A9D3F8CA7</key>
+		<dict>
+			<key>fileRef</key>
+			<string>17A045CD0D1ACB98D3834EB9</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>17A045CD0D1ACB98D3834EB9</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/RedisProfilerModels.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>17D52614402A8F13019977E4</key>
+		<dict>
+			<key>fileRef</key>
+			<string>7AD6F67E69F6D7F21DBA9918</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>192713478BAB4601F8037492</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Redis/RESPParser.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>1EE8D581409B1B7A2AB96384</key>
+		<dict>
+			<key>fileRef</key>
+			<string>307922DA0FD1DFBC0AE1C390</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>1F32709210594BD89762AEBC</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/RedisSlowLogModels.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>26D28D976EFD4A1A9893B37F</key>
+		<dict>
+			<key>fileRef</key>
+			<string>9EC4428D0FA54FB68D6B4A52</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>288450F3CEC2CFCC1BF4B8C8</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ServerInfoView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>2B5AD09BA69DA97463912AAE</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+				<key>CLANG_ANALYZER_NONNULL</key>
+				<string>YES</string>
+				<key>CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>CLANG_CXX_LANGUAGE_STANDARD</key>
+				<string>gnu++14</string>
+				<key>CLANG_CXX_LIBRARY</key>
+				<string>libc++</string>
+				<key>CLANG_ENABLE_MODULES</key>
+				<string>YES</string>
+				<key>CLANG_ENABLE_OBJC_ARC</key>
+				<string>YES</string>
+				<key>CLANG_ENABLE_OBJC_WEAK</key>
+				<string>YES</string>
+				<key>CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING</key>
+				<string>YES</string>
+				<key>CLANG_WARN_BOOL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_COMMA</key>
+				<string>YES</string>
+				<key>CLANG_WARN_CONSTANT_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DIRECT_OBJC_ISA_USAGE</key>
+				<string>YES_ERROR</string>
+				<key>CLANG_WARN_DOCUMENTATION_COMMENTS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_EMPTY_BODY</key>
+				<string>YES</string>
+				<key>CLANG_WARN_ENUM_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_INFINITE_RECURSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_INT_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_NON_LITERAL_NULL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_LITERAL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_ROOT_CLASS</key>
+				<string>YES_ERROR</string>
+				<key>CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER</key>
+				<string>YES</string>
+				<key>CLANG_WARN_RANGE_LOOP_ANALYSIS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_STRICT_PROTOTYPES</key>
+				<string>YES</string>
+				<key>CLANG_WARN_SUSPICIOUS_MOVE</key>
+				<string>YES</string>
+				<key>CLANG_WARN_UNGUARDED_AVAILABILITY</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>CLANG_WARN_UNREACHABLE_CODE</key>
+				<string>YES</string>
+				<key>CLANG_WARN__DUPLICATE_METHOD_MATCH</key>
+				<string>YES</string>
+				<key>COPY_PHASE_STRIP</key>
+				<string>NO</string>
+				<key>DEBUG_INFORMATION_FORMAT</key>
+				<string>dwarf</string>
+				<key>ENABLE_STRICT_OBJC_MSGSEND</key>
+				<string>YES</string>
+				<key>ENABLE_TESTABILITY</key>
+				<string>YES</string>
+				<key>EXCLUDED_ARCHS</key>
+				<string>x86_64</string>
+				<key>GCC_C_LANGUAGE_STANDARD</key>
+				<string>gnu11</string>
+				<key>GCC_DYNAMIC_NO_PIC</key>
+				<string>NO</string>
+				<key>GCC_NO_COMMON_BLOCKS</key>
+				<string>YES</string>
+				<key>GCC_OPTIMIZATION_LEVEL</key>
+				<string>0</string>
+				<key>GCC_PREPROCESSOR_DEFINITIONS</key>
+				<array>
+					<string>$(inherited)</string>
+					<string>DEBUG=1</string>
+				</array>
+				<key>GCC_WARN_64_TO_32_BIT_CONVERSION</key>
+				<string>YES</string>
+				<key>GCC_WARN_ABOUT_RETURN_TYPE</key>
+				<string>YES_ERROR</string>
+				<key>GCC_WARN_UNDECLARED_SELECTOR</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNINITIALIZED_AUTOS</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>GCC_WARN_UNUSED_FUNCTION</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNUSED_VARIABLE</key>
+				<string>YES</string>
+				<key>MACOSX_DEPLOYMENT_TARGET</key>
+				<string>26.0</string>
+				<key>MTL_ENABLE_DEBUG_INFO</key>
+				<string>INCLUDE_SOURCE</string>
+				<key>MTL_FAST_MATH</key>
+				<string>YES</string>
+				<key>ONLY_ACTIVE_ARCH</key>
+				<string>YES</string>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>redis.console</string>
+				<key>PRODUCT_NAME</key>
+				<string>$(TARGET_NAME)</string>
+				<key>SDKROOT</key>
+				<string>macosx</string>
+				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
+				<string>DEBUG</string>
+				<key>SWIFT_OPTIMIZATION_LEVEL</key>
+				<string>-Onone</string>
+				<key>SWIFT_VERSION</key>
+				<string>6.3</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Debug</string>
+		</dict>
+		<key>30519E80DAA108581A7E0940</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E2D767E06402B486180E8833</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>307922DA0FD1DFBC0AE1C390</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/KeyRow.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>32A834210EBBC9DF44554827</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/KeyEditSheets.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>3363820C7CB1D380067B3186</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>ARCHS</key>
+				<string>arm64</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>RedisConsole</string>
+				<key>ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS</key>
+				<string>YES</string>
+				<key>CODE_SIGN_ENTITLEMENTS</key>
+				<string>Resources/RedisConsole.entitlements</string>
+				<key>CODE_SIGN_IDENTITY</key>
+				<string>Apple Development</string>
+				<key>CODE_SIGN_STYLE</key>
+				<string>Automatic</string>
+				<key>COMBINE_HIDPI_IMAGES</key>
+				<string>YES</string>
+				<key>DEVELOPMENT_TEAM</key>
+				<string>Q6F678BLZJ</string>
+				<key>INFOPLIST_FILE</key>
+				<string>Resources/RedisConsole-Info.plist</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<array>
+					<string>$(inherited)</string>
+					<string>@executable_path/../Frameworks</string>
+				</array>
+				<key>PROVISIONING_PROFILE_SPECIFIER</key>
+				<string></string>
+				<key>SDKROOT</key>
+				<string>macosx</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Release</string>
+		</dict>
+		<key>34157211EC112A834E4073C9</key>
+		<dict>
+			<key>explicitFileType</key>
+			<string>wrapper.application</string>
+			<key>includeInIndex</key>
+			<string>0</string>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>path</key>
+			<string>RedisConsole.app</string>
+			<key>sourceTree</key>
+			<string>BUILT_PRODUCTS_DIR</string>
+		</dict>
+		<key>34DCE9E49BA70BF20F6F82E8</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/AppLifecycle.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>351CFE6BEDC3FBBEF81093D2</key>
+		<dict>
+			<key>fileRef</key>
+			<string>A590DA6965842B47C2B666C4</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>38CC641D3286AA0C9E3F13BA</key>
+		<dict>
+			<key>fileRef</key>
+			<string>F59767EE7E02A667EEC3A156</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>3BC8D42C86FD17A97AF500D1</key>
+		<dict>
+			<key>fileRef</key>
+			<string>FEF0092A0D2058DD291ECD3F</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>439B9C6C1A7DE367C9F3924B</key>
+		<dict>
+			<key>fileRef</key>
+			<string>10036C3BACF480C5794DAFEE</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>47D8EAB9242B4058BB99D900</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ConnectionRow.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>491A36E51AE41F8C761D6514</key>
+		<dict>
+			<key>fileRef</key>
+			<string>05662699AFF90DD439C2E9F5</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>4A8D6099DE77854253F3FD15</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ShellView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>5229483C61015293F62DB68B</key>
+		<dict>
+			<key>fileRef</key>
+			<string>EED2F3356F2FD347D2FE4EA4</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>54857C7C66D87EF5CC23F244</key>
+		<dict>
+			<key>fileRef</key>
+			<string>6E896A2BE4208032CB46914C</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>59AC308B35EAC800725934A3</key>
+		<dict>
+			<key>fileRef</key>
+			<string>32A834210EBBC9DF44554827</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>5DD21926085FF34100EBEC5D</key>
+		<dict>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>F0DD9FE630F55BD002EE819B</string>
+				<string>BE71ED9FA189175A079FB476</string>
+				<string>C4166411BD7E73C24B17A9B2</string>
+				<string>A871A43D5B5961206589CE85</string>
+				<string>17D52614402A8F13019977E4</string>
+				<string>1308F6C13A5CC23A9D3F8CA7</string>
+				<string>38CC641D3286AA0C9E3F13BA</string>
+				<string>F865DB7D7F787DD945326BA6</string>
+				<string>01357278E87488A50704F862</string>
+				<string>439B9C6C1A7DE367C9F3924B</string>
+				<string>8BE9CBD40BFD041B7042C52E</string>
+				<string>B1AED59A58308EED93593B40</string>
+				<string>54857C7C66D87EF5CC23F244</string>
+				<string>351CFE6BEDC3FBBEF81093D2</string>
+				<string>CF6F27934F0499D08A3A867E</string>
+				<string>057B6A6C484AE6189C6553B1</string>
+				<string>1EE8D581409B1B7A2AB96384</string>
+				<string>6E2E4B02051F42F6A1E7C6A2</string>
+				<string>90AD1D72C1B73A0DFBEB14BC</string>
+				<string>30519E80DAA108581A7E0940</string>
+				<string>FAA3E1F18B30985AE358C5BF</string>
+				<string>A59DF5B6151F93A5CBF4453E</string>
+				<string>F9356B862B03B07C3EC56A48</string>
+				<string>D2D28BF0BE748CE51D64A1F5</string>
+				<string>C04CD7C654C0F2EDF797682D</string>
+				<string>59AC308B35EAC800725934A3</string>
+				<string>12E4521C5CF120098DD00D86</string>
+				<string>3BC8D42C86FD17A97AF500D1</string>
+				<string>10693750F69F859FC4E80EB5</string>
+				<string>5229483C61015293F62DB68B</string>
+				<string>73DFE7FD90FC7B63E795E8C5</string>
+				<string>ACB9A5A0F74DD02D7C5C6927</string>
+				<string>8EB4B86D1FCDB0A2C0F4451A</string>
+				<string>7EEE9F0E74615C5D4FBC55CD</string>
+				<string>D88BEDDC62ACB7432ACD4694</string>
+				<string>A1B2C3D4E5F6789012345678</string>
+				<string>08CAE39503D01547D187531D</string>
+				<string>491A36E51AE41F8C761D6514</string>
+				<string>C1A5F0E7A4B94C3D9E613002</string>
+				<string>9FB4F5632F37B1E97961E43E</string>
+				<string>AB6F7C1F3AC67F0D90BD9528</string>
+				<string>E31A8F9B6C2D4A5F90123456</string>
+				<string>0CDB668F1E8A810797CB0465</string>
+				<string>E31A8F9B6C2D4A5F90123458</string>
+				<string>6344D9938425496018D4A0B5</string>
+				<string>D6C7D69ABDED21BD3BD0090B</string>
+				<string>9465CADB220C48D59D813C20</string>
+				<string>F9C6BA72B69944C5B807904F</string>
+				<string>26D28D976EFD4A1A9893B37F</string>
+				<string>F3A1B33BA3AC468D82C2C7C9</string>
+			</array>
+			<key>isa</key>
+			<string>PBXSourcesBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>60EF99E12856CCC43E82E2BB</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionState+KeyBrowser.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>6223746D934AF4A47B07CAB7</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/Clipboard.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>6314E9EE4C496B693C196D78</key>
+		<dict>
+			<key>isa</key>
+			<string>XCLocalSwiftPackageReference</string>
+			<key>relativePath</key>
+			<string>Vendor/swift-nio-ssh</string>
+		</dict>
+		<key>6344D9938425496018D4A0B5</key>
+		<dict>
+			<key>fileRef</key>
+			<string>288450F3CEC2CFCC1BF4B8C8</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>663CB7525567058CB1C35306</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionState+Preferences.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>6AC6C4B80F017969CEB19B06</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>SSH/SSHTunnel.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>6CC8C138EFAF41CE1D233E5B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionState+Completions.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>6E2E4B02051F42F6A1E7C6A2</key>
+		<dict>
+			<key>fileRef</key>
+			<string>8B2CC6E9D5D9430486D7C644</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>6E896A2BE4208032CB46914C</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionState+Profiler.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>6FBB135E6C4D2D0FB8D15AC7</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>productName</key>
+			<string>NIOSSH</string>
+		</dict>
+		<key>6FC45097D404559C7802F7F8</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Redis/RedisClient.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>710A7EA408D4C4107D58570D</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/HashDetailView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>710CED61DCB593AB5FAB3D09</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/RedisKeyModels.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>73DFE7FD90FC7B63E795E8C5</key>
+		<dict>
+			<key>fileRef</key>
+			<string>FF94C12BB25368F858F2D60A</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>7AD6F67E69F6D7F21DBA9918</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ShellHistoryEntry.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>7EEE9F0E74615C5D4FBC55CD</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E1202E9EAD648CAADB72313E</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>88C421BA492019C7EFFFFEC2</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>folder.assetcatalog</string>
+			<key>name</key>
+			<string>Assets.xcassets</string>
+			<key>path</key>
+			<string>Assets.xcassets</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>89E8633A52269F80A7F6FDA1</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/AppLogger.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>8B2CC6E9D5D9430486D7C644</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/KeyTypeBadge.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>8BE9CBD40BFD041B7042C52E</key>
+		<dict>
+			<key>fileRef</key>
+			<string>60EF99E12856CCC43E82E2BB</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>8C7EB7331C3F5EADCC6E5E3F</key>
+		<dict>
+			<key>fileRef</key>
+			<string>88C421BA492019C7EFFFFEC2</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>8EB4B86D1FCDB0A2C0F4451A</key>
+		<dict>
+			<key>fileRef</key>
+			<string>05BE6CF64F60ACC797244A8A</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>90AD1D72C1B73A0DFBEB14BC</key>
+		<dict>
+			<key>fileRef</key>
+			<string>CFBF582DD63B199731500A76</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>90C99F6D7952369DB2D68ACC</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>ARCHS</key>
+				<string>arm64</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>RedisConsole</string>
+				<key>ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS</key>
+				<string>YES</string>
+				<key>CODE_SIGN_ENTITLEMENTS</key>
+				<string>Resources/RedisConsole.entitlements</string>
+				<key>CODE_SIGN_IDENTITY</key>
+				<string>Apple Development</string>
+				<key>CODE_SIGN_STYLE</key>
+				<string>Automatic</string>
+				<key>COMBINE_HIDPI_IMAGES</key>
+				<string>YES</string>
+				<key>DEVELOPMENT_TEAM</key>
+				<string>Q6F678BLZJ</string>
+				<key>INFOPLIST_FILE</key>
+				<string>Resources/RedisConsole-Info.plist</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<array>
+					<string>$(inherited)</string>
+					<string>@executable_path/../Frameworks</string>
+				</array>
+				<key>PROVISIONING_PROFILE_SPECIFIER</key>
+				<string></string>
+				<key>SDKROOT</key>
+				<string>macosx</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Debug</string>
+		</dict>
+		<key>9465CADB220C48D59D813C20</key>
+		<dict>
+			<key>fileRef</key>
+			<string>1F32709210594BD89762AEBC</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>98DE6C7B1302C1E98AA9A634</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+				<key>CLANG_ANALYZER_NONNULL</key>
+				<string>YES</string>
+				<key>CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>CLANG_CXX_LANGUAGE_STANDARD</key>
+				<string>gnu++14</string>
+				<key>CLANG_CXX_LIBRARY</key>
+				<string>libc++</string>
+				<key>CLANG_ENABLE_MODULES</key>
+				<string>YES</string>
+				<key>CLANG_ENABLE_OBJC_ARC</key>
+				<string>YES</string>
+				<key>CLANG_ENABLE_OBJC_WEAK</key>
+				<string>YES</string>
+				<key>CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING</key>
+				<string>YES</string>
+				<key>CLANG_WARN_BOOL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_COMMA</key>
+				<string>YES</string>
+				<key>CLANG_WARN_CONSTANT_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DIRECT_OBJC_ISA_USAGE</key>
+				<string>YES_ERROR</string>
+				<key>CLANG_WARN_DOCUMENTATION_COMMENTS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_EMPTY_BODY</key>
+				<string>YES</string>
+				<key>CLANG_WARN_ENUM_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_INFINITE_RECURSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_INT_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_NON_LITERAL_NULL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_LITERAL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_ROOT_CLASS</key>
+				<string>YES_ERROR</string>
+				<key>CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER</key>
+				<string>YES</string>
+				<key>CLANG_WARN_RANGE_LOOP_ANALYSIS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_STRICT_PROTOTYPES</key>
+				<string>YES</string>
+				<key>CLANG_WARN_SUSPICIOUS_MOVE</key>
+				<string>YES</string>
+				<key>CLANG_WARN_UNGUARDED_AVAILABILITY</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>CLANG_WARN_UNREACHABLE_CODE</key>
+				<string>YES</string>
+				<key>CLANG_WARN__DUPLICATE_METHOD_MATCH</key>
+				<string>YES</string>
+				<key>COPY_PHASE_STRIP</key>
+				<string>NO</string>
+				<key>DEBUG_INFORMATION_FORMAT</key>
+				<string>dwarf-with-dsym</string>
+				<key>ENABLE_NS_ASSERTIONS</key>
+				<string>NO</string>
+				<key>ENABLE_STRICT_OBJC_MSGSEND</key>
+				<string>YES</string>
+				<key>EXCLUDED_ARCHS</key>
+				<string>x86_64</string>
+				<key>GCC_C_LANGUAGE_STANDARD</key>
+				<string>gnu11</string>
+				<key>GCC_NO_COMMON_BLOCKS</key>
+				<string>YES</string>
+				<key>GCC_WARN_64_TO_32_BIT_CONVERSION</key>
+				<string>YES</string>
+				<key>GCC_WARN_ABOUT_RETURN_TYPE</key>
+				<string>YES_ERROR</string>
+				<key>GCC_WARN_UNDECLARED_SELECTOR</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNINITIALIZED_AUTOS</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>GCC_WARN_UNUSED_FUNCTION</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNUSED_VARIABLE</key>
+				<string>YES</string>
+				<key>MACOSX_DEPLOYMENT_TARGET</key>
+				<string>26.0</string>
+				<key>MTL_ENABLE_DEBUG_INFO</key>
+				<string>NO</string>
+				<key>MTL_FAST_MATH</key>
+				<string>YES</string>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>redis.console</string>
+				<key>PRODUCT_NAME</key>
+				<string>$(TARGET_NAME)</string>
+				<key>SDKROOT</key>
+				<string>macosx</string>
+				<key>SWIFT_COMPILATION_MODE</key>
+				<string>wholemodule</string>
+				<key>SWIFT_OPTIMIZATION_LEVEL</key>
+				<string>-O</string>
+				<key>SWIFT_VERSION</key>
+				<string>6.3</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Release</string>
+		</dict>
+		<key>9EC4428D0FA54FB68D6B4A52</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/SlowLogView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>9FB4F5632F37B1E97961E43E</key>
+		<dict>
+			<key>fileRef</key>
+			<string>192713478BAB4601F8037492</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>A157CCBF9ADB6B699C6416FA</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ZSetDetailView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>A1B2C3D4E5F6789012345678</key>
+		<dict>
+			<key>fileRef</key>
+			<string>F9E8D7C6B5A43210FEDCBA09</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>A4E7282B6C5D4E9F80123456</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>productRef</key>
+			<string>A4E7282D6C5D4E9F80123456</string>
+		</dict>
+		<key>A4E7282C6C5D4E9F80123456</key>
+		<dict>
+			<key>isa</key>
+			<string>XCRemoteSwiftPackageReference</string>
+			<key>repositoryURL</key>
+			<string>https://github.com/apple/swift-nio-transport-services.git</string>
+			<key>requirement</key>
+			<dict>
+				<key>kind</key>
+				<string>upToNextMajorVersion</string>
+				<key>minimumVersion</key>
+				<string>1.28.0</string>
+			</dict>
+		</dict>
+		<key>A4E7282D6C5D4E9F80123456</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>package</key>
+			<string>A4E7282C6C5D4E9F80123456</string>
+			<key>productName</key>
+			<string>NIOTransportServices</string>
+		</dict>
+		<key>A590DA6965842B47C2B666C4</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionState+ServerInfo.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>A59DF5B6151F93A5CBF4453E</key>
+		<dict>
+			<key>fileRef</key>
+			<string>710A7EA408D4C4107D58570D</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>A871A43D5B5961206589CE85</key>
+		<dict>
+			<key>fileRef</key>
+			<string>710CED61DCB593AB5FAB3D09</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>AB6F7C1F3AC67F0D90BD9528</key>
+		<dict>
+			<key>fileRef</key>
+			<string>6FC45097D404559C7802F7F8</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>ACB9A5A0F74DD02D7C5C6927</key>
+		<dict>
+			<key>fileRef</key>
+			<string>47D8EAB9242B4058BB99D900</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>AF8415C586FF6FD461002505</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/CollectionDetailControls.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B03968E34D94ABAFB37875CE</key>
+		<dict>
+			<key>attributes</key>
+			<dict>
+				<key>BuildIndependentTargetsInParallel</key>
+				<string>YES</string>
+				<key>LastUpgradeCheck</key>
+				<string>1430</string>
+			</dict>
+			<key>buildConfigurationList</key>
+			<string>111F38255585C4A9001B8D7B</string>
+			<key>developmentRegion</key>
+			<string>en</string>
+			<key>hasScannedForEncodings</key>
+			<string>0</string>
+			<key>isa</key>
+			<string>PBXProject</string>
+			<key>knownRegions</key>
+			<array>
+				<string>Base</string>
+				<string>en</string>
+			</array>
+			<key>mainGroup</key>
+			<string>E4CC206328F4F250C17D5DA5</string>
+			<key>minimizedProjectReferenceProxies</key>
+			<string>1</string>
+			<key>packageReferences</key>
+			<array>
+				<string>6314E9EE4C496B693C196D78</string>
+				<string>A4E7282C6C5D4E9F80123456</string>
+			</array>
+			<key>preferredProjectObjectVersion</key>
+			<string>77</string>
+			<key>productRefGroup</key>
+			<string>CBC7648DD685A71D5D0DA5CE</string>
+			<key>projectDirPath</key>
+			<string></string>
+			<key>projectRoot</key>
+			<string></string>
+			<key>targets</key>
+			<array>
+				<string>BB93DA1DE052699890633FD1</string>
+			</array>
+		</dict>
+		<key>B0D18C7A3823D8F1CF5998A3</key>
+		<dict>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>08095B79379073E5CDB6A8AF</string>
+			</array>
+			<key>isa</key>
+			<string>PBXResourcesBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>B133F8196C81269D04A526BB</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ListDetailView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B1AED59A58308EED93593B40</key>
+		<dict>
+			<key>fileRef</key>
+			<string>EE342F3B0E0C074C869BA16F</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>B3D974DB8863C491649CE938</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>EC5F6AF1EE8514832416133F</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>Packages</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B54B11C3DFA1C686E6B6AF38</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/AppNavigation.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B5F564BA2D1E0F1AD0B00339</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/SetDetailView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B8284803F8863D0A2876D242</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionModels.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B84C59C6043D482F8DFD3112</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionState+SlowLog.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B9C592A7C9F4F9D39812897B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>productRef</key>
+			<string>6FBB135E6C4D2D0FB8D15AC7</string>
+		</dict>
+		<key>BB93DA1DE052699890633FD1</key>
+		<dict>
+			<key>buildConfigurationList</key>
+			<string>E86C4C52E6E99946D8C66204</string>
+			<key>buildPhases</key>
+			<array>
+				<string>5DD21926085FF34100EBEC5D</string>
+				<string>107D1B0E6473A23309C0DEA1</string>
+				<string>B0D18C7A3823D8F1CF5998A3</string>
+			</array>
+			<key>buildRules</key>
+			<array/>
+			<key>dependencies</key>
+			<array/>
+			<key>isa</key>
+			<string>PBXNativeTarget</string>
+			<key>name</key>
+			<string>RedisConsole</string>
+			<key>packageProductDependencies</key>
+			<array>
+				<string>6FBB135E6C4D2D0FB8D15AC7</string>
+				<string>A4E7282D6C5D4E9F80123456</string>
+			</array>
+			<key>productName</key>
+			<string>RedisConsole</string>
+			<key>productReference</key>
+			<string>34157211EC112A834E4073C9</string>
+			<key>productType</key>
+			<string>com.apple.product-type.application</string>
+		</dict>
+		<key>BE71ED9FA189175A079FB476</key>
+		<dict>
+			<key>fileRef</key>
+			<string>D620F14F7D75D74C01119464</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>C04CD7C654C0F2EDF797682D</key>
+		<dict>
+			<key>fileRef</key>
+			<string>A157CCBF9ADB6B699C6416FA</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>C1A5F0E7A4B94C3D9E613001</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Redis/RedisClusterClient.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>C1A5F0E7A4B94C3D9E613002</key>
+		<dict>
+			<key>fileRef</key>
+			<string>C1A5F0E7A4B94C3D9E613001</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>C4166411BD7E73C24B17A9B2</key>
+		<dict>
+			<key>fileRef</key>
+			<string>B8284803F8863D0A2876D242</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>CBC7648DD685A71D5D0DA5CE</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>34157211EC112A834E4073C9</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>Products</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>CF606A6964524077E9B2C2AC</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ContentView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>CF6F27934F0499D08A3A867E</key>
+		<dict>
+			<key>fileRef</key>
+			<string>6CC8C138EFAF41CE1D233E5B</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>CFBF582DD63B199731500A76</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/KeyDetailView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>D2D28BF0BE748CE51D64A1F5</key>
+		<dict>
+			<key>fileRef</key>
+			<string>B5F564BA2D1E0F1AD0B00339</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>D40A3ED953B1431590D304AA</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ShellSyntaxHighlighter.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>D620F14F7D75D74C01119464</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/AppState.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>D6C7D69ABDED21BD3BD0090B</key>
+		<dict>
+			<key>fileRef</key>
+			<string>4A8D6099DE77854253F3FD15</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>D88BEDDC62ACB7432ACD4694</key>
+		<dict>
+			<key>fileRef</key>
+			<string>FACEB586CD12D0873A8718B1</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>E1202E9EAD648CAADB72313E</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Infrastructure/AsyncTimeout.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E2D767E06402B486180E8833</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/StringDetailView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E31A8F9B6C2D4A5F90123456</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E31A8F9B6C2D4A5F90123457</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>E31A8F9B6C2D4A5F90123457</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Redis/RedisMonitorClient.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E31A8F9B6C2D4A5F90123458</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E31A8F9B6C2D4A5F90123459</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>E31A8F9B6C2D4A5F90123459</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ProfilerView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E4CC206328F4F250C17D5DA5</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>88C421BA492019C7EFFFFEC2</string>
+				<string>B3D974DB8863C491649CE938</string>
+				<string>EBBB9DD78140920F3F35D5A6</string>
+				<string>CBC7648DD685A71D5D0DA5CE</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E86C4C52E6E99946D8C66204</key>
+		<dict>
+			<key>buildConfigurations</key>
+			<array>
+				<string>90C99F6D7952369DB2D68ACC</string>
+				<string>3363820C7CB1D380067B3186</string>
+			</array>
+			<key>defaultConfigurationIsVisible</key>
+			<string>0</string>
+			<key>defaultConfigurationName</key>
+			<string>Debug</string>
+			<key>isa</key>
+			<string>XCConfigurationList</string>
+		</dict>
+		<key>EBBB9DD78140920F3F35D5A6</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>0F2812CECCF9A2C39AD8DE80</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>path</key>
+			<string>Sources</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>EC5F6AF1EE8514832416133F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>folder</string>
+			<key>name</key>
+			<string>swift-nio-ssh</string>
+			<key>path</key>
+			<string>Vendor/swift-nio-ssh</string>
+			<key>sourceTree</key>
+			<string>SOURCE_ROOT</string>
+		</dict>
+		<key>EE342F3B0E0C074C869BA16F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/ConnectionState+Shell.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>EED2F3356F2FD347D2FE4EA4</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/WelcomeView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>F0DD9FE630F55BD002EE819B</key>
+		<dict>
+			<key>fileRef</key>
+			<string>89E8633A52269F80A7F6FDA1</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>F3A1B33BA3AC468D82C2C7C9</key>
+		<dict>
+			<key>fileRef</key>
+			<string>D40A3ED953B1431590D304AA</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>F59767EE7E02A667EEC3A156</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Application/AppStore.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>F865DB7D7F787DD945326BA6</key>
+		<dict>
+			<key>fileRef</key>
+			<string>B54B11C3DFA1C686E6B6AF38</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>F9356B862B03B07C3EC56A48</key>
+		<dict>
+			<key>fileRef</key>
+			<string>B133F8196C81269D04A526BB</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>F9C6BA72B69944C5B807904F</key>
+		<dict>
+			<key>fileRef</key>
+			<string>B84C59C6043D482F8DFD3112</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>F9E8D7C6B5A43210FEDCBA09</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/PersistentSplitView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>FAA3E1F18B30985AE358C5BF</key>
+		<dict>
+			<key>fileRef</key>
+			<string>AF8415C586FF6FD461002505</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>FACEB586CD12D0873A8718B1</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/BrowserView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>FEF0092A0D2058DD291ECD3F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/TabSidebarView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>FF94C12BB25368F858F2D60A</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ConnectionDetailView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+	</dict>
+	<key>rootObject</key>
+	<string>B03968E34D94ABAFB37875CE</string>
+</dict>
+</plist>
