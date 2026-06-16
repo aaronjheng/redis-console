@@ -5,7 +5,6 @@ import SwiftUI
 struct StringDetailView: View {
     let key: String
     let value: String
-    let keySize: Int?
     @Binding var format: StringValueFormat
     let onSave: (String) -> Void
 
@@ -155,16 +154,6 @@ struct StringDetailView: View {
                 }
             }
 
-            if let keySize {
-                Divider()
-                HStack {
-                    Spacer()
-                    Text(ByteCountFormatter.string(fromByteCount: Int64(keySize), countStyle: .memory))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(AppTheme.spacing)
-            }
         }
     }
 }

@@ -38,7 +38,6 @@ struct EditableListCell: View {
 struct ListDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let keySize: Int?
     let keyLength: Int?
     let hasMoreRows: Bool
     let onLoadMore: () -> Void
@@ -118,8 +117,7 @@ struct ListDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "elements"),
-                    sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "elements")
                 )
             }
             .padding(AppTheme.spacing)

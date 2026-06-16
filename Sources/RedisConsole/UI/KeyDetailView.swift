@@ -118,7 +118,6 @@ struct KeyDetailView: View {
             StringDetailView(
                 key: key.key,
                 value: app.keyDetail,
-                keySize: app.valueSize ?? key.size,
                 format: Binding(
                     get: { app.stringValueFormat },
                     set: { app.stringValueFormat = $0 }
@@ -135,7 +134,6 @@ struct KeyDetailView: View {
             HashDetailView(
                 key: key.key,
                 rows: app.keyDetailRows,
-                keySize: app.valueSize ?? key.size,
                 keyLength: app.keyDetailLength ?? key.length,
                 searchText: app.keyDetailSearchText,
                 hasMoreRows: app.keyDetailHasMoreRows,
@@ -179,7 +177,6 @@ struct KeyDetailView: View {
             ListDetailView(
                 key: key.key,
                 rows: app.keyDetailRows,
-                keySize: app.valueSize ?? key.size,
                 keyLength: app.keyDetailLength ?? key.length,
                 hasMoreRows: app.keyDetailHasMoreRows,
                 onLoadMore: {
@@ -219,7 +216,6 @@ struct KeyDetailView: View {
             SetDetailView(
                 key: key.key,
                 rows: app.keyDetailRows,
-                keySize: app.valueSize ?? key.size,
                 keyLength: app.keyDetailLength ?? key.length,
                 searchText: app.keyDetailSearchText,
                 hasMoreRows: app.keyDetailHasMoreRows,
@@ -256,7 +252,6 @@ struct KeyDetailView: View {
             ZSetDetailView(
                 key: key.key,
                 rows: app.keyDetailRows,
-                keySize: app.valueSize ?? key.size,
                 keyLength: app.keyDetailLength ?? key.length,
                 searchText: app.keyDetailSearchText,
                 order: app.keyDetailZSetOrder,
@@ -311,13 +306,15 @@ struct KeyDetailView: View {
 
     private func headerView(key: RedisKeyEntry) -> some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(key.key)
-                    .font(.title3)
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    KeyTypeBadge(type: key.type)
+                    Text(key.key)
+                        .font(.title3)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
                 HStack(spacing: 12) {
-                    Label(key.type, systemImage: key.icon)
-                        .foregroundStyle(.secondary)
                     if let length = app.keyDetailLength ?? key.length {
                         Label("Length: \(length)", systemImage: "number")
                             .foregroundStyle(.secondary)
@@ -369,7 +366,7 @@ struct KeyDetailView: View {
                         }
                     }
                 }
-                .font(.caption)
+                .font(.subheadline)
             }
             Spacer()
             Toggle(

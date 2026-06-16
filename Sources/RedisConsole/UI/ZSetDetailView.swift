@@ -11,7 +11,6 @@ struct ZSetRow: Identifiable {
 struct ZSetDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let keySize: Int?
     let keyLength: Int?
     let searchText: String
     let order: KeyDetailZSetOrder
@@ -121,8 +120,7 @@ struct ZSetDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "members"),
-                    sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "members")
                 )
             }
             .padding(AppTheme.spacing)

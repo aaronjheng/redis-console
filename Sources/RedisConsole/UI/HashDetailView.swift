@@ -11,7 +11,6 @@ struct HashRow: Identifiable {
 struct HashDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let keySize: Int?
     let keyLength: Int?
     let searchText: String
     let hasMoreRows: Bool
@@ -99,8 +98,7 @@ struct HashDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "fields"),
-                    sizeText: keySize.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .memory) }
+                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "fields")
                 )
             }
             .padding(AppTheme.spacing)
