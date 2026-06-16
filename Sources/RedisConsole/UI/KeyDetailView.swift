@@ -314,30 +314,25 @@ struct KeyDetailView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     if let length = app.keyDetailLength ?? key.length {
-                        Label("Length: \(length)", systemImage: "number")
-                            .foregroundStyle(.secondary)
-                    }
-                    if let size = app.valueSize ?? key.size {
-                        Label(
-                            ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory),
-                            systemImage: "memorychip"
-                        )
+                        HStack(spacing: 2) {
+                            Image(systemName: "number")
+                            Text("Length: \(length)")
+                        }
                         .foregroundStyle(.secondary)
                     }
-                    if let refreshedAt = app.keyDetailLastRefreshedAt {
-                        Label {
-                            Text(refreshedAt, style: .time)
-                        } icon: {
-                            Image(systemName: "clock.arrow.circlepath")
+                    if let size = app.valueSize ?? key.size {
+                        HStack(spacing: 2) {
+                            Image(systemName: "memorychip")
+                            Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory))
                         }
                         .foregroundStyle(.secondary)
                     }
                     Button {
                         beginEditingTTL(for: key)
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 2) {
                             Image(systemName: "clock")
                             Text("TTL: \(key.ttlText)")
                             Image(systemName: "pencil")
@@ -364,6 +359,13 @@ struct KeyDetailView: View {
                             }
                             ttlEditorError = nil
                         }
+                    }
+                    if let refreshedAt = app.keyDetailLastRefreshedAt {
+                        HStack(spacing: 2) {
+                            Image(systemName: "clock.arrow.circlepath")
+                            Text(refreshedAt, style: .time)
+                        }
+                        .foregroundStyle(.secondary)
                     }
                 }
                 .font(.subheadline)
