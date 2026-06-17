@@ -21,20 +21,18 @@ struct SlowLogView: View {
                         .scaleEffect(0.7)
                         .controlSize(.small)
                 }
-                Button {
+                Button("Refresh", systemImage: "arrow.clockwise") {
                     Task { await app.fetchSlowLog() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .disabled(app.isLoadingSlowLog)
                 .help("Refresh")
 
-                Button {
+                Button("Clear Slow Log", systemImage: "trash") {
                     showClearConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .disabled(app.slowLogEntries.isEmpty)
                 .help("Clear Slow Log")

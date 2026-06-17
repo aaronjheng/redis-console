@@ -54,11 +54,10 @@ struct SetDetailView: View {
             Divider()
 
             WorkspaceFooterBar {
-                Button {
+                Button("Add Member", systemImage: "plus") {
                     onAddMember()
-                } label: {
-                    Image(systemName: "plus")
                 }
+                .labelStyle(.iconOnly)
                 .font(.body)
                 .buttonStyle(.borderless)
                 .help("Add member")

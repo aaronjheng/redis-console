@@ -118,12 +118,11 @@ struct ShellView: View {
                         return .handled
                     }
 
-                Button(action: executeCommand) {
-                    Image(systemName: "arrow.right.circle.fill")
-                        .font(.title2)
-                }
-                .buttonStyle(.borderless)
-                .disabled(input.isEmpty)
+                Button("Execute Command", systemImage: "arrow.right.circle.fill", action: executeCommand)
+                    .labelStyle(.iconOnly)
+                    .font(.title2)
+                    .buttonStyle(.borderless)
+                    .disabled(input.isEmpty)
             }
             .padding()
             .background(.bar)

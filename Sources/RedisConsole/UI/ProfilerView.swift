@@ -165,8 +165,9 @@ private struct ProfilerToolbarView: View {
                 .buttonStyle(.borderedProminent)
 
                 Toggle(isOn: $showStats) {
-                    Image(systemName: "chart.bar")
+                    Label("Toggle statistics view", systemImage: "chart.bar")
                 }
+                .labelStyle(.iconOnly)
                 .toggleStyle(.button)
                 .help("Toggle statistics view")
             }
@@ -180,11 +181,10 @@ private struct ProfilerToolbarView: View {
                         .textFieldStyle(.roundedBorder)
 
                     if !filterText.isEmpty {
-                        Button {
+                        Button("Clear Filter", systemImage: "xmark.circle.fill") {
                             filterText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
                         }
+                        .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .foregroundStyle(.secondary)
                         .padding(.trailing, 8)

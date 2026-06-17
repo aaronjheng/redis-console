@@ -78,12 +78,11 @@ struct ListDetailView: View {
 
                 TableColumn("Actions") { row in
                     HStack(spacing: AppTheme.spacing) {
-                        Button {
+                        Button("Edit Element", systemImage: "pencil") {
                             editingIndex = row.index
                             editValue = row.value
-                        } label: {
-                            Image(systemName: "pencil")
                         }
+                        .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .help("Edit element")
 
@@ -99,11 +98,10 @@ struct ListDetailView: View {
             Divider()
 
             WorkspaceFooterBar {
-                Button {
+                Button("Add Element", systemImage: "plus") {
                     onAddElement()
-                } label: {
-                    Image(systemName: "plus")
                 }
+                .labelStyle(.iconOnly)
                 .font(.body)
                 .buttonStyle(.borderless)
                 .help("Add element")

@@ -68,26 +68,23 @@ struct ConnectionHubSidebarView: View {
                 Text("Connections")
                     .font(.headline)
                 Spacer()
-                Button {
+                Button("Export All Connections", systemImage: "square.and.arrow.up") {
                     exportConnections(store.connections)
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .help("Export All Connections")
-                Button {
+                Button("Import Connections", systemImage: "square.and.arrow.down") {
                     importConnections()
-                } label: {
-                    Image(systemName: "square.and.arrow.down")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .help("Import Connections")
-                Button {
+                Button("New Connection", systemImage: "plus") {
                     conn.selectedConnection = nil
                     conn.rightPanel = .newConnection
-                } label: {
-                    Image(systemName: "plus")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
             }
             .padding()

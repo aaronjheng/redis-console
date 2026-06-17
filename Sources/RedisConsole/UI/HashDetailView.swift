@@ -59,12 +59,11 @@ struct HashDetailView: View {
 
                 TableColumn("Actions") { row in
                     HStack(spacing: AppTheme.spacing) {
-                        Button {
+                        Button("Edit Field", systemImage: "pencil") {
                             editingField = row.field
                             editValue = row.value
-                        } label: {
-                            Image(systemName: "pencil")
                         }
+                        .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .help("Edit field")
 
@@ -80,11 +79,10 @@ struct HashDetailView: View {
             Divider()
 
             WorkspaceFooterBar {
-                Button {
+                Button("Add Field", systemImage: "plus") {
                     onAddField()
-                } label: {
-                    Image(systemName: "plus")
                 }
+                .labelStyle(.iconOnly)
                 .font(.body)
                 .buttonStyle(.borderless)
                 .help("Add field")

@@ -21,11 +21,10 @@ struct ServerInfoView: View {
                 Text("Server Info")
                     .font(.headline)
                 Spacer()
-                Button {
+                Button("Refresh", systemImage: "arrow.clockwise") {
                     Task { await app.loadServerInfo() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
             }
             .padding()
@@ -88,8 +87,9 @@ struct ServerInfoView: View {
             Spacer()
             if isClusterMode && !app.clusterNodes.isEmpty {
                 Toggle(isOn: $showTopology) {
-                    Image(systemName: "point.connected.arcs")
+                    Label("Toggle topology view", systemImage: "point.connected.arcs")
                 }
+                .labelStyle(.iconOnly)
                 .toggleStyle(.button)
                 .help("Toggle topology view")
             }

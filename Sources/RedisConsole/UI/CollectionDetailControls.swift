@@ -22,22 +22,20 @@ struct DetailSearchField: View {
                 .onSubmit(onSearch)
 
             if !searchText.isEmpty {
-                Button {
+                Button("Clear Filter", systemImage: "xmark.circle.fill") {
                     searchText = ""
                     onSearch()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
                 .help("Clear filter")
             }
 
-            Button {
+            Button("Search", systemImage: "magnifyingglass") {
                 onSearch()
-            } label: {
-                Image(systemName: "magnifyingglass")
             }
+            .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
             .help("Search")
         }

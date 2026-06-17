@@ -414,26 +414,24 @@ struct KeyDetailView: View {
                 Task { await app.refreshSelectedKey() }
             }
 
-            Button {
+            Button("Copy Key", systemImage: "doc.on.doc") {
                 copyToPasteboard(key.key)
                 didCopyKey = true
                 Task {
                     try? await Task.sleep(for: .milliseconds(200))
                     didCopyKey = false
                 }
-            } label: {
-                Image(systemName: "doc.on.doc")
-                    .foregroundStyle(didCopyKey ? .secondary : .primary)
             }
+            .labelStyle(.iconOnly)
+            .foregroundStyle(didCopyKey ? .secondary : .primary)
             .buttonStyle(.borderless)
             .disabled(app.isLoadingDetail)
             .help("Copy key")
 
-            Button(role: .destructive) {
+            Button("Delete Key", systemImage: "trash", role: .destructive) {
                 keyPendingDeletion = key
-            } label: {
-                Image(systemName: "trash")
             }
+            .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
             .disabled(app.isLoadingDetail)
             .help("Delete key")
@@ -602,8 +600,11 @@ private struct KeyDetailRefreshControl: View {
     }
 
     private var refreshButton: some View {
-        Button(action: onRefresh) {
-            Image(systemName: "arrow.clockwise")
+        Button {
+            onRefresh()
+        } label: {
+            Label("Refresh Key", systemImage: "arrow.clockwise")
+                .labelStyle(.iconOnly)
                 .font(.system(size: 12, weight: .medium))
                 .frame(width: 26, height: 22)
                 .contentShape(Rectangle())

@@ -170,11 +170,10 @@ struct DeleteIconButton: View {
     }
 
     var body: some View {
-        Button(role: .destructive) {
+        Button("Delete", systemImage: "trash", role: .destructive) {
             action()
-        } label: {
-            Image(systemName: "trash")
         }
+        .labelStyle(.iconOnly)
         .buttonStyle(.borderless)
         .help(helpText ?? "Delete")
     }

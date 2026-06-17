@@ -17,20 +17,18 @@ struct DatabaseAnalysisView: View {
                         .scaleEffect(0.7)
                         .controlSize(.small)
                 }
-                Button {
+                Button("Refresh", systemImage: "arrow.clockwise") {
                     Task { await app.runDatabaseAnalysis() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .disabled(app.isLoadingAnalysis)
                 .help("Refresh")
 
-                Button {
+                Button("Export", systemImage: "square.and.arrow.up") {
                     exportAnalysis()
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
                 }
+                .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .disabled(app.analysis == nil)
                 .help("Export")

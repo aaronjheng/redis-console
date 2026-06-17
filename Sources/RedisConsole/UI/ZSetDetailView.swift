@@ -81,12 +81,11 @@ struct ZSetDetailView: View {
 
                 TableColumn("Actions") { row in
                     HStack(spacing: AppTheme.spacing) {
-                        Button {
+                        Button("Edit Score", systemImage: "pencil") {
                             editingMember = row.member
                             editScore = row.score
-                        } label: {
-                            Image(systemName: "pencil")
                         }
+                        .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .help("Edit score")
 
@@ -102,11 +101,10 @@ struct ZSetDetailView: View {
             Divider()
 
             WorkspaceFooterBar {
-                Button {
+                Button("Add Member", systemImage: "plus") {
                     onAddMember()
-                } label: {
-                    Image(systemName: "plus")
                 }
+                .labelStyle(.iconOnly)
                 .font(.body)
                 .buttonStyle(.borderless)
                 .help("Add member")

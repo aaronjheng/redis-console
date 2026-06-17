@@ -40,14 +40,13 @@ struct BrowserView: View {
                             }
                         HStack(spacing: 4) {
                             if !searchText.isEmpty {
-                                Button {
+                                Button("Clear Search", systemImage: "xmark.circle.fill") {
                                     searchText = ""
                                     app.keyFilter = "*"
                                     app.keyScanCount = currentScanCount
                                     Task { await app.scanKeys(reset: true) }
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
                                 }
+                                .labelStyle(.iconOnly)
                                 .buttonStyle(.borderless)
                                 .foregroundStyle(.secondary)
                             }
@@ -94,12 +93,11 @@ struct BrowserView: View {
                         .frame(width: 38)
                         .help("Namespace separator")
                     }
-                    Button {
+                    Button("Refresh", systemImage: "arrow.clockwise") {
                         app.keyScanCount = currentScanCount
                         Task { await app.scanKeys(reset: true) }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
                     }
+                    .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
                     .disabled(app.isLoadingKeys)
                     .help("Refresh")
@@ -113,11 +111,10 @@ struct BrowserView: View {
                         Text(error)
                             .lineLimit(2)
                         Spacer()
-                        Button {
+                        Button("Dismiss", systemImage: "xmark") {
                             app.connectionError = nil
-                        } label: {
-                            Image(systemName: "xmark")
                         }
+                        .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .help("Dismiss")
                     }
@@ -236,14 +233,13 @@ struct BrowserView: View {
                 Divider()
 
                 WorkspaceFooterBar {
-                    Button {
+                    Button("Add Key", systemImage: "plus") {
                         newKeyName = ""
                         newKeyType = "string"
                         newKeyValue = ""
                         showingAddKey = true
-                    } label: {
-                        Image(systemName: "plus")
                     }
+                    .labelStyle(.iconOnly)
                     .font(.body)
                     .buttonStyle(.borderless)
                     .help("Add key")
@@ -255,11 +251,13 @@ struct BrowserView: View {
                             ProgressView()
                                 .controlSize(.small)
                         } else {
-                            Image(systemName: "trash.slash")
+                            Label("Bulk delete current filter", systemImage: "trash.slash")
+                                .labelStyle(.iconOnly)
                         }
                     }
                     .font(.body)
                     .buttonStyle(.borderless)
+                    .accessibilityLabel("Bulk delete current filter")
                     .disabled(isPreparingBulkDelete || isDeletingBulkKeys || app.keys.isEmpty)
                     .help("Bulk delete current filter")
 

@@ -179,12 +179,11 @@ struct StringDetailView: View {
                         .frame(width: 110)
                         .help("Value format")
 
-                        Button {
+                        Button("Edit Value", systemImage: "pencil") {
                             editValue = value
                             isEditing = true
-                        } label: {
-                            Image(systemName: "pencil")
                         }
+                        .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .help("Edit value")
                     }

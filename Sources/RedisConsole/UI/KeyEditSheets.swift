@@ -228,12 +228,11 @@ struct AddKeySheet: View {
                             set: { values.wrappedValue[index] = $0 }
                         ))
                     if values.wrappedValue.count > 1 {
-                        Button {
+                        Button("Remove Value", systemImage: "minus.circle.fill") {
                             values.wrappedValue.remove(at: index)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red)
                         }
+                        .labelStyle(.iconOnly)
+                        .foregroundStyle(.red)
                         .buttonStyle(.borderless)
                     }
                 }
@@ -270,12 +269,11 @@ struct AddKeySheet: View {
                             set: { pairs.wrappedValue[index].value = $0 }
                         ))
                     if pairs.wrappedValue.count > 1 {
-                        Button {
+                        Button("Remove Pair", systemImage: "minus.circle.fill") {
                             pairs.wrappedValue.remove(at: index)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red)
                         }
+                        .labelStyle(.iconOnly)
+                        .foregroundStyle(.red)
                         .buttonStyle(.borderless)
                     }
                 }
@@ -312,12 +310,11 @@ struct AddKeySheet: View {
                             set: { pairs.wrappedValue[index].member = $0 }
                         ))
                     if pairs.wrappedValue.count > 1 {
-                        Button {
+                        Button("Remove Member", systemImage: "minus.circle.fill") {
                             pairs.wrappedValue.remove(at: index)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red)
                         }
+                        .labelStyle(.iconOnly)
+                        .foregroundStyle(.red)
                         .buttonStyle(.borderless)
                     }
                 }
