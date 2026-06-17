@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Connecting View
 
 struct ConnectingView: View {
-    @EnvironmentObject var conn: ConnectionState
+    @Environment(ConnectionState.self) private var conn
     @State private var isPulsing = false
 
     var body: some View {

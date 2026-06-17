@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ServerInfoView: View {
-    @EnvironmentObject var app: ConnectionState
+    @Environment(ConnectionState.self) private var app
 
     var sections: [String] {
         app.serverInfo.keys
@@ -48,7 +48,9 @@ struct ServerInfoView: View {
     }
 
     private var clusterInfoView: some View {
-        VStack(spacing: 0) {
+        @Bindable var app = app
+
+        return VStack(spacing: 0) {
             clusterSummaryBar
             Divider()
             HStack(spacing: 0) {

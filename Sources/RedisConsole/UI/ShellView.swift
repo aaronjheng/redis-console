@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ShellView: View {
-    @EnvironmentObject var app: ConnectionState
+    @Environment(ConnectionState.self) private var app
     @State private var input = ""
     @State private var historyIndex = -1
     @State private var showCompletions = false

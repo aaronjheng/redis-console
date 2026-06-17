@@ -1,11 +1,13 @@
 import AppKit
+import Observation
 import SwiftUI
 
 // MARK: - Tab Manager
 
 @MainActor
-class TabManager: ObservableObject {
-    @Published var tabStates: [ConnectionState] = []
+@Observable
+class TabManager {
+    var tabStates: [ConnectionState] = []
 
     func createTab() -> ConnectionState {
         let state = ConnectionState()
@@ -165,8 +167,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func createWindow(for state: ConnectionState) {
         let contentView = TabContentView()
-            .environmentObject(state)
-            .environmentObject(AppStore.shared)
+            .environment(state)
+            .environment(AppStore.shared)
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),

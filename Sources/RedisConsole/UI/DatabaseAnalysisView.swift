@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Database Analysis View
 
 struct DatabaseAnalysisView: View {
-    @EnvironmentObject var app: ConnectionState
+    @Environment(ConnectionState.self) private var app
 
     var body: some View {
         VStack(spacing: 0) {

@@ -4,9 +4,11 @@ import SwiftUI
 // MARK: - Workspace Sidebar
 
 struct WorkspaceSidebarView: View {
-    @EnvironmentObject var conn: ConnectionState
+    @Environment(ConnectionState.self) private var conn
 
     var body: some View {
+        @Bindable var conn = conn
+
         VStack(spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
@@ -57,8 +59,8 @@ struct WorkspaceSidebarView: View {
 // MARK: - Connection Hub Sidebar
 
 struct ConnectionHubSidebarView: View {
-    @EnvironmentObject var conn: ConnectionState
-    @EnvironmentObject var store: AppStore
+    @Environment(ConnectionState.self) private var conn
+    @Environment(AppStore.self) private var store
 
     var body: some View {
         VStack(spacing: 0) {

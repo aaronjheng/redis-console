@@ -3,11 +3,13 @@ import SwiftUI
 // MARK: - Slow Log View
 
 struct SlowLogView: View {
-    @EnvironmentObject var app: ConnectionState
+    @Environment(ConnectionState.self) private var app
     @State private var showClearConfirmation = false
     @State private var autoRefreshTask: Task<Void, Never>?
 
     var body: some View {
+        @Bindable var app = app
+
         VStack(spacing: 0) {
             // Header
             HStack {

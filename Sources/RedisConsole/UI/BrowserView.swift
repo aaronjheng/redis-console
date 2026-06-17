@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct BrowserView: View {
-    @EnvironmentObject var app: ConnectionState
+    @Environment(ConnectionState.self) private var app
     @State private var searchText = ""
     @State private var showingAddKey = false
     @State private var keyPendingDeletion: RedisKeyEntry?
@@ -22,6 +22,8 @@ struct BrowserView: View {
     private let treeScanCount = 10_000
 
     var body: some View {
+        @Bindable var app = app
+
         PersistentSplitView(
             leftMinWidth: 250,
             rightMinWidth: 250

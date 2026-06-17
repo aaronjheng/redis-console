@@ -4,7 +4,7 @@ import SwiftUI
 // MARK: - Tab Content View (per-tab)
 
 struct TabContentView: View {
-    @EnvironmentObject var conn: ConnectionState
+    @Environment(ConnectionState.self) private var conn
 
     var body: some View {
         Group {
@@ -14,14 +14,14 @@ struct TabContentView: View {
                 ConnectionHubView()
             }
         }
-        .background(WindowTitleUpdater().environmentObject(conn))
+        .background(WindowTitleUpdater())
     }
 }
 
 // MARK: - Connection Hub View
 
 struct ConnectionHubView: View {
-    @EnvironmentObject var conn: ConnectionState
+    @Environment(ConnectionState.self) private var conn
     @State private var cachedRightPanel: RightPanel = .welcome
 
     var body: some View {
@@ -53,7 +53,7 @@ struct ConnectionHubView: View {
 // MARK: - Workspace View
 
 struct WorkspaceView: View {
-    @EnvironmentObject var conn: ConnectionState
+    @Environment(ConnectionState.self) private var conn
 
     var body: some View {
         HSplitView {
@@ -75,7 +75,7 @@ struct WorkspaceView: View {
 // MARK: - Window Title Updater
 
 struct WindowTitleUpdater: NSViewRepresentable {
-    @EnvironmentObject var conn: ConnectionState
+    @Environment(ConnectionState.self) private var conn
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()

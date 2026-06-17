@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct KeyDetailView: View {
-    @EnvironmentObject var app: ConnectionState
+    @Environment(ConnectionState.self) private var app
     @State private var didCopyKey = false
     @State private var editingString = false
     @State private var stringValue = ""
@@ -31,6 +31,8 @@ struct KeyDetailView: View {
     }
 
     var body: some View {
+        @Bindable var app = app
+
         VStack(spacing: 0) {
             if let key = app.selectedKey {
                 headerView(key: key)
@@ -147,15 +149,14 @@ struct KeyDetailView: View {
 
     @ViewBuilder
     private func detailContent(key: RedisKeyEntry) -> some View {
+        @Bindable var app = app
+
         switch app.keyType {
         case "string":
             StringDetailView(
                 key: key.key,
                 value: app.keyDetail,
-                format: Binding(
-                    get: { app.stringValueFormat },
-                    set: { app.stringValueFormat = $0 }
-                ),
+                format: $app.stringValueFormat,
                 onSave: { value in
                     Task {
                         await app.updateStringValue(key: key.key, value: value)

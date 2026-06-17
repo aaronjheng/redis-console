@@ -4,8 +4,8 @@ import SwiftUI
 // MARK: - Connection Detail View
 
 struct ConnectionDetailView: View {
-    @EnvironmentObject var conn: ConnectionState
-    @EnvironmentObject var store: AppStore
+    @Environment(ConnectionState.self) private var conn
+    @Environment(AppStore.self) private var store
 
     @State private var name = ""
     @State private var connectionMode: RedisConnectionMode = .standalone

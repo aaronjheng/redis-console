@@ -1,13 +1,14 @@
 import Foundation
-import SwiftUI
+import Observation
 
 // MARK: - App Store (Global singleton, shared across all tabs)
 
 @MainActor
-class AppStore: ObservableObject {
+@Observable
+class AppStore {
     static let shared = AppStore()
 
-    @Published var connections: [RedisConnectionConfig] = []
+    var connections: [RedisConnectionConfig] = []
     private let storeURL: URL
     private let secretsAccountSuffix = "secrets"
 

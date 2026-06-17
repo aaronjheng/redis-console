@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 struct ProfilerView: View {
-    @EnvironmentObject var app: ConnectionState
+    @Environment(ConnectionState.self) private var app
     @State private var filterText = ""
     @State private var autoScroll = true
     @State private var hideNoiseCommands = true

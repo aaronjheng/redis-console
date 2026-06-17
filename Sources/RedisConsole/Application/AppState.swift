@@ -1,85 +1,88 @@
+import AppKit
 import Foundation
-import SwiftUI
+import Observation
 
 // MARK: - Connection State (Per-tab state)
 
 @MainActor
-class ConnectionState: ObservableObject {
+@Observable
+class ConnectionState {
     let id = UUID()
+    @ObservationIgnored
     weak var window: NSWindow?
 
-    @Published var activeClient: (any RedisSession)?
-    @Published var isConnecting = false
-    @Published var connectionError: String?
-    @Published var selectedConnection: RedisConnectionConfig?
-    @Published var pendingConnection: RedisConnectionConfig?
+    var activeClient: (any RedisSession)?
+    var isConnecting = false
+    var connectionError: String?
+    var selectedConnection: RedisConnectionConfig?
+    var pendingConnection: RedisConnectionConfig?
 
-    @Published var keys: [RedisKeyEntry] = []
-    @Published var selectedKey: RedisKeyEntry?
-    @Published var keyDetail: String = ""
-    @Published var keyDetailRows: [(String, String)] = []
-    @Published var keyType: String = ""
-    @Published var valueSize: Int?
-    @Published var keyDetailLength: Int?
-    @Published var keyDetailError: String?
-    @Published var keyDetailOffset = 0
-    @Published var keyDetailCursor: String = "0"
-    @Published var keyDetailHasMoreRows = false
-    @Published var keyDetailSearchText = ""
-    @Published var keyDetailZSetOrder: KeyDetailZSetOrder = .ascending
-    @Published var isLoadingKeys = false
-    @Published var isLoadingDetail = false
-    @Published var scanCursor: String = "0"
-    @Published var hasMoreKeys = true
-    @Published var keyFilter: String = "*"
-    @Published var keyTypeFilter: String = "" {
+    var keys: [RedisKeyEntry] = []
+    var selectedKey: RedisKeyEntry?
+    var keyDetail: String = ""
+    var keyDetailRows: [(String, String)] = []
+    var keyType: String = ""
+    var valueSize: Int?
+    var keyDetailLength: Int?
+    var keyDetailError: String?
+    var keyDetailOffset = 0
+    var keyDetailCursor: String = "0"
+    var keyDetailHasMoreRows = false
+    var keyDetailSearchText = ""
+    var keyDetailZSetOrder: KeyDetailZSetOrder = .ascending
+    var isLoadingKeys = false
+    var isLoadingDetail = false
+    var scanCursor: String = "0"
+    var hasMoreKeys = true
+    var keyFilter: String = "*"
+    var keyTypeFilter: String = "" {
         didSet { saveBrowserPreferences() }
     }
-    @Published var keyScanCount = 500
-    @Published var keyTotalCount: Int?
-    @Published var keyScannedCount = 0
-    @Published var keyScanIterationCount = 0
-    @Published var keyScanLimitReached = false
-    @Published var isNamespaceGroupingEnabled = false {
+    var keyScanCount = 500
+    var keyTotalCount: Int?
+    var keyScannedCount = 0
+    var keyScanIterationCount = 0
+    var keyScanLimitReached = false
+    var isNamespaceGroupingEnabled = false {
         didSet { saveBrowserPreferences() }
     }
-    @Published var namespaceSeparator = ":" {
+    var namespaceSeparator = ":" {
         didSet { saveBrowserPreferences() }
     }
-    @Published var stringValueFormat: StringValueFormat = .json {
+    var stringValueFormat: StringValueFormat = .json {
         didSet { saveBrowserPreferences() }
     }
-    @Published var keyDetailLastRefreshedAt: Date?
+    var keyDetailLastRefreshedAt: Date?
 
-    @Published var shellHistory: [ShellHistoryEntry] = []
-    @Published var shellInput: String = ""
-    @Published var shellClient: (any RedisSession)?
+    var shellHistory: [ShellHistoryEntry] = []
+    var shellInput: String = ""
+    var shellClient: (any RedisSession)?
 
-    @Published var slowLogEntries: [SlowLogEntry] = []
-    @Published var slowLogConfig = SlowLogConfig()
-    @Published var isLoadingSlowLog = false
-    @Published var slowLogError: String?
-    @Published var slowLogFetchCount = 128
+    var slowLogEntries: [SlowLogEntry] = []
+    var slowLogConfig = SlowLogConfig()
+    var isLoadingSlowLog = false
+    var slowLogError: String?
+    var slowLogFetchCount = 128
 
-    @Published var analysis: DatabaseAnalysis?
-    @Published var isLoadingAnalysis = false
-    @Published var analysisError: String?
+    var analysis: DatabaseAnalysis?
+    var isLoadingAnalysis = false
+    var analysisError: String?
     var analysisTaskHandle: Task<Void, Never>?
 
-    @Published var profilerEntries: [RedisProfilerEntry] = []
-    @Published var profilerCapturedCount = 0
-    @Published var profilerError: String?
-    @Published var isProfilerRunning = false
-    @Published var isProfilerStarting = false
+    var profilerEntries: [RedisProfilerEntry] = []
+    var profilerCapturedCount = 0
+    var profilerError: String?
+    var isProfilerRunning = false
+    var isProfilerStarting = false
 
-    @Published var serverInfo: [String: [String: String]] = [:]
-    @Published var serverCapabilities: [RedisServerCapability] = []
-    @Published var clusterInfo: [String: String] = [:]
-    @Published var clusterNodes: [RedisClusterNodeSummary] = []
-    @Published var selectedServerInfoNode: RedisEndpoint?
+    var serverInfo: [String: [String: String]] = [:]
+    var serverCapabilities: [RedisServerCapability] = []
+    var clusterInfo: [String: String] = [:]
+    var clusterNodes: [RedisClusterNodeSummary] = []
+    var selectedServerInfoNode: RedisEndpoint?
 
-    @Published var currentView: AppView = .browser
-    @Published var rightPanel: RightPanel = .welcome
+    var currentView: AppView = .browser
+    var rightPanel: RightPanel = .welcome
 
     var connectTask: Task<Void, Never>?
     var sshTunnel: SSHTunnel?
