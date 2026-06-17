@@ -570,7 +570,14 @@ private struct KeyDetailRefreshControl: View {
     var isDisabled: Bool
     var onRefresh: () -> Void
 
-    private static let intervals = [3, 5, 10, 30]
+    private static let intervals = [5, 10, 15, 30, 60]
+
+    private static func intervalTitle(_ seconds: Int) -> String {
+        if seconds.isMultiple(of: 60) {
+            return "\(seconds / 60)m"
+        }
+        return "\(seconds)s"
+    }
 
     @State private var isRefreshHovering = false
     @State private var isMenuHovering = false
@@ -640,7 +647,7 @@ private struct KeyDetailRefreshControl: View {
                     autoRefreshInterval = interval
                 } label: {
                     menuItemLabel(
-                        text: "\(interval)s",
+                        text: Self.intervalTitle(interval),
                         checked: isAutoRefreshEnabled && autoRefreshInterval == interval
                     )
                 }
@@ -648,7 +655,7 @@ private struct KeyDetailRefreshControl: View {
         } label: {
             HStack(spacing: 0) {
                 if isAutoRefreshEnabled {
-                    Text("\(autoRefreshInterval)s")
+                    Text(Self.intervalTitle(autoRefreshInterval))
                         .font(.system(size: 11, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(.tint)
@@ -679,15 +686,10 @@ private struct KeyDetailRefreshControl: View {
         .fixedSize()
         .disabled(isDisabled)
         .onHover { isMenuHovering = $0 }
-        .help(isAutoRefreshEnabled ? "Auto refresh every \(autoRefreshInterval)s" : "Auto refresh off")
+        .help(isAutoRefreshEnabled ? "Auto refresh every \(Self.intervalTitle(autoRefreshInterval))" : "Auto refresh off")
     }
 
     private func menuItemLabel(text: String, checked: Bool) -> some View {
-        HStack {
-            Text(text)
-            if checked {
-                Image(systemName: "checkmark")
-            }
-        }
+        Text(checked ? "\(text)  ✓" : text)
     }
 }
