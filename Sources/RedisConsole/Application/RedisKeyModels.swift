@@ -3,10 +3,11 @@ import Observation
 
 // MARK: - Redis Key Entry
 
+@MainActor
 @Observable
 class RedisKeyEntry: Identifiable, Hashable {
-    let id = UUID()
-    let key: String
+    nonisolated let id = UUID()
+    nonisolated let key: String
     var type: String
     var ttl: Int?
     var size: Int?
@@ -44,11 +45,11 @@ class RedisKeyEntry: Identifiable, Hashable {
         return ttl > 0
     }
 
-    func hash(into hasher: inout Hasher) {
+    nonisolated func hash(into hasher: inout Hasher) {
         hasher.combine(key)
     }
 
-    static func == (lhs: RedisKeyEntry, rhs: RedisKeyEntry) -> Bool {
+    nonisolated static func == (lhs: RedisKeyEntry, rhs: RedisKeyEntry) -> Bool {
         lhs.key == rhs.key
     }
 }
