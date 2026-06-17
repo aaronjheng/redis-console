@@ -4,7 +4,6 @@ extension ConnectionState {
     private struct BrowserPreferences: Codable {
         var keyTypeFilter: String
         var isNamespaceGroupingEnabled: Bool
-        var namespaceSeparator: String
         var stringValueFormat: StringValueFormat
     }
 
@@ -18,7 +17,6 @@ extension ConnectionState {
 
         keyTypeFilter = preferences.keyTypeFilter
         isNamespaceGroupingEnabled = preferences.isNamespaceGroupingEnabled
-        namespaceSeparator = normalizedNamespaceSeparator(preferences.namespaceSeparator)
         stringValueFormat = preferences.stringValueFormat
     }
 
@@ -26,21 +24,10 @@ extension ConnectionState {
         let preferences = BrowserPreferences(
             keyTypeFilter: keyTypeFilter,
             isNamespaceGroupingEnabled: isNamespaceGroupingEnabled,
-            namespaceSeparator: normalizedNamespaceSeparator(namespaceSeparator),
             stringValueFormat: stringValueFormat
         )
         guard let data = try? JSONEncoder().encode(preferences) else { return }
         UserDefaults.standard.set(data, forKey: Self.browserPreferencesKey)
-    }
-
-    private func normalizedNamespaceSeparator(_ value: String) -> String {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let first = trimmed.first else { return ":" }
-        return String(first)
-    }
-
-    func updateNamespaceSeparator(_ value: String) {
-        namespaceSeparator = normalizedNamespaceSeparator(value)
     }
 
     private func shellHistoryKey(for connection: RedisConnectionConfig) -> String {

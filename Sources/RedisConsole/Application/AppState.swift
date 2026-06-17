@@ -46,9 +46,7 @@ class ConnectionState {
     var isNamespaceGroupingEnabled = false {
         didSet { saveBrowserPreferences() }
     }
-    var namespaceSeparator = ":" {
-        didSet { saveBrowserPreferences() }
-    }
+    var namespaceSeparator = ":"
     var stringValueFormat: StringValueFormat = .json {
         didSet { saveBrowserPreferences() }
     }

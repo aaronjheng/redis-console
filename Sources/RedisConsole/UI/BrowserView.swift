@@ -69,30 +69,30 @@ struct BrowserView: View {
                     }
                     .labelsHidden()
                     Spacer()
-                    Toggle("Namespaces", isOn: $app.isNamespaceGroupingEnabled)
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                        .onChange(of: app.isNamespaceGroupingEnabled) { _, isEnabled in
-                            app.keyScanCount = isEnabled ? treeScanCount : listScanCount
-                            expandedNamespaces = []
-                            Task { await app.scanKeys(reset: true) }
-                        }
-                        .help("Group keys by namespace")
-                    if app.isNamespaceGroupingEnabled {
-                        TextField(
-                            ":",
-                            text: Binding(
-                                get: { app.namespaceSeparator },
-                                set: { value in
-                                    app.updateNamespaceSeparator(value)
-                                    expandedNamespaces = []
-                                }
-                            )
+                    Picker(
+                        "Key List Style",
+                        selection: Binding(
+                            get: { app.isNamespaceGroupingEnabled },
+                            set: { isEnabled in
+                                guard app.isNamespaceGroupingEnabled != isEnabled else { return }
+                                app.isNamespaceGroupingEnabled = isEnabled
+                                app.keyScanCount = isEnabled ? treeScanCount : listScanCount
+                                expandedNamespaces = []
+                                Task { await app.scanKeys(reset: true) }
+                            }
                         )
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 38)
-                        .help("Namespace separator")
+                    ) {
+                        Image(systemName: "list.bullet")
+                            .help("Flat list")
+                            .tag(false)
+                        Image(systemName: "folder")
+                            .help("Group by namespace")
+                            .tag(true)
                     }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                    .help("Toggle key list layout")
                     Button("Refresh", systemImage: "arrow.clockwise") {
                         app.keyScanCount = currentScanCount
                         Task { await app.scanKeys(reset: true) }
