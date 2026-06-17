@@ -67,13 +67,13 @@ enum ShellSyntaxHighlighter {
         ])
     }()
 
-    private static let numberPattern = try! NSRegularExpression( // swiftlint:disable:this force_try
+    private static let numberPattern = try! NSRegularExpression(  // swiftlint:disable:this force_try
         pattern: #"^-?\d+(\.\d+)?([eE][+-]?\d+)?"#
     )
-    private static let quotedStringPattern = try! NSRegularExpression( // swiftlint:disable:this force_try
+    private static let quotedStringPattern = try! NSRegularExpression(  // swiftlint:disable:this force_try
         pattern: #""[^"\\]*(\\.[^"\\]*)*"|'[^']*'"#
     )
-    private static let commentPattern = try! NSRegularExpression( // swiftlint:disable:this force_try
+    private static let commentPattern = try! NSRegularExpression(  // swiftlint:disable:this force_try
         pattern: "#.*$", options: .anchorsMatchLines
     )
 

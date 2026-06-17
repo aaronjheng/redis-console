@@ -97,9 +97,10 @@ extension ConnectionState {
                     typeMemory[typeName, default: 0] += memory
                     result.totalMemory += memory
 
-                    keyMemoryEntries.append(KeyMemoryEntry(
-                        key: key, type: typeName, memory: memory, length: 0, ttl: ttl
-                    ))
+                    keyMemoryEntries.append(
+                        KeyMemoryEntry(
+                            key: key, type: typeName, memory: memory, length: 0, ttl: ttl
+                        ))
 
                     // Expiration buckets
                     let bucketLabel = expirationBucketLabel(for: ttl)
@@ -116,9 +117,10 @@ extension ConnectionState {
                 }
 
                 // Top keys by memory (sorted descending)
-                result.topKeysByMemory = Array(keyMemoryEntries
-                    .sorted { $0.memory > $1.memory }
-                    .prefix(Self.analysisTopKeysCount))
+                result.topKeysByMemory = Array(
+                    keyMemoryEntries
+                        .sorted { $0.memory > $1.memory }
+                        .prefix(Self.analysisTopKeysCount))
 
                 // Namespace aggregation
                 let separator = namespaceSeparator.isEmpty ? ":" : namespaceSeparator
@@ -131,7 +133,8 @@ extension ConnectionState {
                     agg.types[entry.type, default: 0] += 1
                     namespaceAgg[ns] = agg
                 }
-                result.topNamespaces = namespaceAgg
+                result.topNamespaces =
+                    namespaceAgg
                     .map { ns, agg in
                         NamespaceStats(namespace: ns, keyCount: agg.count, totalMemory: agg.memory, types: agg.types)
                     }
@@ -140,7 +143,8 @@ extension ConnectionState {
                     .map { $0 }
 
                 // Expiration summary
-                result.expirationSummary = expirationBuckets
+                result.expirationSummary =
+                    expirationBuckets
                     .map { ExpirationBucket(label: $0.key, keyCount: $0.value.count, estimatedMemory: $0.value.memory) }
                     .sorted { bucketSortIndex($0.label) < bucketSortIndex($1.label) }
 
@@ -211,10 +215,12 @@ extension ConnectionState {
             case "Keyspace":
                 if key.hasPrefix("db") {
                     // db0:keys=12345,expires=234,avg_ttl=45678
-                    if let keysRange = value.range(of: "keys="),
-                       let commaRange = value[keysRange.upperBound...].firstIndex(of: ",") {
-                        let keysStr = value[keysRange.upperBound..<commaRange]
-                        totalKeys += Int(keysStr) ?? 0
+                    if let keysRange = value.range(of: "keys=") {
+                        let keyspaceStats = value[keysRange.upperBound...]
+                        if let commaRange = keyspaceStats.firstIndex(of: ",") {
+                            let keysStr = value[keysRange.upperBound..<commaRange]
+                            totalKeys += Int(keysStr) ?? 0
+                        }
                     }
                 }
             default:
@@ -235,7 +241,7 @@ extension ConnectionState {
         case ..<21600: return "1-6h"
         case ..<86400: return "6-24h"
         case ..<604800: return "1-7d"
-        case ..<2592000: return "7-30d"
+        case ..<2_592_000: return "7-30d"
         default: return "> 30d"
         }
     }

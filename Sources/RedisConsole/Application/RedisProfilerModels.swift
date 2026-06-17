@@ -251,17 +251,21 @@ struct ProfilerStats {
         }
 
         return ProfilerStats(
-            commandFrequency: cmdCounts
+            commandFrequency:
+                cmdCounts
                 .sorted { $0.value > $1.value }
                 .prefix(10)
                 .map { ($0.key, $0.value) },
-            commandTypeDistribution: typeCounts
+            commandTypeDistribution:
+                typeCounts
                 .sorted { $0.value > $1.value }
                 .map { ($0.key, $0.value) },
-            databaseDistribution: dbCounts
+            databaseDistribution:
+                dbCounts
                 .sorted { $0.key < $1.key }
                 .map { ($0.key, $0.value) },
-            sourceDistribution: srcCounts
+            sourceDistribution:
+                srcCounts
                 .sorted { $0.value > $1.value }
                 .prefix(10)
                 .map { ($0.key, $0.value) }
@@ -269,9 +273,26 @@ struct ProfilerStats {
     }
 
     private static func commandCategory(_ command: String) -> String {
-        let readCommands: Set<String> = ["GET", "MGET", "HGET", "HGETALL", "HMGET", "HEXISTS", "HKEYS", "HLEN", "HSTRLEN", "HVALS", "LINDEX", "LLEN", "LRANGE", "SCARD", "SDIFF", "SINTER", "SISMEMBER", "SMEMBERS", "SRANDMEMBER", "SUNION", "ZCOUNT", "ZCARD", "ZRANGE", "ZRANK", "ZREVRANK", "ZREVRANGE", "ZSCORE", "ZLEXCOUNT", "TYPE", "EXISTS", "TTL", "PTTL", "KEYS", "SCAN", "RANDOMKEY", "DBSIZE", "INFO", "TIME", "CLIENT", "SLOWLOG", "COMMAND", "ACL", "MEMORY", "OBJECT", "PING", "ECHO", "SELECT"]
-        let writeCommands: Set<String> = ["SET", "SETEX", "PSETEX", "SETNX", "MSET", "MSETNX", "GETSET", "APPEND", "INCR", "INCRBY", "INCRBYFLOAT", "DECR", "DECRBY", "HSET", "HMSET", "HSETNX", "HDEL", "HINCRBY", "HINCRBYFLOAT", "LPUSH", "LPUSHX", "RPUSH", "RPUSHX", "LINSERT", "LSET", "LREM", "LPOP", "RPOP", "RPOPLPUSH", "SADD", "SREM", "SMOVE", "SPOP", "ZADD", "ZINCRBY", "ZREM", "ZREMRANGEBYSCORE", "ZREMRANGEBYRANK", "ZREMRANGEBYLEX", "DEL", "UNLINK", "EXPIRE", "EXPIREAT", "PEXPIRE", "PEXPIREAT", "RENAME", "RENAMENX", "MOVE", "RESTORE", "SWAPDB", "COPY", "FLUSHDB", "FLUSHALL", "SORT"]
-        let adminCommands: Set<String> = ["CONFIG", "SHUTDOWN", "DEBUG", "SLAVEOF", "REPLICAOF", "ROLE", "REPLCONF", "CLUSTER", "BGREWRITEAOF", "BGSAVE", "SAVE", "LASTSAVE", "MONITOR", "SYNC", "PSYNC", "CLIENT", "SLOWLOG", "COMMAND", "ACL", "MEMORY", "OBJECT", "LATENCY", "MODULE", "SUBSCRIBE", "UNSUBSCRIBE", "PUBLISH", "PUBSUB", "PFADD", "PFCOUNT", "PFMERGE", "GEOADD", "GEODIST", "GEOHASH", "GEOPOS", "GEORADIUS", "GEORADIUSBYMEMBER", "XADD", "XREAD", "XDEL", "XTRIM", "XLEN", "XRANGE", "XREVRANGE", "XGROUP", "XREADGROUP", "XACK", "XCLAIM", "XPENDING", "XINFO"]
+        let readCommands: Set<String> = [
+            "GET", "MGET", "HGET", "HGETALL", "HMGET", "HEXISTS", "HKEYS", "HLEN", "HSTRLEN", "HVALS", "LINDEX", "LLEN", "LRANGE", "SCARD",
+            "SDIFF", "SINTER", "SISMEMBER", "SMEMBERS", "SRANDMEMBER", "SUNION", "ZCOUNT", "ZCARD", "ZRANGE", "ZRANK", "ZREVRANK",
+            "ZREVRANGE", "ZSCORE", "ZLEXCOUNT", "TYPE", "EXISTS", "TTL", "PTTL", "KEYS", "SCAN", "RANDOMKEY", "DBSIZE", "INFO", "TIME",
+            "CLIENT", "SLOWLOG", "COMMAND", "ACL", "MEMORY", "OBJECT", "PING", "ECHO", "SELECT",
+        ]
+        let writeCommands: Set<String> = [
+            "SET", "SETEX", "PSETEX", "SETNX", "MSET", "MSETNX", "GETSET", "APPEND", "INCR", "INCRBY", "INCRBYFLOAT", "DECR", "DECRBY",
+            "HSET", "HMSET", "HSETNX", "HDEL", "HINCRBY", "HINCRBYFLOAT", "LPUSH", "LPUSHX", "RPUSH", "RPUSHX", "LINSERT", "LSET", "LREM",
+            "LPOP", "RPOP", "RPOPLPUSH", "SADD", "SREM", "SMOVE", "SPOP", "ZADD", "ZINCRBY", "ZREM", "ZREMRANGEBYSCORE", "ZREMRANGEBYRANK",
+            "ZREMRANGEBYLEX", "DEL", "UNLINK", "EXPIRE", "EXPIREAT", "PEXPIRE", "PEXPIREAT", "RENAME", "RENAMENX", "MOVE", "RESTORE",
+            "SWAPDB", "COPY", "FLUSHDB", "FLUSHALL", "SORT",
+        ]
+        let adminCommands: Set<String> = [
+            "CONFIG", "SHUTDOWN", "DEBUG", "SLAVEOF", "REPLICAOF", "ROLE", "REPLCONF", "CLUSTER", "BGREWRITEAOF", "BGSAVE", "SAVE",
+            "LASTSAVE", "MONITOR", "SYNC", "PSYNC", "CLIENT", "SLOWLOG", "COMMAND", "ACL", "MEMORY", "OBJECT", "LATENCY", "MODULE",
+            "SUBSCRIBE", "UNSUBSCRIBE", "PUBLISH", "PUBSUB", "PFADD", "PFCOUNT", "PFMERGE", "GEOADD", "GEODIST", "GEOHASH", "GEOPOS",
+            "GEORADIUS", "GEORADIUSBYMEMBER", "XADD", "XREAD", "XDEL", "XTRIM", "XLEN", "XRANGE", "XREVRANGE", "XGROUP", "XREADGROUP",
+            "XACK", "XCLAIM", "XPENDING", "XINFO",
+        ]
 
         if readCommands.contains(command) { return "Read" }
         if writeCommands.contains(command) { return "Write" }

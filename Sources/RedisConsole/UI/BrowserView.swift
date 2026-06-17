@@ -310,16 +310,18 @@ struct BrowserView: View {
                 Text(bulkDeletePreviewMessage(preview))
             }
         }
-        .sheet(isPresented: Binding(
-            get: { bulkDeletePreview != nil && isProduction },
-            set: { isPresented in
-                if !isPresented {
-                    bulkDeletePreview = nil
-                    productionBulkDelete = nil
-                    productionConfirmText = ""
+        .sheet(
+            isPresented: Binding(
+                get: { bulkDeletePreview != nil && isProduction },
+                set: { isPresented in
+                    if !isPresented {
+                        bulkDeletePreview = nil
+                        productionBulkDelete = nil
+                        productionConfirmText = ""
+                    }
                 }
-            }
-        )) {
+            )
+        ) {
             if let preview = bulkDeletePreview ?? productionBulkDelete {
                 ProductionConfirmView(
                     title: "Delete \(preview.keys.count) Keys?",
@@ -397,16 +399,18 @@ struct BrowserView: View {
                 Text("This permanently deletes \(key.key).")
             }
         }
-        .sheet(isPresented: Binding(
-            get: { keyPendingDeletion != nil && isProduction },
-            set: { isPresented in
-                if !isPresented {
-                    keyPendingDeletion = nil
-                    productionDeleteKey = nil
-                    productionConfirmText = ""
+        .sheet(
+            isPresented: Binding(
+                get: { keyPendingDeletion != nil && isProduction },
+                set: { isPresented in
+                    if !isPresented {
+                        keyPendingDeletion = nil
+                        productionDeleteKey = nil
+                        productionConfirmText = ""
+                    }
                 }
-            }
-        )) {
+            )
+        ) {
             if let key = productionDeleteKey ?? keyPendingDeletion {
                 ProductionConfirmView(
                     title: "Delete Key?",

@@ -22,8 +22,7 @@ func withTimeout<T: Sendable>(
         }
 
         group.addTask {
-            let ns = UInt64(seconds * 1_000_000_000)
-            try await Task.sleep(nanoseconds: ns)
+            try await Task.sleep(for: .seconds(seconds))
             throw OperationTimeoutError.timedOut(context: context, seconds: seconds)
         }
 

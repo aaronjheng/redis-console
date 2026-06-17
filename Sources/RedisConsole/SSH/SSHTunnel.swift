@@ -147,7 +147,7 @@ class SSHTunnel: @unchecked Sendable {
                         + "retryInMs=\(retryDelay / 1_000_000) error=\(mappedError)",
                     category: "SSHTunnel"
                 )
-                try await Task.sleep(nanoseconds: retryDelay)
+                try await Task.sleep(for: .nanoseconds(Int64(retryDelay)))
             }
         }
 

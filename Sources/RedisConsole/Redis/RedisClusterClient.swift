@@ -1,5 +1,5 @@
-import Combine
 import Foundation
+import Synchronization
 
 struct RedisEndpoint: Codable, Hashable, Sendable {
     var host: String
@@ -172,14 +172,25 @@ extension RedisClient: RedisSession {
     }
 }
 
-final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Sendable {
+final class RedisClusterClient: RedisSession {
+    private struct ConnectionStatus: Sendable {
+        var isConnected = false
+        var lastError: String?
+    }
+
     private let seedNodes: [RedisEndpoint]
     private let makeClient: @Sendable (RedisEndpoint) -> RedisClient
     private let endpointResolver: (any RedisClusterEndpointResolver)?
     private let state = RedisClusterState()
+    private let status = Mutex(ConnectionStatus())
 
-    @Published var isConnected = false
-    @Published var lastError: String?
+    var isConnected: Bool {
+        status.withLock { $0.isConnected }
+    }
+
+    var lastError: String? {
+        status.withLock { $0.lastError }
+    }
 
     var mode: RedisConnectionMode { .cluster }
 
@@ -224,11 +235,9 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
             guard !primaries.isEmpty else {
                 throw RedisError.commandError("Redis Cluster topology has no primary nodes")
             }
-            isConnected = true
-            lastError = nil
+            updateConnectionStatus(isConnected: true, lastError: nil)
         } catch {
-            isConnected = false
-            lastError = error.localizedDescription
+            updateConnectionStatus(isConnected: false, lastError: error.localizedDescription)
             throw error
         }
     }
@@ -597,13 +606,22 @@ final class RedisClusterClient: ObservableObject, RedisSession, @unchecked Senda
 
     private func disconnect(publishState: Bool) {
         if publishState {
-            isConnected = false
+            updateConnectionStatus(isConnected: false)
         }
         let state = state
         let endpointResolver = endpointResolver
         Task {
             await state.disconnectAll()
             await endpointResolver?.disconnect()
+        }
+    }
+
+    private func updateConnectionStatus(isConnected: Bool? = nil, lastError: String? = nil) {
+        status.withLock {
+            if let isConnected {
+                $0.isConnected = isConnected
+            }
+            $0.lastError = lastError
         }
     }
 }
@@ -653,20 +671,17 @@ private func throwIfRedisError(_ value: RESPValue) throws {
 }
 
 private actor RedisClusterState {
-    private final class PendingConnectionClientBox: @unchecked Sendable {
-        private let lock = NSLock()
-        private var storedClient: RedisClient?
+    private final class PendingConnectionClientBox: Sendable {
+        private let storedClient = Mutex<RedisClient?>(nil)
 
         func set(_ client: RedisClient) {
-            lock.lock()
-            storedClient = client
-            lock.unlock()
+            storedClient.withLock {
+                $0 = client
+            }
         }
 
         func client() -> RedisClient? {
-            lock.lock()
-            defer { lock.unlock() }
-            return storedClient
+            storedClient.withLock { $0 }
         }
 
         func disconnect() {

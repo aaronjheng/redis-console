@@ -5,7 +5,7 @@ import Foundation
 struct SlowLogEntry: Identifiable, Sendable {
     let id: Int
     let timestamp: Date
-    let duration: Int       // microseconds
+    let duration: Int  // microseconds
     let command: [String]
     let clientIP: String
     let clientName: String
@@ -30,7 +30,7 @@ struct SlowLogEntry: Identifiable, Sendable {
 }
 
 struct SlowLogConfig: Codable, Equatable {
-    var threshold: Int = 10_000       // microseconds
+    var threshold: Int = 10_000  // microseconds
     var maxLen: Int = 128
     var autoRefreshInterval: TimeInterval = 0  // 0 = disabled
 

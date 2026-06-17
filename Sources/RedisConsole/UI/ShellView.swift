@@ -9,9 +9,17 @@ struct ShellView: View {
     @State private var pendingCommand = ""
     @FocusState private var inputFocused: Bool
 
-    private let dangerousCommands: Set<String> = ["FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "KEYS", "KEYS *", "DEBUG", "SHUTDOWN", "SLAVEOF", "REPLICAOF", "CONFIG RESETSTAT", "BGREWRITEAOF", "BGSAVE", "SAVE", "LASTSAVE", "MONITOR", "SYNC", "PSYNC", "CLIENT PAUSE", "DEBUG SET-ACTIVE-EXPIRE", "MIGRATE", "RESTORE", "SORT", "EVAL", "EVALSHA", "SCRIPT", "ACL", "AUTH", "ROLE", "SWAPDB", "MOVE", "RENAME", "RENAMENX", "DEL", "UNLINK", "WAIT", "REPLCONF", "PING", "ECHO", "QUIT", "SELECT"]
+    private let dangerousCommands: Set<String> = [
+        "FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "KEYS", "KEYS *", "DEBUG", "SHUTDOWN", "SLAVEOF", "REPLICAOF",
+        "CONFIG RESETSTAT", "BGREWRITEAOF", "BGSAVE", "SAVE", "LASTSAVE", "MONITOR", "SYNC", "PSYNC", "CLIENT PAUSE",
+        "DEBUG SET-ACTIVE-EXPIRE", "MIGRATE", "RESTORE", "SORT", "EVAL", "EVALSHA", "SCRIPT", "ACL", "AUTH", "ROLE", "SWAPDB", "MOVE",
+        "RENAME", "RENAMENX", "DEL", "UNLINK", "WAIT", "REPLCONF", "PING", "ECHO", "QUIT", "SELECT",
+    ]
 
-    private let criticalDangerousCommands: Set<String> = ["FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "SHUTDOWN", "DEBUG", "SLAVEOF", "REPLICAOF", "CONFIG RESETSTAT", "SWAPDB", "MOVE"]
+    private let criticalDangerousCommands: Set<String> = [
+        "FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "SHUTDOWN", "DEBUG", "SLAVEOF", "REPLICAOF", "CONFIG RESETSTAT", "SWAPDB",
+        "MOVE",
+    ]
 
     var filteredCompletions: [String] {
         guard !input.isEmpty else { return [] }
@@ -60,16 +68,18 @@ struct ShellView: View {
             if showCompletions && !filteredCompletions.isEmpty {
                 HStack(spacing: 4) {
                     ForEach(filteredCompletions.prefix(10), id: \.self) { cmd in
-                        Text(cmd)
-                            .font(.caption)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.quaternary)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                            .onTapGesture {
-                                input = cmd + " "
-                                showCompletions = false
-                            }
+                        Button {
+                            input = cmd + " "
+                            showCompletions = false
+                        } label: {
+                            Text(cmd)
+                                .font(.caption)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(.quaternary)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 8)
@@ -173,7 +183,7 @@ struct ShellHistoryRow: View {
                     .font(.system(.body, design: .monospaced))
                     .bold()
                     .foregroundStyle(Color.accentColor)
-                + Text(ShellSyntaxHighlighter.highlight(entry.command))
+                Text(ShellSyntaxHighlighter.highlight(entry.command))
                     .font(.system(.body, design: .monospaced))
                     .bold()
                 Spacer()

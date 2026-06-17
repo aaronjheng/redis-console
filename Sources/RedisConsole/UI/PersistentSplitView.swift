@@ -1,17 +1,20 @@
 import SwiftUI
 
 struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentable {
+    let dividerPositionKey: String
     let left: Left
     let right: Right
     let leftMinWidth: CGFloat
     let rightMinWidth: CGFloat
 
     init(
+        dividerPositionKey: String = "com.redisconsole.browserSplitDividerPosition",
         leftMinWidth: CGFloat = 250,
         rightMinWidth: CGFloat = 250,
         @ViewBuilder left: () -> Left,
         @ViewBuilder right: () -> Right
     ) {
+        self.dividerPositionKey = dividerPositionKey
         self.leftMinWidth = leftMinWidth
         self.rightMinWidth = rightMinWidth
         self.left = left()
@@ -19,7 +22,7 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
     }
 
     func makeNSViewController(context: Context) -> SplitViewController {
-        let controller = SplitViewController()
+        let controller = SplitViewController(dividerPositionKey: dividerPositionKey)
 
         let leftHost = NSHostingController(rootView: left)
         leftHost.sizingOptions = []
@@ -48,11 +51,50 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
     }
 
     class SplitViewController: NSSplitViewController {
-        override func viewWillAppear() {
-            super.viewWillAppear()
+        private let dividerPositionKey: String
+        private var didRestoreDividerPosition = false
+
+        init(dividerPositionKey: String) {
+            self.dividerPositionKey = dividerPositionKey
+            super.init(nibName: nil, bundle: nil)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        override func viewDidLayout() {
+            super.viewDidLayout()
+            restoreDividerPositionIfNeeded()
+        }
+
+        override func splitViewDidResizeSubviews(_ notification: Notification) {
+            super.splitViewDidResizeSubviews(notification)
+            saveDividerPosition()
+        }
+
+        private func restoreDividerPositionIfNeeded() {
+            guard !didRestoreDividerPosition else { return }
             let total = splitView.frame.width
             guard total > 0 else { return }
-            splitView.setPosition(total * 0.4, ofDividerAt: 0)
+
+            let storedFraction = UserDefaults.standard.object(forKey: dividerPositionKey) as? Double
+            let fraction = CGFloat(storedFraction ?? 0.4)
+            let minPosition = splitViewItems[0].minimumThickness
+            let maxPosition = total - splitViewItems[1].minimumThickness
+            let position = min(max(total * fraction, minPosition), maxPosition)
+
+            didRestoreDividerPosition = true
+            splitView.setPosition(position, ofDividerAt: 0)
+        }
+
+        private func saveDividerPosition() {
+            guard didRestoreDividerPosition else { return }
+            let total = splitView.frame.width
+            guard total > 0, let leftWidth = splitViewItems.first?.viewController.view.frame.width else { return }
+            let fraction = min(max(leftWidth / total, 0.1), 0.9)
+            UserDefaults.standard.set(Double(fraction), forKey: dividerPositionKey)
         }
     }
 }

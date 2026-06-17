@@ -5,7 +5,8 @@ import SwiftUI
 struct SlowLogView: View {
     @Environment(ConnectionState.self) private var app
     @State private var showClearConfirmation = false
-    @State private var autoRefreshTask: Task<Void, Never>?
+    @State private var thresholdUnit = 1
+    @State private var isApplyingSlowLogConfig = false
 
     var body: some View {
         @Bindable var app = app
@@ -47,11 +48,14 @@ struct SlowLogView: View {
                     Text("Threshold:")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    TextField("", value: $app.slowLogConfig.threshold, format: .number)
+                    TextField("", value: thresholdValue, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                         .font(.caption)
-                    Picker("", selection: thresholdUnit) {
+                        .onSubmit {
+                            Task { await applySlowLogConfig() }
+                        }
+                    Picker("", selection: thresholdUnitSelection) {
                         Text("\u{00B5}s").tag(1)
                         Text("ms").tag(1000)
                     }
@@ -67,7 +71,16 @@ struct SlowLogView: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 60)
                         .font(.caption)
+                        .onSubmit {
+                            Task { await applySlowLogConfig() }
+                        }
                 }
+
+                Button("Apply", systemImage: "checkmark.circle") {
+                    Task { await applySlowLogConfig() }
+                }
+                .font(.caption)
+                .disabled(isApplyingSlowLogConfig || app.activeClient?.isConnected != true)
 
                 HStack(spacing: 4) {
                     Text("Auto-refresh:")
@@ -154,18 +167,16 @@ struct SlowLogView: View {
                 }
             }
         }
-        .onAppear {
+        .task {
             app.loadSlowLogConfig()
-            Task { await app.fetchSlowLog() }
-            startAutoRefresh()
-        }
-        .onDisappear {
-            stopAutoRefresh()
+            thresholdUnit = app.slowLogConfig.threshold >= 1000 ? 1000 : 1
+            await app.fetchSlowLog()
         }
         .onChange(of: app.slowLogConfig.autoRefreshInterval) { _, _ in
             app.saveSlowLogConfig()
-            stopAutoRefresh()
-            startAutoRefresh()
+        }
+        .task(id: app.slowLogConfig.autoRefreshInterval) {
+            await autoRefreshSlowLog(interval: app.slowLogConfig.autoRefreshInterval)
         }
         .alert("Clear Slow Log?", isPresented: $showClearConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -177,15 +188,17 @@ struct SlowLogView: View {
         }
     }
 
-    private var thresholdUnit: Binding<Int> {
+    private var thresholdUnitSelection: Binding<Int> {
         Binding(
-            get: { app.slowLogConfig.threshold >= 1000 ? 1000 : 1 },
-            set: { newUnit in
-                let currentMs = app.slowLogConfig.threshold / 1000
-                if newUnit == 1000 {
-                    app.slowLogConfig.threshold = max(1, currentMs) * 1000
-                }
-            }
+            get: { thresholdUnit },
+            set: { thresholdUnit = $0 }
+        )
+    }
+
+    private var thresholdValue: Binding<Int> {
+        Binding(
+            get: { max(1, app.slowLogConfig.threshold / thresholdUnit) },
+            set: { app.slowLogConfig.threshold = max(1, $0) * thresholdUnit }
         )
     }
 
@@ -200,19 +213,26 @@ struct SlowLogView: View {
         return .primary
     }
 
-    private func startAutoRefresh() {
-        guard app.slowLogConfig.autoRefreshInterval > 0 else { return }
-        autoRefreshTask = Task { [weak app] in
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(app?.slowLogConfig.autoRefreshInterval ?? 5) * 1_000_000_000)
-                guard !Task.isCancelled, let app else { break }
-                await app.fetchSlowLog()
-            }
-        }
+    @MainActor
+    private func applySlowLogConfig() async {
+        guard !isApplyingSlowLogConfig else { return }
+        let threshold = app.slowLogConfig.threshold
+        let maxLen = app.slowLogConfig.maxLen
+
+        isApplyingSlowLogConfig = true
+        defer { isApplyingSlowLogConfig = false }
+
+        await app.updateSlowLogThreshold(threshold)
+        await app.updateSlowLogMaxLen(maxLen)
+        await app.fetchSlowLog()
     }
 
-    private func stopAutoRefresh() {
-        autoRefreshTask?.cancel()
-        autoRefreshTask = nil
+    private func autoRefreshSlowLog(interval: TimeInterval) async {
+        guard interval > 0 else { return }
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(interval))
+            guard !Task.isCancelled else { return }
+            await app.fetchSlowLog()
+        }
     }
 }

@@ -126,14 +126,14 @@ enum RESPValue: CustomStringConvertible, Sendable {
     }
 }
 
-class RESPParser {
+struct RESPParser: Sendable {
     private var buffer = Data()
 
-    func append(_ data: Data) {
+    mutating func append(_ data: Data) {
         buffer.append(data)
     }
 
-    func parse() -> RESPValue? {
+    mutating func parse() -> RESPValue? {
         guard !buffer.isEmpty else { return nil }
         let snapshot = buffer
         let result = parseValue()
@@ -143,7 +143,7 @@ class RESPParser {
         return result
     }
 
-    private func parseValue() -> RESPValue? {
+    private mutating func parseValue() -> RESPValue? {
         guard let firstByte = buffer.first else { return nil }
 
         switch firstByte {
@@ -182,7 +182,7 @@ class RESPParser {
         }
     }
 
-    private func readLine() -> String? {
+    private mutating func readLine() -> String? {
         guard let crIndex = buffer.firstIndex(of: 0x0D) else { return nil }
         let lineData = buffer[buffer.startIndex..<crIndex]
         guard crIndex + 1 < buffer.endIndex, buffer[crIndex + 1] == 0x0A else { return nil }
@@ -191,25 +191,25 @@ class RESPParser {
         return line
     }
 
-    private func parseSimpleString() -> RESPValue? {
+    private mutating func parseSimpleString() -> RESPValue? {
         buffer.removeFirst()  // remove '+'
         guard let line = readLine() else { return nil }
         return .simpleString(line)
     }
 
-    private func parseError() -> RESPValue? {
+    private mutating func parseError() -> RESPValue? {
         buffer.removeFirst()  // remove '-'
         guard let line = readLine() else { return nil }
         return .error(line)
     }
 
-    private func parseInteger() -> RESPValue? {
+    private mutating func parseInteger() -> RESPValue? {
         buffer.removeFirst()  // remove ':'
         guard let line = readLine(), let val = Int(line) else { return nil }
         return .integer(val)
     }
 
-    private func parseBulkString() -> RESPValue? {
+    private mutating func parseBulkString() -> RESPValue? {
         buffer.removeFirst()  // remove '$'
         guard let line = readLine(), let len = Int(line) else { return nil }
         if len == -1 { return .bulkString(nil) }
@@ -217,18 +217,18 @@ class RESPParser {
         return .bulkString(string)
     }
 
-    private func parseArray() -> RESPValue? {
+    private mutating func parseArray() -> RESPValue? {
         guard let items = parseAggregateItems() else { return nil }
         return .array(items)
     }
 
-    private func parseNull() -> RESPValue? {
+    private mutating func parseNull() -> RESPValue? {
         buffer.removeFirst()  // remove '_'
         guard readLine() == "" else { return nil }
         return .null
     }
 
-    private func parseBoolean() -> RESPValue? {
+    private mutating func parseBoolean() -> RESPValue? {
         buffer.removeFirst()  // remove '#'
         guard let line = readLine() else { return nil }
         switch line {
@@ -238,7 +238,7 @@ class RESPParser {
         }
     }
 
-    private func parseDouble() -> RESPValue? {
+    private mutating func parseDouble() -> RESPValue? {
         buffer.removeFirst()  // remove ','
         guard let line = readLine() else { return nil }
         switch line.lowercased() {
@@ -251,26 +251,26 @@ class RESPParser {
         }
     }
 
-    private func parseBigNumber() -> RESPValue? {
+    private mutating func parseBigNumber() -> RESPValue? {
         buffer.removeFirst()  // remove '('
         guard let line = readLine() else { return nil }
         return .bulkString(line)
     }
 
-    private func parseBlobError() -> RESPValue? {
+    private mutating func parseBlobError() -> RESPValue? {
         buffer.removeFirst()  // remove '!'
         guard let line = readLine(), let len = Int(line), let message = readPayload(length: len) else { return nil }
         return .error(message)
     }
 
-    private func parseVerbatimString() -> RESPValue? {
+    private mutating func parseVerbatimString() -> RESPValue? {
         buffer.removeFirst()  // remove '='
         guard let line = readLine(), let len = Int(line), let string = readPayload(length: len) else { return nil }
         guard string.count >= 4 else { return .bulkString(string) }
         return .bulkString(String(string.dropFirst(4)))
     }
 
-    private func parseMap() -> RESPValue? {
+    private mutating func parseMap() -> RESPValue? {
         buffer.removeFirst()  // remove '%'
         guard let line = readLine(), let count = Int(line) else { return nil }
         if count == -1 { return .null }
@@ -286,17 +286,17 @@ class RESPParser {
         return .map(entries)
     }
 
-    private func parseSet() -> RESPValue? {
+    private mutating func parseSet() -> RESPValue? {
         guard let items = parseAggregateItems() else { return nil }
         return .array(items)
     }
 
-    private func parsePush() -> RESPValue? {
+    private mutating func parsePush() -> RESPValue? {
         guard let items = parseAggregateItems() else { return nil }
         return .array(items)
     }
 
-    private func parseAttribute() -> RESPValue? {
+    private mutating func parseAttribute() -> RESPValue? {
         buffer.removeFirst()  // remove '|'
         guard let line = readLine(), let count = Int(line), count >= 0 else { return nil }
         for _ in 0..<count {
@@ -307,7 +307,7 @@ class RESPParser {
         return parseValue()
     }
 
-    private func parseAggregateItems() -> [RESPValue?]? {
+    private mutating func parseAggregateItems() -> [RESPValue?]? {
         buffer.removeFirst()
         guard let line = readLine(), let count = Int(line), count >= -1 else { return nil }
         if count == -1 { return [] }
@@ -323,7 +323,7 @@ class RESPParser {
         return items
     }
 
-    private func readPayload(length: Int) -> String? {
+    private mutating func readPayload(length: Int) -> String? {
         guard length >= 0, buffer.count >= length + 2 else { return nil }
 
         let payloadEndIndex = buffer.index(buffer.startIndex, offsetBy: length)

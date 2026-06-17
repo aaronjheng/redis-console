@@ -96,12 +96,14 @@ struct DatabaseAnalysisView: View {
                 Text("Last analyzed:")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                Text(analysis.analyzedAt, style: .time)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                + Text(" (\(analysis.keysSampled) keys)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                HStack(spacing: 0) {
+                    Text(analysis.analyzedAt, style: .time)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(" (\(analysis.keysSampled) keys)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
 
             Divider().frame(height: 30)

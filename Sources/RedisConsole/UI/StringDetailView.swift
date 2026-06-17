@@ -91,7 +91,7 @@ struct StringDetailView: View {
 
     private var base64DecodedValue: String {
         guard let data = Data(base64Encoded: value),
-              let decoded = String(data: data, encoding: .utf8)
+            let decoded = String(data: data, encoding: .utf8)
         else {
             return "Invalid Base64 data"
         }

@@ -1,119 +1,285 @@
-import Combine
 import Foundation
 import Network
+import Synchronization
 
-class RedisClient: ObservableObject, @unchecked Sendable {
-    private final class ConnectContinuationState: @unchecked Sendable {
-        private let lock = NSLock()
-        private var didResume = false
+final class RedisClient: Sendable {
+    private final class ConnectContinuationState: Sendable {
+        private struct State: Sendable {
+            var continuation: CheckedContinuation<Void, Error>?
+            var result: Result<Void, Error>?
+        }
 
-        func tryMarkResumed() -> Bool {
-            lock.lock()
-            defer { lock.unlock() }
+        private let state = Mutex(State())
 
-            guard !didResume else { return false }
-            didResume = true
-            return true
+        var isCompleted: Bool {
+            state.withLock { $0.result != nil }
+        }
+
+        func setContinuation(_ continuation: CheckedContinuation<Void, Error>) {
+            let result = state.withLock { state -> Result<Void, Error>? in
+                if let result = state.result {
+                    return result
+                }
+                state.continuation = continuation
+                return nil
+            }
+
+            if let result {
+                resume(continuation, with: result)
+            }
+        }
+
+        @discardableResult
+        func complete(_ result: Result<Void, Error>) -> Bool {
+            let (continuation, didComplete) = state.withLock { state -> (CheckedContinuation<Void, Error>?, Bool) in
+                guard state.result == nil else { return (nil, false) }
+                state.result = result
+                let continuation = state.continuation
+                state.continuation = nil
+                return (continuation, true)
+            }
+
+            if let continuation {
+                resume(continuation, with: result)
+            }
+            return didComplete
+        }
+
+        private func resume(_ continuation: CheckedContinuation<Void, Error>, with result: Result<Void, Error>) {
+            switch result {
+            case .success:
+                continuation.resume()
+            case .failure(let error):
+                continuation.resume(throwing: error)
+            }
         }
     }
 
-    private final class PendingCommand: @unchecked Sendable {
-        private let lock = NSLock()
-        private var completion: (@Sendable (Result<RESPValue, Error>) -> Void)?
+    private final class PendingCommand: Sendable {
+        private typealias CommandCompletion = @Sendable (Result<RESPValue, Error>) -> Void
+
+        private struct State: Sendable {
+            var completion: CommandCompletion?
+            var result: Result<RESPValue, Error>?
+            var isQueuedForResponse = false
+        }
+
+        let id = UUID()
+        private let state = Mutex(State())
+
+        var isCompleted: Bool {
+            state.withLock { $0.result != nil }
+        }
 
         init(_ continuation: CheckedContinuation<RESPValue, Error>) {
-            completion = { result in
-                switch result {
-                case .success(let value):
-                    continuation.resume(returning: value)
-                case .failure(let error):
-                    continuation.resume(throwing: error)
-                }
+            setContinuation(continuation)
+        }
+
+        init() {}
+
+        func setContinuation(_ continuation: CheckedContinuation<RESPValue, Error>) {
+            setCompletion { result in
+                Self.resume(continuation, with: result)
             }
         }
 
         init(completion: @escaping @Sendable (Result<RESPValue, Error>) -> Void) {
-            self.completion = completion
+            setCompletion(completion)
+        }
+
+        func reserveResponseSlot() -> Bool {
+            state.withLock {
+                guard $0.result == nil else { return false }
+                $0.isQueuedForResponse = true
+                return true
+            }
         }
 
         func complete(_ result: Result<RESPValue, Error>) {
-            let completion: (@Sendable (Result<RESPValue, Error>) -> Void)?
-            lock.lock()
-            completion = self.completion
-            self.completion = nil
-            lock.unlock()
-
+            let completion: (@Sendable (Result<RESPValue, Error>) -> Void)? = state.withLock {
+                guard $0.result == nil else { return nil }
+                $0.result = result
+                let completion = $0.completion
+                $0.completion = nil
+                return completion
+            }
             completion?(result)
+        }
+
+        func cancel() -> Bool {
+            let (completion, shouldRemoveFromQueue) = state.withLock { state -> (CommandCompletion?, Bool) in
+                let shouldRemoveFromQueue = !state.isQueuedForResponse
+                guard state.result == nil else { return (nil, shouldRemoveFromQueue) }
+                state.result = Result<RESPValue, Error>.failure(CancellationError())
+                let completion = state.completion
+                state.completion = nil
+                return (completion, shouldRemoveFromQueue)
+            }
+            completion?(Result<RESPValue, Error>.failure(CancellationError()))
+            return shouldRemoveFromQueue
+        }
+
+        private func setCompletion(_ completion: @escaping CommandCompletion) {
+            let result = state.withLock { state -> Result<RESPValue, Error>? in
+                if let result = state.result {
+                    return result
+                }
+                state.completion = completion
+                return nil
+            }
+
+            if let result {
+                completion(result)
+            }
+        }
+
+        private static func resume(
+            _ continuation: CheckedContinuation<RESPValue, Error>,
+            with result: Result<RESPValue, Error>
+        ) {
+            switch result {
+            case .success(let value):
+                continuation.resume(returning: value)
+            case .failure(let error):
+                continuation.resume(throwing: error)
+            }
         }
     }
 
-    private final class PendingPipeline: @unchecked Sendable {
-        private let lock = NSLock()
-        private var results: [RESPValue?]
-        private var remainingCount: Int
-        private var continuation: CheckedContinuation<[RESPValue], Error>?
+    private final class PendingCommandBatch: Sendable {
+        private struct State: Sendable {
+            var isCancelled = false
+            var commands: [PendingCommand] = []
+        }
+
+        private let state = Mutex(State())
+
+        func setCommands(_ commands: [PendingCommand]) -> Bool {
+            state.withLock {
+                guard !$0.isCancelled else { return false }
+                $0.commands = commands
+                return true
+            }
+        }
+
+        func cancel() -> [PendingCommand] {
+            state.withLock {
+                $0.isCancelled = true
+                return $0.commands
+            }
+        }
+    }
+
+    private final class PendingPipeline: Sendable {
+        private typealias Completion = (
+            continuation: CheckedContinuation<[RESPValue], Error>,
+            result: Result<[RESPValue], Error>
+        )
+
+        private struct State: Sendable {
+            var results: [RESPValue?]
+            var remainingCount: Int
+            var continuation: CheckedContinuation<[RESPValue], Error>?
+        }
+
+        private let state: Mutex<State>
 
         init(count: Int, continuation: CheckedContinuation<[RESPValue], Error>) {
-            results = Array(repeating: nil, count: count)
-            remainingCount = count
-            self.continuation = continuation
+            state = Mutex(
+                State(
+                    results: Array(repeating: nil, count: count),
+                    remainingCount: count,
+                    continuation: continuation
+                )
+            )
         }
 
         func complete(index: Int, with result: Result<RESPValue, Error>) {
-            var continuationToResume: CheckedContinuation<[RESPValue], Error>?
-            var resultToResume: Result<[RESPValue], Error>?
-
-            lock.lock()
-            if let storedContinuation = continuation {
-                switch result {
-                case .success(let value):
-                    results[index] = value
-                    remainingCount -= 1
-                    if remainingCount == 0 {
-                        var values: [RESPValue] = []
-                        values.reserveCapacity(results.count)
-                        var missingResponse = false
-                        for response in results {
-                            guard let response else {
-                                missingResponse = true
-                                break
+            let completion: Completion? = state.withLock { state in
+                if let storedContinuation = state.continuation {
+                    switch result {
+                    case .success(let value):
+                        state.results[index] = value
+                        state.remainingCount -= 1
+                        if state.remainingCount == 0 {
+                            var values: [RESPValue] = []
+                            values.reserveCapacity(state.results.count)
+                            var missingResponse = false
+                            for response in state.results {
+                                guard let response else {
+                                    missingResponse = true
+                                    break
+                                }
+                                values.append(response)
                             }
-                            values.append(response)
+
+                            state.continuation = nil
+                            return (
+                                storedContinuation,
+                                missingResponse
+                                    ? .failure(RedisError.parseError("Missing Redis pipeline response"))
+                                    : .success(values)
+                            )
                         }
-
-                        continuationToResume = storedContinuation
-                        resultToResume =
-                            missingResponse
-                            ? .failure(RedisError.parseError("Missing Redis pipeline response"))
-                            : .success(values)
-                        continuation = nil
+                    case .failure(let error):
+                        state.continuation = nil
+                        return (storedContinuation, .failure(error))
                     }
-                case .failure(let error):
-                    continuationToResume = storedContinuation
-                    resultToResume = .failure(error)
-                    continuation = nil
                 }
+                return nil
             }
-            lock.unlock()
 
-            guard let continuationToResume, let resultToResume else { return }
-            switch resultToResume {
+            guard let completion else { return }
+            switch completion.result {
             case .success(let values):
-                continuationToResume.resume(returning: values)
+                completion.continuation.resume(returning: values)
             case .failure(let error):
-                continuationToResume.resume(throwing: error)
+                completion.continuation.resume(throwing: error)
             }
         }
     }
 
-    private var connection: NWConnection?
+    private enum PendingResponse: Sendable {
+        case command(PendingCommand)
+        case cancelled(UUID)
+
+        var id: UUID {
+            switch self {
+            case .command(let command):
+                command.id
+            case .cancelled(let id):
+                id
+            }
+        }
+
+        var command: PendingCommand? {
+            guard case .command(let command) = self else { return nil }
+            return command
+        }
+    }
+
+    private struct State: Sendable {
+        var connection: NWConnection?
+        var pendingCompletions: [PendingResponse] = []
+        var parser = RESPParser()
+        var isConnected = false
+        var lastError: String?
+        var negotiatedProtocolVersion: RESPProtocolVersion = .resp2
+        var serverCapabilities: [String: RESPValue] = [:]
+        var protocolFallbackReason: String?
+    }
+
+    private let state = Mutex(State())
     private let queue = DispatchQueue(label: "redis.client.queue")
     private let queueKey = DispatchSpecificKey<Bool>()
-    private var pendingCompletions: [PendingCommand] = []
-    private var parser = RESPParser()
 
-    @Published var isConnected = false
-    @Published var lastError: String?
+    var isConnected: Bool {
+        state.withLock { $0.isConnected }
+    }
+
+    var lastError: String? {
+        state.withLock { $0.lastError }
+    }
 
     let host: String
     let port: UInt16
@@ -126,9 +292,20 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     let clientKeyPath: String
     let preferredProtocolVersion: RESPProtocolVersion
 
-    private(set) var negotiatedProtocolVersion: RESPProtocolVersion = .resp2
-    private(set) var serverCapabilities: [String: RESPValue] = [:]
-    private var protocolFallbackReason: String?
+    private var negotiatedProtocolVersion: RESPProtocolVersion {
+        get { state.withLock { $0.negotiatedProtocolVersion } }
+        set { state.withLock { $0.negotiatedProtocolVersion = newValue } }
+    }
+
+    private var serverCapabilities: [String: RESPValue] {
+        get { state.withLock { $0.serverCapabilities } }
+        set { state.withLock { $0.serverCapabilities = newValue } }
+    }
+
+    private var protocolFallbackReason: String? {
+        get { state.withLock { $0.protocolFallbackReason } }
+        set { state.withLock { $0.protocolFallbackReason = newValue } }
+    }
 
     init(
         host: String,
@@ -156,157 +333,179 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     func connect() async throws {
-        negotiatedProtocolVersion = .resp2
-        serverCapabilities = [:]
-        protocolFallbackReason = nil
+        try Task.checkCancellation()
+        let connectContinuation = ConnectContinuationState()
+        let staleCompletions = state.withLock {
+            let pendingCompletions = $0.pendingCompletions.compactMap(\.command)
+            $0.isConnected = false
+            $0.lastError = nil
+            $0.pendingCompletions.removeAll()
+            $0.parser = RESPParser()
+            $0.negotiatedProtocolVersion = .resp2
+            $0.serverCapabilities = [:]
+            $0.protocolFallbackReason = nil
+            return pendingCompletions
+        }
+        for completion in staleCompletions {
+            completion.complete(.failure(RedisError.notConnected))
+        }
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let continuationState = ConnectContinuationState()
-
-            let params: NWParameters
-            if tlsEnabled {
-                let tlsOptions = NWProtocolTLS.Options()
-
-                if !caCertificatePath.isEmpty || !clientCertificatePath.isEmpty || !clientKeyPath.isEmpty {
-                    sec_protocol_options_set_verify_block(
-                        tlsOptions.securityProtocolOptions,
-                        { [caCertificatePath = self.caCertificatePath] _, trust, completionHandler in
-                            // swiftlint:disable:next force_cast
-                            let secTrust = trust as! SecTrust
-
-                            if !caCertificatePath.isEmpty {
-                                let url = URL(fileURLWithPath: caCertificatePath)
-                                if let caData = try? Data(contentsOf: url) {
-                                    let caCert = SecCertificateCreateWithData(nil, caData as CFData)
-                                    if let caCert {
-                                        SecTrustSetAnchorCertificates(secTrust, [caCert] as CFArray)
-                                        SecTrustSetAnchorCertificatesOnly(secTrust, false)
-                                    }
-                                }
-                            }
-
-                            var error: CFError?
-                            let isValid = SecTrustEvaluateWithError(secTrust, &error)
-                            completionHandler(isValid)
-                        },
-                        .main
-                    )
-                } else if !verifyServerCertificate {
-                    sec_protocol_options_set_verify_block(
-                        tlsOptions.securityProtocolOptions,
-                        { _, _, completionHandler in
-                            completionHandler(true)
-                        },
-                        .main
-                    )
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                connectContinuation.setContinuation(continuation)
+                guard !connectContinuation.isCompleted else { return }
+                guard !Task.isCancelled else {
+                    connectContinuation.complete(.failure(CancellationError()))
+                    return
                 }
 
-                if !clientCertificatePath.isEmpty && !clientKeyPath.isEmpty {
-                    let certURL = URL(fileURLWithPath: clientCertificatePath)
-                    if let certData = try? Data(contentsOf: certURL) {
-                        let cert = SecCertificateCreateWithData(nil, certData as CFData)
-                        if let cert {
-                            var identity: SecIdentity?
-                            let status = SecIdentityCreateWithCertificate(
-                                nil,
-                                cert,
-                                &identity
-                            )
-                            if status == errSecSuccess, let identity {
-                                let secIdentity = sec_identity_create(identity)
-                                if let secIdentity {
-                                    sec_protocol_options_set_local_identity(
-                                        tlsOptions.securityProtocolOptions,
-                                        secIdentity
-                                    )
+                let params: NWParameters
+                if tlsEnabled {
+                    let tlsOptions = NWProtocolTLS.Options()
+
+                    if !caCertificatePath.isEmpty || !clientCertificatePath.isEmpty || !clientKeyPath.isEmpty {
+                        sec_protocol_options_set_verify_block(
+                            tlsOptions.securityProtocolOptions,
+                            { [caCertificatePath = self.caCertificatePath] _, trust, completionHandler in
+                                // swiftlint:disable:next force_cast
+                                let secTrust = trust as! SecTrust
+
+                                if !caCertificatePath.isEmpty {
+                                    let url = URL(fileURLWithPath: caCertificatePath)
+                                    if let caData = try? Data(contentsOf: url) {
+                                        let caCert = SecCertificateCreateWithData(nil, caData as CFData)
+                                        if let caCert {
+                                            SecTrustSetAnchorCertificates(secTrust, [caCert] as CFArray)
+                                            SecTrustSetAnchorCertificatesOnly(secTrust, false)
+                                        }
+                                    }
+                                }
+
+                                var error: CFError?
+                                let isValid = SecTrustEvaluateWithError(secTrust, &error)
+                                completionHandler(isValid)
+                            },
+                            .main
+                        )
+                    } else if !verifyServerCertificate {
+                        sec_protocol_options_set_verify_block(
+                            tlsOptions.securityProtocolOptions,
+                            { _, _, completionHandler in
+                                completionHandler(true)
+                            },
+                            .main
+                        )
+                    }
+
+                    if !clientCertificatePath.isEmpty && !clientKeyPath.isEmpty {
+                        let certURL = URL(fileURLWithPath: clientCertificatePath)
+                        if let certData = try? Data(contentsOf: certURL) {
+                            let cert = SecCertificateCreateWithData(nil, certData as CFData)
+                            if let cert {
+                                var identity: SecIdentity?
+                                let status = SecIdentityCreateWithCertificate(
+                                    nil,
+                                    cert,
+                                    &identity
+                                )
+                                if status == errSecSuccess, let identity {
+                                    let secIdentity = sec_identity_create(identity)
+                                    if let secIdentity {
+                                        sec_protocol_options_set_local_identity(
+                                            tlsOptions.securityProtocolOptions,
+                                            secIdentity
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+
+                    sec_protocol_options_set_tls_server_name(
+                        tlsOptions.securityProtocolOptions,
+                        host
+                    )
+
+                    params = NWParameters(tls: tlsOptions, tcp: .init())
+                } else {
+                    params = NWParameters.tcp
+                }
+                params.allowLocalEndpointReuse = true
+                guard let nwPort = NWEndpoint.Port(rawValue: port) else {
+                    connectContinuation.complete(.failure(RedisError.commandError("Invalid Redis port: \(port)")))
+                    return
                 }
 
-                sec_protocol_options_set_tls_server_name(
-                    tlsOptions.securityProtocolOptions,
-                    host
+                let connection = NWConnection(
+                    host: NWEndpoint.Host(host),
+                    port: nwPort,
+                    using: params
                 )
+                state.withLock {
+                    $0.connection = connection
+                }
+                guard !connectContinuation.isCompleted else {
+                    cancelConnectionForCancellation()
+                    return
+                }
 
-                params = NWParameters(tls: tlsOptions, tcp: .init())
-            } else {
-                params = NWParameters.tcp
-            }
-            params.allowLocalEndpointReuse = true
-            guard let nwPort = NWEndpoint.Port(rawValue: port) else {
-                continuation.resume(throwing: RedisError.commandError("Invalid Redis port: \(port)"))
-                return
-            }
-
-            connection = NWConnection(
-                host: NWEndpoint.Host(host),
-                port: nwPort,
-                using: params
-            )
-
-            connection?.stateUpdateHandler = { [weak self] state in
-                Task { @MainActor in
+                connection.stateUpdateHandler = { [weak self] state in
+                    guard let self else { return }
                     switch state {
                     case .ready:
-                        self?.isConnected = true
-                        self?.startReceiving()
+                        guard !connectContinuation.isCompleted else { return }
+                        self.updateConnectionState(isConnected: true)
+                        self.startReceiving()
 
                         Task {
+                            guard !connectContinuation.isCompleted else { return }
                             do {
                                 var authenticatedByHello = false
-                                if self?.preferredProtocolVersion == .resp3 {
-                                    authenticatedByHello = try await self?.performResp3Handshake() ?? false
+                                if self.preferredProtocolVersion == .resp3 {
+                                    authenticatedByHello = try await self.performResp3Handshake()
                                 }
 
                                 // Authenticate if credentials are provided.
-                                let user = self?.username ?? ""
-                                let pw = self?.password ?? ""
+                                let user = self.username ?? ""
+                                let pw = self.password ?? ""
                                 if (!user.isEmpty || !pw.isEmpty) && !authenticatedByHello {
                                     let result: RESPValue
                                     if !user.isEmpty {
-                                        result = try await self?.send("AUTH", user, pw) ?? .null
+                                        result = try await self.send("AUTH", user, pw)
                                     } else {
-                                        result = try await self?.send("AUTH", pw) ?? .null
+                                        result = try await self.send("AUTH", pw)
                                     }
                                     if case .error(let msg) = result {
-                                        self?.lastError = msg
+                                        self.updateConnectionState(isConnected: true, lastError: msg)
                                         throw RedisError.commandError(msg)
                                     }
                                 }
-                                self?.logNegotiatedProtocol(authenticatedByHello: authenticatedByHello)
+                                self.logNegotiatedProtocol(authenticatedByHello: authenticatedByHello)
 
-                                if continuationState.tryMarkResumed() {
-                                    continuation.resume()
-                                }
+                                connectContinuation.complete(.success(()))
                             } catch {
-                                self?.lastError = error.localizedDescription
-                                if continuationState.tryMarkResumed() {
-                                    continuation.resume(throwing: error)
-                                }
+                                self.updateConnectionState(isConnected: false, lastError: error.localizedDescription)
+                                connectContinuation.complete(.failure(error))
                             }
                         }
                     case .failed(let error):
-                        self?.isConnected = false
-                        self?.lastError = error.localizedDescription
-                        if continuationState.tryMarkResumed() {
-                            continuation.resume(throwing: error)
-                        }
+                        self.updateConnectionState(isConnected: false, lastError: error.localizedDescription)
+                        connectContinuation.complete(.failure(error))
                     case .waiting(let error):
-                        self?.lastError = error.localizedDescription
+                        self.updateConnectionState(lastError: error.localizedDescription)
                     case .cancelled:
-                        self?.isConnected = false
-                        if continuationState.tryMarkResumed() {
-                            continuation.resume(throwing: RedisError.notConnected)
-                        }
+                        self.updateConnectionState(isConnected: false)
+                        connectContinuation.complete(.failure(RedisError.notConnected))
                     default:
                         break
                     }
                 }
-            }
 
-            connection?.start(queue: queue)
+                connection.start(queue: queue)
+            }
+        } onCancel: {
+            connectContinuation.complete(.failure(CancellationError()))
+            self.cancelConnectionForCancellation()
         }
     }
 
@@ -329,26 +528,34 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         updateConnectionState(isConnected: false)
     }
 
-    private func updateConnectionState(isConnected: Bool, lastError: String? = nil) {
-        if Thread.isMainThread {
-            self.isConnected = isConnected
-            if let lastError {
-                self.lastError = lastError
+    private func updateConnectionState(isConnected: Bool? = nil, lastError: String? = nil) {
+        state.withLock {
+            if let isConnected {
+                $0.isConnected = isConnected
             }
-            return
-        }
-
-        DispatchQueue.main.async { [weak self] in
-            self?.isConnected = isConnected
             if let lastError {
-                self?.lastError = lastError
+                $0.lastError = lastError
             }
         }
     }
 
     private func removePendingCompletion(_ completion: PendingCommand) {
-        if let index = pendingCompletions.firstIndex(where: { $0 === completion }) {
-            pendingCompletions.remove(at: index)
+        removePendingCompletion(id: completion.id)
+    }
+
+    private func removePendingCompletion(id: UUID) {
+        state.withLock { state in
+            if let index = state.pendingCompletions.firstIndex(where: { $0.id == id }) {
+                state.pendingCompletions.remove(at: index)
+            }
+        }
+    }
+
+    private func cancelPendingResponseSlot(id: UUID) {
+        state.withLock { state in
+            if let index = state.pendingCompletions.firstIndex(where: { $0.id == id }) {
+                state.pendingCompletions[index] = .cancelled(id)
+            }
         }
     }
 
@@ -357,13 +564,39 @@ class RedisClient: ObservableObject, @unchecked Sendable {
         completion.complete(.failure(error))
     }
 
+    private func cancelPendingCompletion(_ completion: PendingCommand) {
+        let cancelAction: @Sendable () -> Void = {
+            let shouldRemoveFromQueue = completion.cancel()
+            if shouldRemoveFromQueue {
+                self.removePendingCompletion(completion)
+            } else {
+                self.cancelPendingResponseSlot(id: completion.id)
+            }
+        }
+
+        if DispatchQueue.getSpecific(key: queueKey) == true {
+            cancelAction()
+        } else {
+            queue.async(execute: cancelAction)
+        }
+    }
+
+    private func cancelPendingCompletions(_ batch: PendingCommandBatch) {
+        for command in batch.cancel() {
+            cancelPendingCompletion(command)
+        }
+    }
+
     private func receiveLoop() {
         queue.async {
-            self.connection?.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
+            let connection = self.state.withLock { $0.connection }
+            connection?.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
                 guard let self else { return }
                 if let data, !data.isEmpty {
                     self.queue.async {
-                        self.parser.append(data)
+                        self.state.withLock {
+                            $0.parser.append(data)
+                        }
                         self.processBuffer()
                     }
                 }
@@ -372,7 +605,9 @@ class RedisClient: ObservableObject, @unchecked Sendable {
                 } else {
                     self.queue.async {
                         self.completePendingCommands(with: error ?? RedisError.notConnected)
-                        self.parser = RESPParser()
+                        self.state.withLock {
+                            $0.parser = RESPParser()
+                        }
                     }
                     self.updateConnectionState(isConnected: false, lastError: error?.localizedDescription)
                 }
@@ -381,18 +616,38 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     private func completePendingCommands(with error: Error) {
-        let pendingCompletions = pendingCompletions
-        self.pendingCompletions.removeAll()
+        let pendingCompletions = state.withLock {
+            let pendingCompletions = $0.pendingCompletions.compactMap(\.command)
+            $0.pendingCompletions.removeAll()
+            return pendingCompletions
+        }
         for completion in pendingCompletions {
             completion.complete(.failure(error))
         }
     }
 
-    private func cancelConnectionOnQueue() {
+    private func cancelConnectionOnQueue(error: Error = RedisError.notConnected) {
+        let connection = state.withLock {
+            let connection = $0.connection
+            $0.connection = nil
+            $0.parser = RESPParser()
+            return connection
+        }
         connection?.cancel()
-        connection = nil
-        completePendingCommands(with: RedisError.notConnected)
-        parser = RESPParser()
+        completePendingCommands(with: error)
+    }
+
+    private func cancelConnectionForCancellation() {
+        let cancelAction: @Sendable () -> Void = {
+            self.cancelConnectionOnQueue(error: CancellationError())
+        }
+
+        if DispatchQueue.getSpecific(key: queueKey) == true {
+            cancelAction()
+        } else {
+            queue.async(execute: cancelAction)
+        }
+        updateConnectionState(isConnected: false)
     }
 
     private func startReceiving() {
@@ -400,11 +655,20 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     private func processBuffer() {
-        while let value = parser.parse() {
-            if let completion = pendingCompletions.first {
-                pendingCompletions.removeFirst()
-                completion.complete(.success(value))
+        let completedCommands: [(PendingCommand, RESPValue)] = state.withLock {
+            var completedCommands: [(PendingCommand, RESPValue)] = []
+            while let value = $0.parser.parse() {
+                guard !$0.pendingCompletions.isEmpty else { continue }
+                let pendingResponse = $0.pendingCompletions.removeFirst()
+                if let completion = pendingResponse.command {
+                    completedCommands.append((completion, value))
+                }
             }
+            return completedCommands
+        }
+
+        for (completion, value) in completedCommands {
+            completion.complete(.success(value))
         }
     }
 
@@ -413,37 +677,51 @@ class RedisClient: ObservableObject, @unchecked Sendable {
     }
 
     func send(_ args: [String]) async throws -> RESPValue {
+        let data = RESPEncoder.encode(args, version: negotiatedProtocolVersion)
+        return try await sendEncodedCommand(data)
+    }
+
+    private func sendEncodedCommand(_ data: Data) async throws -> RESPValue {
+        try Task.checkCancellation()
         guard isConnected else {
             throw RedisError.notConnected
         }
 
-        return try await withCheckedThrowingContinuation { continuation in
-            // Use negotiated protocol version for encoding
-            let data = RESPEncoder.encode(args, version: negotiatedProtocolVersion)
-            let pendingCompletion = PendingCommand(continuation)
+        let pendingCompletion = PendingCommand()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                pendingCompletion.setContinuation(continuation)
 
-            self.queue.async {
-                guard let connection = self.connection else {
-                    pendingCompletion.complete(.failure(RedisError.notConnected))
-                    return
-                }
+                self.queue.async {
+                    guard !pendingCompletion.isCompleted else { return }
+                    guard let connection = self.state.withLock({ $0.connection }) else {
+                        pendingCompletion.complete(.failure(RedisError.notConnected))
+                        return
+                    }
+                    guard pendingCompletion.reserveResponseSlot() else { return }
 
-                self.pendingCompletions.append(pendingCompletion)
+                    self.state.withLock {
+                        $0.pendingCompletions.append(.command(pendingCompletion))
+                    }
 
-                connection.send(
-                    content: data,
-                    completion: .contentProcessed { error in
-                        if let error = error {
-                            self.queue.async {
-                                self.failPendingCompletion(pendingCompletion, with: error)
+                    connection.send(
+                        content: data,
+                        completion: .contentProcessed { error in
+                            if let error = error {
+                                self.queue.async {
+                                    self.failPendingCompletion(pendingCompletion, with: error)
+                                }
                             }
-                        }
-                    })
+                        })
+                }
             }
+        } onCancel: {
+            self.cancelPendingCompletion(pendingCompletion)
         }
     }
 
     func sendPipeline(_ commands: [[String]]) async throws -> [RESPValue] {
+        try Task.checkCancellation()
         guard isConnected else {
             throw RedisError.notConnected
         }
@@ -452,41 +730,58 @@ class RedisClient: ObservableObject, @unchecked Sendable {
             throw RedisError.commandError("Redis command is empty")
         }
 
-        return try await withCheckedThrowingContinuation { continuation in
-            var data = Data()
-            for command in commands {
-                data.append(RESPEncoder.encode(command, version: negotiatedProtocolVersion))
-            }
+        let data = commands.reduce(into: Data()) { encodedData, command in
+            encodedData.append(RESPEncoder.encode(command, version: negotiatedProtocolVersion))
+        }
 
-            let pipeline = PendingPipeline(count: commands.count, continuation: continuation)
-            let pendingCommands = commands.indices.map { index in
-                PendingCommand { result in
-                    pipeline.complete(index: index, with: result)
+        let pendingBatch = PendingCommandBatch()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let pipeline = PendingPipeline(count: commands.count, continuation: continuation)
+                let pendingCommands = commands.indices.map { index in
+                    PendingCommand(completion: { result in
+                        pipeline.complete(index: index, with: result)
+                    })
                 }
-            }
 
-            self.queue.async {
-                guard let connection = self.connection else {
+                guard pendingBatch.setCommands(pendingCommands) else {
                     for pendingCommand in pendingCommands {
-                        pendingCommand.complete(.failure(RedisError.notConnected))
+                        pendingCommand.complete(.failure(CancellationError()))
                     }
                     return
                 }
 
-                self.pendingCompletions.append(contentsOf: pendingCommands)
+                self.queue.async {
+                    guard pendingCommands.allSatisfy({ !$0.isCompleted }) else { return }
+                    guard let connection = self.state.withLock({ $0.connection }) else {
+                        for pendingCommand in pendingCommands {
+                            pendingCommand.complete(.failure(RedisError.notConnected))
+                        }
+                        return
+                    }
+                    for pendingCommand in pendingCommands {
+                        guard pendingCommand.reserveResponseSlot() else { return }
+                    }
 
-                connection.send(
-                    content: data,
-                    completion: .contentProcessed { error in
-                        if let error = error {
-                            self.queue.async {
-                                for pendingCommand in pendingCommands {
-                                    self.failPendingCompletion(pendingCommand, with: error)
+                    self.state.withLock {
+                        $0.pendingCompletions.append(contentsOf: pendingCommands.map(PendingResponse.command))
+                    }
+
+                    connection.send(
+                        content: data,
+                        completion: .contentProcessed { error in
+                            if let error = error {
+                                self.queue.async {
+                                    for pendingCommand in pendingCommands {
+                                        self.failPendingCompletion(pendingCommand, with: error)
+                                    }
                                 }
                             }
-                        }
-                    })
+                        })
+                }
             }
+        } onCancel: {
+            self.cancelPendingCompletions(pendingBatch)
         }
     }
 
@@ -532,28 +827,7 @@ class RedisClient: ObservableObject, @unchecked Sendable {
             version: .resp2
         )
 
-        return try await withCheckedThrowingContinuation { continuation in
-            let pendingCompletion = PendingCommand(continuation)
-
-            self.queue.async {
-                guard let connection = self.connection else {
-                    pendingCompletion.complete(.failure(RedisError.notConnected))
-                    return
-                }
-
-                self.pendingCompletions.append(pendingCompletion)
-
-                connection.send(
-                    content: data,
-                    completion: .contentProcessed { error in
-                        if let error = error {
-                            self.queue.async {
-                                self.failPendingCompletion(pendingCompletion, with: error)
-                            }
-                        }
-                    })
-            }
-        }
+        return try await sendEncodedCommand(data)
     }
 
     private var helloCommandIncludesAuthentication: Bool {
@@ -623,10 +897,12 @@ class RedisClient: ObservableObject, @unchecked Sendable {
             throw RedisError.commandError("Unable to use RESP2 for \(serverDescription): \(message)")
         }
 
-        serverCapabilities.merge(normalizedHelloCapabilities(from: result.keyValuePairs)) { _, new in new }
-        negotiatedProtocolVersion = .resp2
-        serverCapabilities["proto"] = .integer(2)
-        protocolFallbackReason = fallbackReason
+        state.withLock {
+            $0.serverCapabilities.merge(normalizedHelloCapabilities(from: result.keyValuePairs)) { _, new in new }
+            $0.negotiatedProtocolVersion = .resp2
+            $0.serverCapabilities["proto"] = .integer(2)
+            $0.protocolFallbackReason = fallbackReason
+        }
     }
 
     private func logNegotiatedProtocol(authenticatedByHello: Bool) {

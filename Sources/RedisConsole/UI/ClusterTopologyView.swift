@@ -22,11 +22,14 @@ struct ClusterTopologyView: View {
 
                 // Nodes
                 ForEach(layout.nodes) { item in
-                    nodeView(item)
-                        .position(item.position)
-                        .onTapGesture {
-                            onSelectNode(item.node.endpoint)
-                        }
+                    Button {
+                        onSelectNode(item.node.endpoint)
+                    } label: {
+                        nodeView(item)
+                    }
+                    .buttonStyle(.plain)
+                    .position(item.position)
+                    .accessibilityLabel(nodeAccessibilityLabel(item.node))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -79,6 +82,10 @@ struct ClusterTopologyView: View {
         return parts.joined(separator: "\n")
     }
 
+    private func nodeAccessibilityLabel(_ node: RedisClusterNodeSummary) -> String {
+        "\(node.endpoint.address), \(node.role.title)"
+    }
+
     private func computeLayout(in size: CGSize) -> TopologyLayout {
         let primaries = nodes.filter { $0.role == .primary }
         let replicas = nodes.filter { $0.role == .replica }
@@ -103,7 +110,8 @@ struct ClusterTopologyView: View {
 
         // Layout replicas in outer circle, connected to their primary
         for (index, node) in replicas.enumerated() {
-            let angle = (2 * .pi * Double(index) / Double(max(replicas.count, 1))) - .pi / 2 + .pi / Double(max(replicas.count, 1))
+            let replicaCount = Double(max(replicas.count, 1))
+            let angle = (2 * .pi * Double(index) / replicaCount) - .pi / 2 + .pi / replicaCount
             let pos = CGPoint(
                 x: centerX + CGFloat(cos(angle)) * replicaRadius,
                 y: centerY + CGFloat(sin(angle)) * replicaRadius
@@ -111,11 +119,22 @@ struct ClusterTopologyView: View {
             nodeItems.append(TopologyNodeItem(node: node, position: pos, color: .green))
 
             // Line to primary
-            if let replicaOf = node.replicaOf,
-               let primary = primaries.first(where: { $0.endpoint == replicaOf }),
-               let primaryItem = nodeItems.first(where: { $0.node.endpoint == primary.endpoint }) {
-                lines.append(TopologyLine(from: primaryItem.position, to: pos, color: .blue.opacity(0.4)))
+            guard let replicaOf = node.replicaOf else { continue }
+            guard let primary = primaries.first(where: { $0.endpoint == replicaOf }) else { continue }
+            guard
+                let primaryItem = nodeItems.first(
+                    where: { $0.node.endpoint == primary.endpoint }
+                )
+            else {
+                continue
             }
+            lines.append(
+                TopologyLine(
+                    from: primaryItem.position,
+                    to: pos,
+                    color: .blue.opacity(0.4)
+                )
+            )
         }
 
         return TopologyLayout(nodes: nodeItems, lines: lines)
