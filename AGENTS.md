@@ -53,7 +53,7 @@ just format-check
 just build-release
 
 # Build release and open app
-just open
+just run
 
 # Install to ~/Applications
 just install

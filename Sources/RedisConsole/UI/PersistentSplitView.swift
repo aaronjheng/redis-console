@@ -8,7 +8,7 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
     let rightMinWidth: CGFloat
 
     init(
-        dividerPositionKey: String = "com.redisconsole.browserSplitDividerPosition",
+        dividerPositionKey: String = "com.redisconsole.browserSplitDividerPosition.v2",
         leftMinWidth: CGFloat = 250,
         rightMinWidth: CGFloat = 250,
         @ViewBuilder left: () -> Left,

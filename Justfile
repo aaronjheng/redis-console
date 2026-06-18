@@ -20,7 +20,7 @@ build-release:
 clean:
     rm -rf .build
 
-open: build-release
+run: build-release
     @open '{{ app_bundle }}'
 
 install: build-release
