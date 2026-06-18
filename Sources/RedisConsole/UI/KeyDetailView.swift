@@ -340,71 +340,77 @@ struct KeyDetailView: View {
     }
 
     private func headerView(key: RedisKeyEntry) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                KeyTypeBadge(type: key.type)
-                Text(key.key)
-                    .font(.title3)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer(minLength: 0)
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    KeyTypeBadge(type: key.type)
+                    Text(key.key)
+                        .font(.title3)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 0)
+                }
+
+                HStack(spacing: 10) {
+                    if let length = app.keyDetailLength ?? key.length {
+                        HStack(spacing: 2) {
+                            Image(systemName: "number")
+                            Text("Length: \(length)")
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                    if let size = app.valueSize ?? key.size {
+                        HStack(spacing: 2) {
+                            Image(systemName: "memorychip")
+                            Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory))
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                    Button {
+                        beginEditingTTL(for: key)
+                    } label: {
+                        HStack(spacing: 2) {
+                            Image(systemName: "clock")
+                            Text("TTL: \(key.ttlText)")
+                            Image(systemName: "pencil")
+                                .imageScale(.small)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(key.hasExpiry ? Color.orange : .secondary)
+                    .disabled(app.isLoadingDetail)
+                    .accessibilityLabel("Edit TTL, \(key.ttlText)")
+                    .help("Edit TTL")
+                    .popover(isPresented: $showingTTLEditor, arrowEdge: .bottom) {
+                        KeyTTLEditorPopover(
+                            keyName: key.key,
+                            ttlInput: $ttlInput,
+                            error: ttlEditorError,
+                            onSave: { saveTTL(for: key) },
+                            onCancel: cancelTTLEdit
+                        )
+                        .onChange(of: ttlInput) { _, newValue in
+                            let validatedValue = validatedTTLInput(newValue)
+                            if validatedValue != newValue {
+                                ttlInput = validatedValue
+                            }
+                            ttlEditorError = nil
+                        }
+                    }
+                    if let refreshedAt = app.keyDetailLastRefreshedAt {
+                        HStack(spacing: 2) {
+                            Image(systemName: "clock.arrow.circlepath")
+                            Text(refreshedAt, style: .time)
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack(spacing: 10) {
-                if let length = app.keyDetailLength ?? key.length {
-                    HStack(spacing: 2) {
-                        Image(systemName: "number")
-                        Text("Length: \(length)")
-                    }
-                    .foregroundStyle(.secondary)
-                }
-                if let size = app.valueSize ?? key.size {
-                    HStack(spacing: 2) {
-                        Image(systemName: "memorychip")
-                        Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory))
-                    }
-                    .foregroundStyle(.secondary)
-                }
-                Button {
-                    beginEditingTTL(for: key)
-                } label: {
-                    HStack(spacing: 2) {
-                        Image(systemName: "clock")
-                        Text("TTL: \(key.ttlText)")
-                        Image(systemName: "pencil")
-                            .imageScale(.small)
-                    }
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(key.hasExpiry ? Color.orange : .secondary)
-                .disabled(app.isLoadingDetail)
-                .accessibilityLabel("Edit TTL, \(key.ttlText)")
-                .help("Edit TTL")
-                .popover(isPresented: $showingTTLEditor, arrowEdge: .bottom) {
-                    KeyTTLEditorPopover(
-                        keyName: key.key,
-                        ttlInput: $ttlInput,
-                        error: ttlEditorError,
-                        onSave: { saveTTL(for: key) },
-                        onCancel: cancelTTLEdit
-                    )
-                    .onChange(of: ttlInput) { _, newValue in
-                        let validatedValue = validatedTTLInput(newValue)
-                        if validatedValue != newValue {
-                            ttlInput = validatedValue
-                        }
-                        ttlEditorError = nil
-                    }
-                }
-                if let refreshedAt = app.keyDetailLastRefreshedAt {
-                    HStack(spacing: 2) {
-                        Image(systemName: "clock.arrow.circlepath")
-                        Text(refreshedAt, style: .time)
-                    }
-                    .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-
+            HStack(spacing: 8) {
                 KeyDetailRefreshControl(
                     isAutoRefreshEnabled: $isAutoRefreshEnabled,
                     autoRefreshInterval: $autoRefreshInterval,
@@ -435,8 +441,6 @@ struct KeyDetailView: View {
                 .disabled(app.isLoadingDetail)
                 .help("Delete key")
             }
-            .font(.subheadline)
-            .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
         }
         .padding(8)
     }
