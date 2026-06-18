@@ -340,7 +340,7 @@ struct KeyDetailView: View {
     }
 
     private func headerView(key: RedisKeyEntry) -> some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 KeyTypeBadge(type: key.type)
                 Text(key.key)
@@ -349,7 +349,6 @@ struct KeyDetailView: View {
                     .truncationMode(.middle)
                 Spacer(minLength: 0)
             }
-            .padding(8)
 
             HStack(spacing: 10) {
                 if let length = app.keyDetailLength ?? key.length {
@@ -437,10 +436,9 @@ struct KeyDetailView: View {
                 .help("Delete key")
             }
             .font(.subheadline)
-            .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
         }
+        .padding(8)
     }
 
     private func beginEditingTTL(for key: RedisKeyEntry) {

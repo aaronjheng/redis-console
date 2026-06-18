@@ -12,22 +12,23 @@ struct WorkspaceSidebarView: View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 if let selectedConnection = conn.selectedConnection {
-                    HStack(spacing: AppTheme.spacingSmall) {
-                        Text(selectedConnection.name)
-                            .font(.headline)
-                            .lineLimit(1)
-                        Spacer(minLength: AppTheme.spacing)
-                        ConnectionModeBadge(mode: selectedConnection.mode)
-                    }
-                    .padding(8)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: AppTheme.spacingSmall) {
+                            Text(selectedConnection.name)
+                                .font(.title3)
+                                .lineLimit(1)
+                            Spacer(minLength: AppTheme.spacing)
+                            ConnectionModeBadge(mode: selectedConnection.mode)
+                        }
 
-                    Text(selectedConnection.address)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
-                        .padding(.horizontal, 8)
-                        .padding(.bottom, 8)
+                        Text(selectedConnection.address)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .frame(minHeight: 22, alignment: .leading)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
                 }
             }
 
