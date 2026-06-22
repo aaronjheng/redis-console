@@ -152,11 +152,32 @@ extension ConnectionState {
         return capabilities
     }
 
+    private static let moduleFriendlyNames: [String: String] = [
+        "bf": "Bloom Filter",
+        "RedisBloom": "Bloom Filter",
+        "ft": "RediSearch",
+        "search": "RediSearch",
+        "ts": "RedisTimeSeries",
+        "timeseries": "RedisTimeSeries",
+        "ReJSON": "RedisJSON",
+        "json": "RedisJSON",
+        "graph": "RedisGraph",
+        "ai": "RedisAI",
+        "rg": "RedisGears",
+        "RedisGears": "RedisGears",
+        "RedisGraph": "RedisGraph",
+        "RedisAI": "RedisAI",
+        "redis-cell": "RedisCell",
+        "cell": "RedisCell",
+        "bf-reserve": "Bloom Filter",
+    ]
+
     private func moduleCapability(
         from fields: [(String, String)],
         fallbackName: String
     ) -> RedisServerCapability {
-        let name = fields.first { $0.0 == "name" }?.1 ?? fallbackName
+        let rawName = fields.first { $0.0 == "name" }?.1 ?? fallbackName
+        let name = Self.moduleFriendlyNames[rawName] ?? rawName
         let rawVersion = fields.first { $0.0 == "ver" }?.1
         let details = fields.compactMap { key, value -> RedisServerCapabilityDetail? in
             guard key != "name", key != "ver" else { return nil }
