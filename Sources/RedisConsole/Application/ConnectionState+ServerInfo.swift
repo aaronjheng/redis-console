@@ -170,6 +170,7 @@ extension ConnectionState {
         "redis-cell": "RedisCell",
         "cell": "RedisCell",
         "bf-reserve": "Bloom Filter",
+        "vectorset": "Vector Set",
     ]
 
     private func moduleCapability(
