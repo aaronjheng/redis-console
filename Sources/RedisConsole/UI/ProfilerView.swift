@@ -192,10 +192,10 @@ private struct ProfilerToolbarView: View {
                 }
 
                 Toggle("Auto-scroll", isOn: $autoScroll)
-                    .toggleStyle(.checkbox)
+                    .toggleStyle(.switch)
 
                 Toggle("Hide noise", isOn: $hideNoiseCommands)
-                    .toggleStyle(.checkbox)
+                    .toggleStyle(.switch)
 
                 Label("MONITOR can slow busy servers", systemImage: "exclamationmark.triangle")
                     .font(.caption)
