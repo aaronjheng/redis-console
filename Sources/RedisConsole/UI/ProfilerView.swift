@@ -148,7 +148,7 @@ private struct ProfilerToolbarView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Label("Profiler", systemImage: "waveform.path.ecg")
+                Text("Profiler")
                     .font(.headline)
 
                 ProfilerStatusPill(isStarting: isStarting, isRunning: isRunning)
