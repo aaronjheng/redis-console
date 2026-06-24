@@ -7,7 +7,6 @@ struct ProfilerView: View {
     @State private var autoScroll = true
     @State private var hideNoiseCommands = true
     @State private var selectedEntryID: RedisProfilerEntry.ID?
-    @State private var showStats = false
 
     private var filteredEntries: [RedisProfilerEntry] {
         let visibleEntries =
@@ -38,7 +37,6 @@ struct ProfilerView: View {
                 filterText: $filterText,
                 autoScroll: $autoScroll,
                 hideNoiseCommands: $hideNoiseCommands,
-                showStats: $showStats,
                 isStarting: app.isProfilerStarting,
                 isRunning: app.isProfilerRunning,
                 onToggleCapture: toggleCapture,
@@ -49,10 +47,7 @@ struct ProfilerView: View {
                 ProfilerErrorBanner(message: error)
             }
 
-            if showStats {
-                ProfilerStatsView(entries: filteredEntries)
-            } else {
-                ProfilerContentView(
+            ProfilerContentView(
                     entries: filteredEntries,
                     isStarting: app.isProfilerStarting,
                     isRunning: app.isProfilerRunning,
@@ -61,7 +56,6 @@ struct ProfilerView: View {
                     lastVisibleEntryID: lastVisibleEntryID,
                     onStart: app.startProfiler
                 )
-            }
 
             Divider()
 
@@ -145,7 +139,6 @@ private struct ProfilerToolbarView: View {
     @Binding var filterText: String
     @Binding var autoScroll: Bool
     @Binding var hideNoiseCommands: Bool
-    @Binding var showStats: Bool
     let isStarting: Bool
     let isRunning: Bool
     let onToggleCapture: () -> Void
@@ -169,13 +162,6 @@ private struct ProfilerToolbarView: View {
                     Label(captureButtonTitle, systemImage: captureButtonIcon)
                 }
                 .buttonStyle(.borderedProminent)
-
-                Toggle(isOn: $showStats) {
-                    Label("Toggle statistics view", systemImage: "chart.bar")
-                }
-                .labelStyle(.iconOnly)
-                .toggleStyle(.button)
-                .help("Toggle statistics view")
             }
             .padding()
 

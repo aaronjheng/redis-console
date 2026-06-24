@@ -143,7 +143,6 @@
 				<string>4802E28E6C154B3FA32C51DD</string>
 				<string>6AC6C4B80F017969CEB19B06</string>
 				<string>4CA6B3946EE148E4AB3E6C47</string>
-				<string>E994FEAA98244EA48541FD5F</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -826,13 +825,6 @@
 		<dict>
 			<key>fileRef</key>
 			<string>E1202E9EAD648CAADB72313E</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
-		<key>887B11D2D2F941D3B9F989DA</key>
-		<dict>
-			<key>fileRef</key>
-			<string>E994FEAA98244EA48541FD5F</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -1572,17 +1564,6 @@
 			<string>Debug</string>
 			<key>isa</key>
 			<string>XCConfigurationList</string>
-		</dict>
-		<key>E994FEAA98244EA48541FD5F</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>UI/ProfilerStatsView.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
 		</dict>
 		<key>EBBB9DD78140920F3F35D5A6</key>
 		<dict>
