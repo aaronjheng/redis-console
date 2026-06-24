@@ -49,8 +49,6 @@ struct ProfilerView: View {
                 ProfilerErrorBanner(message: error)
             }
 
-            Divider()
-
             if showStats {
                 ProfilerStatsView(entries: filteredEntries)
             } else {
@@ -171,9 +169,9 @@ private struct ProfilerToolbarView: View {
                 .toggleStyle(.button)
                 .help("Toggle statistics view")
             }
-            .padding(.horizontal)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            .padding()
+
+            Divider()
 
             HStack(spacing: 10) {
                 ZStack(alignment: .trailing) {
@@ -202,7 +200,9 @@ private struct ProfilerToolbarView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal)
-            .padding(.bottom, 12)
+            .padding(.vertical, 6)
+
+            Divider()
         }
         .background(.bar)
     }
