@@ -48,14 +48,14 @@ struct ProfilerView: View {
             }
 
             ProfilerContentView(
-                    entries: filteredEntries,
-                    isStarting: app.isProfilerStarting,
-                    isRunning: app.isProfilerRunning,
-                    selectedEntryID: $selectedEntryID,
-                    autoScroll: autoScroll,
-                    lastVisibleEntryID: lastVisibleEntryID,
-                    onStart: app.startProfiler
-                )
+                entries: filteredEntries,
+                isStarting: app.isProfilerStarting,
+                isRunning: app.isProfilerRunning,
+                selectedEntryID: $selectedEntryID,
+                autoScroll: autoScroll,
+                lastVisibleEntryID: lastVisibleEntryID,
+                onStart: app.startProfiler
+            )
 
             Divider()
 
@@ -154,14 +154,14 @@ private struct ProfilerToolbarView: View {
 
                 Spacer()
 
-                Button(action: onClear) {
-                    Label("Clear", systemImage: "trash")
-                }
-
                 Button(action: onToggleCapture) {
                     Label(captureButtonTitle, systemImage: captureButtonIcon)
                 }
                 .buttonStyle(.borderedProminent)
+
+                Button(action: onClear) {
+                    Label("Clear", systemImage: "trash")
+                }
             }
             .padding()
 

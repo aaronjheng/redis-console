@@ -5,7 +5,6 @@ import SwiftUI
 struct SlowLogView: View {
     @Environment(ConnectionState.self) private var app
 
-
     var body: some View {
         @Bindable var app = app
 
@@ -23,8 +22,6 @@ struct SlowLogView: View {
 
             }
             .padding()
-
-
 
             // Entries list
             if app.slowLogEntries.isEmpty {

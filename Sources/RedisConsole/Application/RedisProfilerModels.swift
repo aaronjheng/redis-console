@@ -223,5 +223,3 @@ struct RedisProfilerEntry: Identifiable, Hashable {
         return "\"\(escaped)\""
     }
 }
-
-
