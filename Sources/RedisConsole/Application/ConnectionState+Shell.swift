@@ -80,8 +80,7 @@ extension ConnectionState {
     }
 
     func executeCommand(_ input: String) async {
-        let client = shellClient ?? activeClient
-        guard let client, client.isConnected else { return }
+        guard let client = shellClient, client.isConnected else { return }
         do {
             let parts = try parseCommand(input)
             guard !parts.isEmpty else { return }
