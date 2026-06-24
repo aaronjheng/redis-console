@@ -4,9 +4,7 @@ import SwiftUI
 
 struct SlowLogView: View {
     @Environment(ConnectionState.self) private var app
-    @State private var showClearConfirmation = false
-    @State private var thresholdUnit = 1
-    @State private var isApplyingSlowLogConfig = false
+
 
     var body: some View {
         @Bindable var app = app
@@ -17,97 +15,16 @@ struct SlowLogView: View {
                 Text("Slow Log")
                     .font(.headline)
                 Spacer()
-                if app.isLoadingSlowLog {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .controlSize(.small)
-                }
-                Button("Refresh", systemImage: "arrow.clockwise") {
-                    Task { await app.fetchSlowLog() }
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .disabled(app.isLoadingSlowLog)
-                .help("Refresh")
+                SlowLogRefreshControl(
+                    autoRefreshInterval: $app.slowLogConfig.autoRefreshInterval,
+                    isLoading: app.isLoadingSlowLog,
+                    onRefresh: { Task { await app.fetchSlowLog() } }
+                )
 
-                Button("Clear Slow Log", systemImage: "trash") {
-                    showClearConfirmation = true
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .disabled(app.slowLogEntries.isEmpty)
-                .help("Clear Slow Log")
             }
             .padding()
 
-            Divider()
 
-            // Config bar
-            HStack(spacing: AppTheme.spacing) {
-                HStack(spacing: 4) {
-                    Text("Threshold:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextField("", value: thresholdValue, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 80)
-                        .font(.caption)
-                        .onSubmit {
-                            Task { await applySlowLogConfig() }
-                        }
-                    Picker("", selection: thresholdUnitSelection) {
-                        Text("\u{00B5}s").tag(1)
-                        Text("ms").tag(1000)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 80)
-                }
-
-                HStack(spacing: 4) {
-                    Text("Max Len:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextField("", value: $app.slowLogConfig.maxLen, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 60)
-                        .font(.caption)
-                        .onSubmit {
-                            Task { await applySlowLogConfig() }
-                        }
-                }
-
-                Button("Apply", systemImage: "checkmark.circle") {
-                    Task { await applySlowLogConfig() }
-                }
-                .font(.caption)
-                .disabled(isApplyingSlowLogConfig || app.activeClient?.isConnected != true)
-
-                HStack(spacing: 4) {
-                    Text("Auto-refresh:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Picker("", selection: $app.slowLogConfig.autoRefreshInterval) {
-                        ForEach(SlowLogConfig.autoRefreshOptions, id: \.value) { option in
-                            Text(option.title).tag(option.value)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(width: 60)
-                }
-
-                Spacer()
-
-                if let error = app.slowLogError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 6)
-
-            Divider()
 
             // Entries list
             if app.slowLogEntries.isEmpty {
@@ -169,7 +86,6 @@ struct SlowLogView: View {
         }
         .task {
             app.loadSlowLogConfig()
-            thresholdUnit = app.slowLogConfig.threshold >= 1000 ? 1000 : 1
             await app.fetchSlowLog()
         }
         .onChange(of: app.slowLogConfig.autoRefreshInterval) { _, _ in
@@ -178,28 +94,6 @@ struct SlowLogView: View {
         .task(id: app.slowLogConfig.autoRefreshInterval) {
             await autoRefreshSlowLog(interval: app.slowLogConfig.autoRefreshInterval)
         }
-        .alert("Clear Slow Log?", isPresented: $showClearConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Clear", role: .destructive) {
-                Task { await app.resetSlowLog() }
-            }
-        } message: {
-            Text("This will remove all slow log entries. Continue?")
-        }
-    }
-
-    private var thresholdUnitSelection: Binding<Int> {
-        Binding(
-            get: { thresholdUnit },
-            set: { thresholdUnit = $0 }
-        )
-    }
-
-    private var thresholdValue: Binding<Int> {
-        Binding(
-            get: { max(1, app.slowLogConfig.threshold / thresholdUnit) },
-            set: { app.slowLogConfig.threshold = max(1, $0) * thresholdUnit }
-        )
     }
 
     private func durationColor(_ duration: Int) -> Color {
@@ -213,20 +107,6 @@ struct SlowLogView: View {
         return .primary
     }
 
-    @MainActor
-    private func applySlowLogConfig() async {
-        guard !isApplyingSlowLogConfig else { return }
-        let threshold = app.slowLogConfig.threshold
-        let maxLen = app.slowLogConfig.maxLen
-
-        isApplyingSlowLogConfig = true
-        defer { isApplyingSlowLogConfig = false }
-
-        await app.updateSlowLogThreshold(threshold)
-        await app.updateSlowLogMaxLen(maxLen)
-        await app.fetchSlowLog()
-    }
-
     private func autoRefreshSlowLog(interval: TimeInterval) async {
         guard interval > 0 else { return }
         while !Task.isCancelled {
@@ -234,5 +114,143 @@ struct SlowLogView: View {
             guard !Task.isCancelled else { return }
             await app.fetchSlowLog()
         }
+    }
+}
+
+// MARK: - Slow Log Refresh Control
+
+private struct SlowLogRefreshControl: View {
+    @Binding var autoRefreshInterval: TimeInterval
+    let isLoading: Bool
+    let onRefresh: () -> Void
+
+    private static let intervals: [TimeInterval] = [5, 10, 30, 60]
+
+    private var isAutoRefreshEnabled: Bool {
+        autoRefreshInterval > 0
+    }
+
+    private static func intervalTitle(_ seconds: TimeInterval) -> String {
+        let s = Int(seconds)
+        if s.isMultiple(of: 60) {
+            return "\(s / 60)m"
+        }
+        return "\(s)s"
+    }
+
+    @State private var isRefreshHovering = false
+    @State private var isMenuHovering = false
+
+    var body: some View {
+        HStack(spacing: 0) {
+            refreshButton
+            separator
+            intervalMenu
+        }
+        .frame(height: 22)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(.background.secondary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(.separator, lineWidth: 0.5)
+        )
+        .opacity(isLoading ? 0.5 : 1)
+    }
+
+    private var refreshButton: some View {
+        Button {
+            onRefresh()
+        } label: {
+            Label("Refresh", systemImage: "arrow.clockwise")
+                .labelStyle(.iconOnly)
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 26, height: 22)
+                .contentShape(Rectangle())
+                .background(
+                    isRefreshHovering && !isLoading
+                        ? Color.primary.opacity(0.08)
+                        : Color.clear
+                )
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 6,
+                        bottomLeadingRadius: 6,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 0,
+                        style: .continuous
+                    )
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+        .onHover { isRefreshHovering = $0 }
+        .help("Refresh")
+    }
+
+    private var separator: some View {
+        Rectangle()
+            .fill(.separator)
+            .frame(width: 0.5, height: 14)
+    }
+
+    private var intervalMenu: some View {
+        Menu {
+            Button {
+                autoRefreshInterval = 0
+            } label: {
+                menuItemLabel(text: "Off", checked: !isAutoRefreshEnabled)
+            }
+            Divider()
+            ForEach(Self.intervals, id: \.self) { interval in
+                Button {
+                    autoRefreshInterval = interval
+                } label: {
+                    menuItemLabel(
+                        text: Self.intervalTitle(interval),
+                        checked: isAutoRefreshEnabled && autoRefreshInterval == interval
+                    )
+                }
+            }
+        } label: {
+            HStack(spacing: 0) {
+                if isAutoRefreshEnabled {
+                    Text(Self.intervalTitle(autoRefreshInterval))
+                        .font(.system(size: 11, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.tint)
+                        .padding(.horizontal, 6)
+                } else {
+                    Color.clear.frame(width: 18, height: 22)
+                }
+            }
+            .frame(height: 22)
+            .contentShape(Rectangle())
+            .background(
+                isMenuHovering && !isLoading
+                    ? Color.primary.opacity(0.08)
+                    : Color.clear
+            )
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 6,
+                    topTrailingRadius: 6,
+                    style: .continuous
+                )
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.visible)
+        .fixedSize()
+        .disabled(isLoading)
+        .onHover { isMenuHovering = $0 }
+        .help(isAutoRefreshEnabled ? "Auto refresh every \(Self.intervalTitle(autoRefreshInterval))" : "Auto refresh off")
+    }
+
+    private func menuItemLabel(text: String, checked: Bool) -> some View {
+        Text(checked ? "\(text)  \u{2713}" : text)
     }
 }

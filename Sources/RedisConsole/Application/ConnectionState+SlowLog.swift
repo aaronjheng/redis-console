@@ -55,66 +55,6 @@ extension ConnectionState {
         }
     }
 
-    func resetSlowLog() async {
-        guard let client = activeClient, client.isConnected else { return }
-        do {
-            let result = try await client.send("SLOWLOG", "RESET")
-            if case .error(let message) = result {
-                throw RedisError.commandError(message)
-            }
-            slowLogEntries = []
-        } catch {
-            slowLogError = error.localizedDescription
-        }
-    }
-
-    func fetchSlowLogConfig() async {
-        guard let client = activeClient, client.isConnected else { return }
-        do {
-            let thresholdResult = try await client.send("CONFIG", "GET", "slowlog-log-slower-than")
-            if let thresholdStr = thresholdResult.arrayValues.first??.string, let threshold = Int(thresholdStr) {
-                await MainActor.run { slowLogConfig.threshold = threshold }
-            }
-
-            let maxLenResult = try await client.send("CONFIG", "GET", "slowlog-max-len")
-            if let maxLenStr = maxLenResult.arrayValues.first??.string, let maxLen = Int(maxLenStr) {
-                await MainActor.run { slowLogConfig.maxLen = maxLen }
-            }
-        } catch {}
-    }
-
-    func updateSlowLogThreshold(_ value: Int) async {
-        guard let client = activeClient, client.isConnected else { return }
-        do {
-            let result = try await client.send("CONFIG", "SET", "slowlog-log-slower-than", "\(value)")
-            if case .error(let message) = result {
-                throw RedisError.commandError(message)
-            }
-            await MainActor.run {
-                slowLogConfig.threshold = value
-                saveSlowLogConfig()
-            }
-        } catch {
-            slowLogError = error.localizedDescription
-        }
-    }
-
-    func updateSlowLogMaxLen(_ value: Int) async {
-        guard let client = activeClient, client.isConnected else { return }
-        do {
-            let result = try await client.send("CONFIG", "SET", "slowlog-max-len", "\(value)")
-            if case .error(let message) = result {
-                throw RedisError.commandError(message)
-            }
-            await MainActor.run {
-                slowLogConfig.maxLen = value
-                saveSlowLogConfig()
-            }
-        } catch {
-            slowLogError = error.localizedDescription
-        }
-    }
-
     private func parseSlowLogEntries(_ value: RESPValue) -> [SlowLogEntry] {
         guard case .array(let entries) = value else { return [] }
 
