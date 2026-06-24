@@ -24,252 +24,219 @@ struct BrowserView: View {
     var body: some View {
         @Bindable var app = app
 
-        PersistentSplitView(
-            leftMinWidth: 250,
-            rightMinWidth: 250
-        ) {
-            VStack(spacing: 0) {
-                HStack(spacing: 6) {
-                    ZStack(alignment: .trailing) {
-                        TextField("Pattern (e.g. user:* or *)", text: $searchText)
-                            .textFieldStyle(.roundedBorder)
-                            .onSubmit {
-                                app.keyFilter = searchText.isEmpty ? "*" : searchText
+        VStack(spacing: 0) {
+            // MARK: Header Bar
+            HStack(spacing: 8) {
+                Picker("", selection: $app.keyTypeFilter) {
+                    Text("All Types").tag("")
+                    Text("String").tag("string")
+                    Text("List").tag("list")
+                    Text("Hash").tag("hash")
+                    Text("Set").tag("set")
+                    Text("Sorted Set").tag("zset")
+                }
+                .labelsHidden()
+                .frame(width: 120)
+
+                Divider()
+                    .frame(height: 16)
+
+                ZStack(alignment: .trailing) {
+                    TextField("Filter by key pattern (e.g. user:*)", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                            app.keyFilter = searchText.isEmpty ? "*" : searchText
+                            app.keyScanCount = currentScanCount
+                            Task { await app.scanKeys(reset: true) }
+                        }
+                    HStack(spacing: 4) {
+                        if !searchText.isEmpty {
+                            Button("Clear Search", systemImage: "xmark.circle.fill") {
+                                searchText = ""
+                                app.keyFilter = "*"
                                 app.keyScanCount = currentScanCount
                                 Task { await app.scanKeys(reset: true) }
                             }
-                        HStack(spacing: 4) {
-                            if !searchText.isEmpty {
-                                Button("Clear Search", systemImage: "xmark.circle.fill") {
-                                    searchText = ""
-                                    app.keyFilter = "*"
-                                    app.keyScanCount = currentScanCount
-                                    Task { await app.scanKeys(reset: true) }
-                                }
-                                .labelStyle(.iconOnly)
-                                .buttonStyle(.borderless)
-                                .foregroundStyle(.secondary)
-                            }
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(.secondary)
-                                .padding(.trailing, 8)
+                            .labelStyle(.iconOnly)
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.secondary)
                         }
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                            .padding(.trailing, 8)
                     }
                 }
-                .padding(8)
 
-                HStack {
-                    Picker("", selection: $app.keyTypeFilter) {
-                        Text("All Types").tag("")
-                        Text("String").tag("string")
-                        Text("List").tag("list")
-                        Text("Hash").tag("hash")
-                        Text("Set").tag("set")
-                        Text("Sorted Set").tag("zset")
-                    }
-                    .labelsHidden()
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            if let error = app.connectionError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle")
+                    Text(error)
+                        .lineLimit(2)
                     Spacer()
-                    Picker(
-                        "Key List Style",
-                        selection: Binding(
-                            get: { app.isNamespaceGroupingEnabled },
-                            set: { isEnabled in
-                                guard app.isNamespaceGroupingEnabled != isEnabled else { return }
-                                app.isNamespaceGroupingEnabled = isEnabled
-                                app.keyScanCount = isEnabled ? treeScanCount : listScanCount
-                                expandedNamespaces = []
-                                Task { await app.scanKeys(reset: true) }
-                            }
-                        )
-                    ) {
-                        Image(systemName: "list.bullet")
-                            .help("Flat list")
-                            .tag(false)
-                        Image(systemName: "folder")
-                            .help("Group by namespace")
-                            .tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
-                    .help("Toggle key list layout")
-                    Button("Refresh", systemImage: "arrow.clockwise") {
-                        app.keyScanCount = currentScanCount
-                        Task { await app.scanKeys(reset: true) }
+                    Button("Dismiss", systemImage: "xmark") {
+                        app.connectionError = nil
                     }
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
-                    .disabled(app.isLoadingKeys)
-                    .help("Refresh")
+                    .help("Dismiss")
                 }
+                .font(.caption)
+                .foregroundStyle(.red)
                 .padding(.horizontal, 8)
-                .padding(.bottom, 8)
+                .padding(.vertical, 6)
 
-                if let error = app.connectionError {
+                Divider()
+            }
+
+            PersistentSplitView(
+                leftMinWidth: 250,
+                rightMinWidth: 250
+            ) {
+                // MARK: Left Panel
+                VStack(spacing: 0) {
                     HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle")
-                        Text(error)
-                            .lineLimit(2)
+                        Picker(
+                            "Key List Style",
+                            selection: Binding(
+                                get: { app.isNamespaceGroupingEnabled },
+                                set: { isEnabled in
+                                    guard app.isNamespaceGroupingEnabled != isEnabled else { return }
+                                    app.isNamespaceGroupingEnabled = isEnabled
+                                    app.keyScanCount = isEnabled ? treeScanCount : listScanCount
+                                    expandedNamespaces = []
+                                    Task { await app.scanKeys(reset: true) }
+                                }
+                            )
+                        ) {
+                            Image(systemName: "list.bullet")
+                                .help("Flat list")
+                                .tag(false)
+                            Image(systemName: "folder")
+                                .help("Group by namespace")
+                                .tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .fixedSize()
+                        .help("Toggle key list layout")
+
                         Spacer()
-                        Button("Dismiss", systemImage: "xmark") {
-                            app.connectionError = nil
+
+                        Button("Refresh", systemImage: "arrow.clockwise") {
+                            app.keyScanCount = currentScanCount
+                            Task { await app.scanKeys(reset: true) }
                         }
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
-                        .help("Dismiss")
+                        .disabled(app.isLoadingKeys)
+                        .help("Refresh keys")
                     }
-                    .font(.caption)
-                    .foregroundStyle(.red)
                     .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
-                }
+                    .padding(.vertical, 6)
 
-                Divider()
+                    Divider()
 
-                let displayedKeys = filteredKeys
+                    let displayedKeys = filteredKeys
 
-                if app.isLoadingKeys && app.keys.isEmpty {
-                    Spacer()
-                    ProgressView("Scanning keys...")
-                    Spacer()
-                } else if app.keys.isEmpty {
-                    Spacer()
-                    EmptyStateView(
-                        icon: "key.slash",
-                        title: searchText.isEmpty ? "No keys found" : "No matching keys"
-                    )
-                    if app.hasMoreKeys {
-                        if app.isLoadingKeys {
-                            HStack(spacing: 6) {
+                    if app.isLoadingKeys && app.keys.isEmpty {
+                        Spacer()
+                        ProgressView("Scanning keys...")
+                        Spacer()
+                    } else if app.keys.isEmpty {
+                        Spacer()
+                        EmptyStateView(
+                            icon: "key.slash",
+                            title: searchText.isEmpty ? "No keys found" : "No matching keys"
+                        )
+                        loadMoreOrScanningView
+                        Spacer()
+                    } else if displayedKeys.isEmpty {
+                        Spacer()
+                        EmptyStateView(
+                            icon: "key.slash",
+                            title: "No matching keys"
+                        )
+                        loadMoreOrScanningView
+                        Spacer()
+                    } else {
+                        Group {
+                            if app.isNamespaceGroupingEnabled {
+                                KeyNamespaceList(
+                                    tree: KeyNamespaceTree(entries: displayedKeys, separator: app.namespaceSeparator),
+                                    selectedKey: $app.selectedKey,
+                                    expandedNamespaces: $expandedNamespaces,
+                                    scrollTargetKey: keyListScrollTarget,
+                                    onDeleteKey: { keyPendingDeletion = $0 },
+                                    onCopyKey: copyKeyToPasteboard
+                                )
+                            } else {
+                                KeyFlatList(
+                                    keys: displayedKeys,
+                                    selectedKey: $app.selectedKey,
+                                    scrollTargetKey: keyListScrollTarget,
+                                    onDeleteKey: { keyPendingDeletion = $0 },
+                                    onCopyKey: copyKeyToPasteboard
+                                )
+                            }
+                        }
+                        .onChange(of: app.selectedKey) { _, newValue in
+                            if let key = newValue {
+                                expandNamespaces(containing: key.key)
+                                Task { await app.selectKey(key) }
+                            }
+                        }
+
+                        loadMoreOrScanningView
+                    }
+
+                    Divider()
+
+                    WorkspaceFooterBar {
+                        Button("Add Key", systemImage: "plus") {
+                            newKeyName = ""
+                            newKeyType = "string"
+                            newKeyValue = ""
+                            showingAddKey = true
+                        }
+                        .labelStyle(.iconOnly)
+                        .font(.body)
+                        .buttonStyle(.borderless)
+                        .help("Add key")
+
+                        Button(role: .destructive) {
+                            Task { await prepareBulkDelete() }
+                        } label: {
+                            if isPreparingBulkDelete || isDeletingBulkKeys {
                                 ProgressView()
                                     .controlSize(.small)
-                                Text("Scanning...")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            } else {
+                                Label("Bulk delete current filter", systemImage: "trash.slash")
+                                    .labelStyle(.iconOnly)
                             }
-                            .padding(8)
-                        } else {
-                            Button("Load more") {
-                                app.keyScanCount = currentScanCount
-                                Task { await app.scanKeys() }
-                            }
-                            .padding(8)
                         }
-                    }
-                    Spacer()
-                } else if displayedKeys.isEmpty {
-                    Spacer()
-                    EmptyStateView(
-                        icon: "key.slash",
-                        title: "No matching keys"
-                    )
-                    if app.hasMoreKeys {
-                        if app.isLoadingKeys {
-                            HStack(spacing: 6) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("Scanning...")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(8)
-                        } else {
-                            Button("Load more") {
-                                app.keyScanCount = currentScanCount
-                                Task { await app.scanKeys() }
-                            }
-                            .padding(8)
-                        }
-                    }
-                    Spacer()
-                } else {
-                    Group {
-                        if app.isNamespaceGroupingEnabled {
-                            KeyNamespaceList(
-                                tree: KeyNamespaceTree(entries: displayedKeys, separator: app.namespaceSeparator),
-                                selectedKey: $app.selectedKey,
-                                expandedNamespaces: $expandedNamespaces,
-                                scrollTargetKey: keyListScrollTarget,
-                                onDeleteKey: { keyPendingDeletion = $0 },
-                                onCopyKey: copyKeyToPasteboard
-                            )
-                        } else {
-                            KeyFlatList(
-                                keys: displayedKeys,
-                                selectedKey: $app.selectedKey,
-                                scrollTargetKey: keyListScrollTarget,
-                                onDeleteKey: { keyPendingDeletion = $0 },
-                                onCopyKey: copyKeyToPasteboard
-                            )
-                        }
-                    }
-                    .onChange(of: app.selectedKey) { _, newValue in
-                        if let key = newValue {
-                            expandNamespaces(containing: key.key)
-                            Task { await app.selectKey(key) }
-                        }
-                    }
+                        .font(.body)
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Bulk delete current filter")
+                        .disabled(isPreparingBulkDelete || isDeletingBulkKeys || app.keys.isEmpty)
+                        .help("Bulk delete current filter")
 
-                    if app.hasMoreKeys {
-                        if app.isLoadingKeys {
-                            HStack(spacing: 6) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("Scanning...")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(8)
-                        } else {
-                            Button("Load more") {
-                                app.keyScanCount = currentScanCount
-                                Task { await app.scanKeys() }
-                            }
-                            .padding(8)
-                        }
+                        Spacer()
+
+                        StatusFooterView(
+                            countText: browserFooterText(displayedCount: filteredKeys.count)
+                        )
                     }
                 }
-
-                Divider()
-
-                WorkspaceFooterBar {
-                    Button("Add Key", systemImage: "plus") {
-                        newKeyName = ""
-                        newKeyType = "string"
-                        newKeyValue = ""
-                        showingAddKey = true
-                    }
-                    .labelStyle(.iconOnly)
-                    .font(.body)
-                    .buttonStyle(.borderless)
-                    .help("Add key")
-
-                    Button(role: .destructive) {
-                        Task { await prepareBulkDelete() }
-                    } label: {
-                        if isPreparingBulkDelete || isDeletingBulkKeys {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Label("Bulk delete current filter", systemImage: "trash.slash")
-                                .labelStyle(.iconOnly)
-                        }
-                    }
-                    .font(.body)
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel("Bulk delete current filter")
-                    .disabled(isPreparingBulkDelete || isDeletingBulkKeys || app.keys.isEmpty)
-                    .help("Bulk delete current filter")
-
-                    Spacer()
-
-                    StatusFooterView(
-                        countText: browserFooterText(displayedCount: displayedKeys.count)
-                    )
-                }
+            } right: {
+                KeyDetailView()
             }
-        } right: {
-            KeyDetailView()
         }
         .sheet(isPresented: $showingAddKey) {
             AddKeySheet(
@@ -288,9 +255,7 @@ struct BrowserView: View {
             isPresented: Binding(
                 get: { bulkDeletePreview != nil && !isProduction },
                 set: { isPresented in
-                    if !isPresented {
-                        bulkDeletePreview = nil
-                    }
+                    if !isPresented { bulkDeletePreview = nil }
                 }
             ),
             titleVisibility: .visible
@@ -302,9 +267,7 @@ struct BrowserView: View {
                 }
                 .disabled(preview.keys.isEmpty)
             }
-            Button("Cancel", role: .cancel) {
-                bulkDeletePreview = nil
-            }
+            Button("Cancel", role: .cancel) { bulkDeletePreview = nil }
         } message: {
             if let preview = bulkDeletePreview {
                 Text(bulkDeletePreviewMessage(preview))
@@ -347,9 +310,7 @@ struct BrowserView: View {
             isPresented: Binding(
                 get: { bulkDeleteResult != nil },
                 set: { isPresented in
-                    if !isPresented {
-                        bulkDeleteResult = nil
-                    }
+                    if !isPresented { bulkDeleteResult = nil }
                 }
             )
         ) {
@@ -359,9 +320,7 @@ struct BrowserView: View {
                     bulkDeleteResult = nil
                 }
             }
-            Button("OK") {
-                bulkDeleteResult = nil
-            }
+            Button("OK") { bulkDeleteResult = nil }
         } message: {
             if let result = bulkDeleteResult {
                 VStack(alignment: .leading, spacing: 4) {
@@ -378,9 +337,7 @@ struct BrowserView: View {
             isPresented: Binding(
                 get: { keyPendingDeletion != nil && !isProduction },
                 set: { isPresented in
-                    if !isPresented {
-                        keyPendingDeletion = nil
-                    }
+                    if !isPresented { keyPendingDeletion = nil }
                 }
             ),
             titleVisibility: .visible
@@ -391,9 +348,7 @@ struct BrowserView: View {
                     keyPendingDeletion = nil
                 }
             }
-            Button("Cancel", role: .cancel) {
-                keyPendingDeletion = nil
-            }
+            Button("Cancel", role: .cancel) { keyPendingDeletion = nil }
         } message: {
             if let key = keyPendingDeletion {
                 Text("This permanently deletes \(key.key).")
@@ -444,6 +399,32 @@ struct BrowserView: View {
             }
         }
     }
+
+    // MARK: - Subviews
+
+    @ViewBuilder
+    private var loadMoreOrScanningView: some View {
+        if app.hasMoreKeys {
+            if app.isLoadingKeys {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Scanning...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(8)
+            } else {
+                Button("Load more") {
+                    app.keyScanCount = currentScanCount
+                    Task { await app.scanKeys() }
+                }
+                .padding(8)
+            }
+        }
+    }
+
+    // MARK: - Helpers
 
     private var filteredKeys: [RedisKeyEntry] {
         app.keys.filter { app.keyTypeFilter.isEmpty || $0.type == app.keyTypeFilter }
@@ -1003,15 +984,18 @@ struct ProgressOverlayView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                ProgressView(value: progress, total: 1.0)
-                    .progressViewStyle(.linear)
-                    .frame(width: 200)
-
-                Text(text)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
+                ProgressView(value: progress, total: 1.0) {
+                    Text("Deleting keys...")
+                        .font(.headline)
+                } currentValueLabel: {
+                    Text(text)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .progressViewStyle(.circular)
+                .frame(width: 120)
             }
-            .padding()
+            .padding(24)
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
