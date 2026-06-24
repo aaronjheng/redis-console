@@ -121,15 +121,23 @@ private struct ProfilerEmptyStateView: View {
     let onStart: () -> Void
 
     var body: some View {
-        Spacer()
-        EmptyStateView(
-            icon: isRunning ? "dot.radiowaves.left.and.right" : "waveform.path.ecg",
-            title: isRunning ? "Waiting for Redis commands" : "Profiler is stopped",
-            subtitle: isRunning ? "Run commands from Shell or another client to see them here." : nil,
-            actionTitle: isRunning || isStarting ? nil : "Start Profiler",
-            action: isRunning || isStarting ? nil : onStart
-        )
-        Spacer()
+        VStack(spacing: 0) {
+            Spacer()
+            EmptyStateView(
+                icon: isRunning ? "dot.radiowaves.left.and.right" : "waveform.path.ecg",
+                title: isRunning ? "Waiting for Redis commands" : "Profiler is stopped",
+                subtitle: isRunning ? "Run commands from Shell or another client to see them here." : nil,
+                actionTitle: isRunning || isStarting ? nil : "Start Profiler",
+                action: isRunning || isStarting ? nil : onStart
+            )
+            if !isRunning && !isStarting {
+                Spacer().frame(height: 16)
+                Label("MONITOR can slow busy servers", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
     }
 }
 
@@ -195,9 +203,7 @@ private struct ProfilerToolbarView: View {
                 Toggle("Hide noise", isOn: $hideNoiseCommands)
                     .toggleStyle(.switch)
 
-                Label("MONITOR can slow busy servers", systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Color.clear.frame(width: 0, height: 0)
             }
             .padding(.horizontal)
             .padding(.vertical, 6)
