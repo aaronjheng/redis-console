@@ -161,7 +161,7 @@ class SSHTunnel: @unchecked Sendable {
 
         let bootstrap = NIOTSConnectionBootstrap(group: group)
             .connectTimeout(Self.connectionAttemptTimeout)
-            .channelOption(NIOTSChannelOptions.waitForActivity, value: true)
+            .channelOption(NIOTSChannelOptions.waitForActivity, value: false)
             .channelInitializer { channel in
                 let sshHandler = NIOSSHHandler(
                     role: .client(
