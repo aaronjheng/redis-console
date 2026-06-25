@@ -26,10 +26,10 @@ struct SlowLogView: View {
             // Entries list
             if app.slowLogEntries.isEmpty {
                 Spacer()
-                EmptyStateView(
-                    icon: "tortoise",
-                    title: "No slow log entries",
-                    subtitle: "Slow queries will appear here"
+                ContentUnavailableView(
+                    "No slow log entries",
+                    systemImage: "tortoise",
+                    description: Text("Slow queries will appear here")
                 )
                 Spacer()
             } else {

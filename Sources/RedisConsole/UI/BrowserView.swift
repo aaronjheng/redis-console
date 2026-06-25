@@ -143,17 +143,17 @@ struct BrowserView: View {
                         Spacer()
                     } else if app.keys.isEmpty {
                         Spacer()
-                        EmptyStateView(
-                            icon: "key.slash",
-                            title: searchText.isEmpty ? "No keys found" : "No matching keys"
+                        ContentUnavailableView(
+                            searchText.isEmpty ? "No keys found" : "No matching keys",
+                            systemImage: "key.slash"
                         )
                         loadMoreOrScanningView
                         Spacer()
                     } else if displayedKeys.isEmpty {
                         Spacer()
-                        EmptyStateView(
-                            icon: "key.slash",
-                            title: "No matching keys"
+                        ContentUnavailableView(
+                            "No matching keys",
+                            systemImage: "key.slash"
                         )
                         loadMoreOrScanningView
                         Spacer()

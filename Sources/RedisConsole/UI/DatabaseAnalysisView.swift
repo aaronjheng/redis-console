@@ -51,13 +51,15 @@ struct DatabaseAnalysisView: View {
                 analysisContent(analysis)
             } else {
                 Spacer()
-                EmptyStateView(
-                    icon: "chart.pie",
-                    title: "No analysis data",
-                    subtitle: "Run analysis to see database statistics",
-                    actionTitle: "Run Analysis",
-                    action: { Task { await app.runDatabaseAnalysis() } }
+                ContentUnavailableView(
+                    "No analysis data",
+                    systemImage: "chart.pie",
+                    description: Text("Run analysis to see database statistics")
                 )
+                Button("Run Analysis") {
+                    Task { await app.runDatabaseAnalysis() }
+                }
+                .padding(.top, AppTheme.spacing)
                 Spacer()
             }
         }

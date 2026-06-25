@@ -63,9 +63,9 @@ struct KeyDetailView: View {
                 }
             } else {
                 Spacer()
-                EmptyStateView(
-                    icon: "sidebar.left",
-                    title: "Select a key to view its value"
+                ContentUnavailableView(
+                    "Select a key to view its value",
+                    systemImage: "sidebar.left"
                 )
                 Spacer()
             }

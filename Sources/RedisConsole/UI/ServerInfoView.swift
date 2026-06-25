@@ -33,12 +33,14 @@ struct ServerInfoView: View {
                 clusterInfoView
             } else if app.serverInfo.isEmpty {
                 Spacer()
-                EmptyStateView(
-                    icon: "info.circle",
-                    title: "No server info loaded",
-                    actionTitle: "Load Info",
-                    action: { Task { await app.loadServerInfo() } }
+                ContentUnavailableView(
+                    "No server info loaded",
+                    systemImage: "info.circle"
                 )
+                Button("Load Info") {
+                    Task { await app.loadServerInfo() }
+                }
+                .padding(.top, AppTheme.spacing)
                 Spacer()
             } else {
                 serverInfoList

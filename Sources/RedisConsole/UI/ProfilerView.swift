@@ -117,13 +117,25 @@ private struct ProfilerEmptyStateView: View {
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
-            EmptyStateView(
-                icon: isRunning ? "dot.radiowaves.left.and.right" : "waveform.path.ecg",
-                title: isRunning ? "Waiting for Redis commands" : "Profiler is stopped",
-                subtitle: isRunning ? "Run commands from Shell or another client to see them here." : nil,
-                actionTitle: isRunning || isStarting ? nil : "Start Profiler",
-                action: isRunning || isStarting ? nil : onStart
-            )
+            if !isRunning && !isStarting {
+                ContentUnavailableView(
+                    "Profiler is stopped",
+                    systemImage: "waveform.path.ecg"
+                )
+                Button("Start Profiler", action: onStart)
+                    .padding(.top, AppTheme.spacing)
+            } else if isRunning {
+                ContentUnavailableView(
+                    "Waiting for Redis commands",
+                    systemImage: "dot.radiowaves.left.and.right",
+                    description: Text("Run commands from Shell or another client to see them here.")
+                )
+            } else {
+                ContentUnavailableView(
+                    "Profiler is stopped",
+                    systemImage: "waveform.path.ecg"
+                )
+            }
             if !isRunning && !isStarting {
                 Spacer().frame(height: 16)
                 Label("MONITOR can slow busy servers", systemImage: "exclamationmark.triangle")

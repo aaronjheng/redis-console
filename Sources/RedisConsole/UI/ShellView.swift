@@ -35,10 +35,10 @@ struct ShellView: View {
             // History list
             if app.shellHistory.isEmpty {
                 Spacer()
-                EmptyStateView(
-                    icon: "terminal",
-                    title: "Enter Redis commands below",
-                    subtitle: "Supports auto-complete, press Tab to complete"
+                ContentUnavailableView(
+                    "Enter Redis commands below",
+                    systemImage: "terminal",
+                    description: Text("Supports auto-complete, press Tab to complete")
                 )
                 Spacer()
             } else {

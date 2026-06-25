@@ -11,9 +11,6 @@ enum AppTheme {
     static let cornerRadiusSmall: CGFloat = 4
     static let cornerRadiusMedium: CGFloat = 6
 
-    static let emptyStateIconSize: CGFloat = 48
-    static let welcomeIconSize: CGFloat = 64
-
     static let tabBarHeight: CGFloat = 32
     static let sheetWidth: CGFloat = 400
     static let workspaceFooterHeight: CGFloat = 34
@@ -21,48 +18,6 @@ enum AppTheme {
     // MARK: - Background Colors
     static var sidebarBackground: Color {
         Color(nsColor: .controlBackgroundColor)
-    }
-}
-
-// MARK: - Reusable Empty State View
-
-struct EmptyStateView: View {
-    let icon: String
-    let title: String
-    var subtitle: String?
-    var actionTitle: String?
-    var action: (() -> Void)?
-
-    init(
-        icon: String,
-        title: String,
-        subtitle: String? = nil,
-        actionTitle: String? = nil,
-        action: (() -> Void)? = nil
-    ) {
-        self.icon = icon
-        self.title = title
-        self.subtitle = subtitle
-        self.actionTitle = actionTitle
-        self.action = action
-    }
-
-    var body: some View {
-        VStack(spacing: AppTheme.spacing) {
-            Image(systemName: icon)
-                .font(.system(size: AppTheme.emptyStateIconSize))
-                .foregroundStyle(.secondary)
-            Text(title)
-                .foregroundStyle(.secondary)
-            if let subtitle {
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-            if let actionTitle, let action {
-                Button(actionTitle) { action() }
-            }
-        }
     }
 }
 
