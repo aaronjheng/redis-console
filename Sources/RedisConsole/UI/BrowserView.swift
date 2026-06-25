@@ -38,10 +38,6 @@ struct BrowserView: View {
                     Text("Sorted Set").tag("zset")
                 }
                 .labelsHidden()
-                .frame(width: 120)
-
-                Divider()
-                    .frame(height: 16)
 
                 ZStack(alignment: .trailing) {
                     TextField("Filter by key pattern (e.g. user:*)", text: $searchText)
@@ -68,10 +64,9 @@ struct BrowserView: View {
                             .padding(.trailing, 8)
                     }
                 }
-
-                Spacer()
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 8)
             .padding(.vertical, 8)
 
             Divider()
