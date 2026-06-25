@@ -5,17 +5,12 @@ struct BrowserView: View {
     @State private var searchText = ""
     @State private var showingAddKey = false
     @State private var keyPendingDeletion: RedisKeyEntry?
-    @State private var bulkDeletePreview: BulkDeletePreview?
-    @State private var bulkDeleteResult: BulkDeleteResult?
-    @State private var isPreparingBulkDelete = false
-    @State private var isDeletingBulkKeys = false
     @State private var newKeyName = ""
     @State private var newKeyType = "string"
     @State private var newKeyValue = ""
     @State private var expandedNamespaces: Set<String> = []
     @State private var keyListScrollTarget: String?
     @State private var productionDeleteKey: RedisKeyEntry?
-    @State private var productionBulkDelete: BulkDeletePreview?
     @State private var productionConfirmText = ""
     @State private var isAutoRefreshEnabled = false
     @State private var autoRefreshInterval = 5
@@ -207,23 +202,6 @@ struct BrowserView: View {
                         .buttonStyle(.borderless)
                         .help("Add key")
 
-                        Button(role: .destructive) {
-                            Task { await prepareBulkDelete() }
-                        } label: {
-                            if isPreparingBulkDelete || isDeletingBulkKeys {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Label("Bulk delete current filter", systemImage: "trash.slash")
-                                    .labelStyle(.iconOnly)
-                            }
-                        }
-                        .font(.body)
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel("Bulk delete current filter")
-                        .disabled(isPreparingBulkDelete || isDeletingBulkKeys || app.keys.isEmpty)
-                        .help("Bulk delete current filter")
-
                         Spacer()
 
                         StatusFooterView(
@@ -246,88 +224,6 @@ struct BrowserView: View {
                 },
                 onCancel: { showingAddKey = false }
             )
-        }
-        .confirmationDialog(
-            "Bulk Delete Keys?",
-            isPresented: Binding(
-                get: { bulkDeletePreview != nil && !isProduction },
-                set: { isPresented in
-                    if !isPresented { bulkDeletePreview = nil }
-                }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let preview = bulkDeletePreview {
-                Button("Delete \(preview.keys.count) Keys", role: .destructive) {
-                    Task { await executeBulkDelete(preview) }
-                    bulkDeletePreview = nil
-                }
-                .disabled(preview.keys.isEmpty)
-            }
-            Button("Cancel", role: .cancel) { bulkDeletePreview = nil }
-        } message: {
-            if let preview = bulkDeletePreview {
-                Text(bulkDeletePreviewMessage(preview))
-            }
-        }
-        .sheet(
-            isPresented: Binding(
-                get: { bulkDeletePreview != nil && isProduction },
-                set: { isPresented in
-                    if !isPresented {
-                        bulkDeletePreview = nil
-                        productionBulkDelete = nil
-                        productionConfirmText = ""
-                    }
-                }
-            )
-        ) {
-            if let preview = bulkDeletePreview ?? productionBulkDelete {
-                ProductionConfirmView(
-                    title: "Delete \(preview.keys.count) Keys?",
-                    message: bulkDeletePreviewMessage(preview),
-                    confirmText: "DELETE",
-                    input: $productionConfirmText,
-                    onConfirm: {
-                        Task { await executeBulkDelete(preview) }
-                        bulkDeletePreview = nil
-                        productionBulkDelete = nil
-                        productionConfirmText = ""
-                    },
-                    onCancel: {
-                        bulkDeletePreview = nil
-                        productionBulkDelete = nil
-                        productionConfirmText = ""
-                    }
-                )
-            }
-        }
-        .alert(
-            "Bulk Delete Complete",
-            isPresented: Binding(
-                get: { bulkDeleteResult != nil },
-                set: { isPresented in
-                    if !isPresented { bulkDeleteResult = nil }
-                }
-            )
-        ) {
-            if let result = bulkDeleteResult, !result.deletedKeys.isEmpty {
-                Button("Export Deleted Keys") {
-                    exportDeletedKeys(result.deletedKeys)
-                    bulkDeleteResult = nil
-                }
-            }
-            Button("OK") { bulkDeleteResult = nil }
-        } message: {
-            if let result = bulkDeleteResult {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(bulkDeleteResultMessage(result))
-                    if !result.deletedKeys.isEmpty {
-                        Text("\(result.deletedKeys.count) keys were deleted.")
-                            .font(.caption)
-                    }
-                }
-            }
         }
         .confirmationDialog(
             "Delete Key?",
@@ -386,14 +282,6 @@ struct BrowserView: View {
         .onAppear {
             app.keyScanCount = currentScanCount
             searchText = app.keyFilter == "*" ? "" : app.keyFilter
-        }
-        .overlay {
-            if isDeletingBulkKeys && app.bulkDeleteProgress > 0 && app.bulkDeleteProgress < 1.0 {
-                ProgressOverlayView(
-                    progress: app.bulkDeleteProgress,
-                    text: app.bulkDeleteProgressText
-                )
-            }
         }
         .task(id: autoRefreshTaskID) {
             guard isAutoRefreshEnabled else { return }
@@ -470,57 +358,6 @@ struct BrowserView: View {
             return "Results \(displayedCount) · Scanned \(app.keyScannedCount) / \(totalText) · \(countText)"
         }
         return "Total \(totalText) · \(countText)"
-    }
-
-    private func prepareBulkDelete() async {
-        isPreparingBulkDelete = true
-        defer { isPreparingBulkDelete = false }
-
-        do {
-            let preview = try await app.previewBulkDelete(
-                pattern: app.keyFilter,
-                typeFilter: app.keyTypeFilter
-            )
-            bulkDeletePreview = preview
-        } catch {
-            app.connectionError = error.localizedDescription
-        }
-    }
-
-    private func executeBulkDelete(_ preview: BulkDeletePreview) async {
-        isDeletingBulkKeys = true
-        defer { isDeletingBulkKeys = false }
-
-        do {
-            bulkDeleteResult = try await app.executeBulkDelete(preview)
-        } catch {
-            app.connectionError = error.localizedDescription
-        }
-    }
-
-    private func bulkDeletePreviewMessage(_ preview: BulkDeletePreview) -> String {
-        var parts = [
-            "Pattern: \(preview.pattern)",
-            "Type: \(preview.typeText)",
-            "Matched: \(preview.keys.count)",
-            "Scanned: \(preview.scannedCount)",
-        ]
-        if preview.didReachLimit {
-            parts.append("Preview stopped at the scan threshold.")
-        }
-        return parts.joined(separator: "\n")
-    }
-
-    private func bulkDeleteResultMessage(_ result: BulkDeleteResult) -> String {
-        var parts = [
-            "Processed: \(result.processed)",
-            "Deleted: \(result.deleted)",
-            "Time: \(String(format: "%.2f", result.duration))s",
-        ]
-        if result.usedFallback {
-            parts.append("Used DEL fallback.")
-        }
-        return parts.joined(separator: "\n")
     }
 
     private func addKey(name: String, type: String, value: String) async {
@@ -605,22 +442,6 @@ struct BrowserView: View {
         if case .error(let message) = value {
             throw RedisError.commandError(message)
         }
-    }
-
-    private func exportDeletedKeys(_ keys: [String]) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd-HHmmss"
-        let filename = "deleted-keys-\(formatter.string(from: Date())).txt"
-
-        let panel = NSSavePanel()
-        panel.title = "Export Deleted Keys"
-        panel.nameFieldStringValue = filename
-        panel.message = "Save the list of deleted keys"
-
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-
-        let content = keys.joined(separator: "\n")
-        try? content.write(to: url, atomically: true, encoding: .utf8)
     }
 }
 
@@ -978,36 +799,6 @@ struct ProductionConfirmView: View {
     private func confirmIfValid() {
         if input == confirmText {
             onConfirm()
-        }
-    }
-}
-
-// MARK: - Progress Overlay View
-
-struct ProgressOverlayView: View {
-    let progress: Double
-    let text: String
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.3)
-                .ignoresSafeArea()
-
-            VStack(spacing: 16) {
-                ProgressView(value: progress, total: 1.0) {
-                    Text("Deleting keys...")
-                        .font(.headline)
-                } currentValueLabel: {
-                    Text(text)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .progressViewStyle(.circular)
-                .frame(width: 120)
-            }
-            .padding(24)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 }

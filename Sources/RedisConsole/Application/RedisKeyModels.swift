@@ -93,25 +93,3 @@ enum StringValueFormat: String, CaseIterable, Identifiable, Codable {
         }
     }
 }
-
-struct BulkDeletePreview: Identifiable {
-    let id = UUID()
-    let pattern: String
-    let typeFilter: String
-    let keys: [String]
-    let scannedCount: Int
-    let didReachLimit: Bool
-    let duration: TimeInterval
-
-    var typeText: String {
-        typeFilter.isEmpty ? "all types" : typeFilter
-    }
-}
-
-struct BulkDeleteResult {
-    let processed: Int
-    let deleted: Int
-    let deletedKeys: [String]
-    let usedFallback: Bool
-    let duration: TimeInterval
-}
