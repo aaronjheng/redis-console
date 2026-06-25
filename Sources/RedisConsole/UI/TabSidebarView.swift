@@ -18,7 +18,12 @@ struct WorkspaceSidebarView: View {
                                 .font(.title3)
                                 .lineLimit(1)
                             Spacer(minLength: AppTheme.spacing)
-                            ConnectionModeBadge(mode: selectedConnection.mode)
+                            Badge(
+                                text: selectedConnection.mode.title,
+                                foregroundColor: selectedConnection.mode.badgeForegroundColor,
+                                backgroundColor: selectedConnection.mode.badgeBackgroundColor
+                            )
+                            .help("Connection mode: \(selectedConnection.mode.title)")
                         }
 
                         Text(selectedConnection.address)

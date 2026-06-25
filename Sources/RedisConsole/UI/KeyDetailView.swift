@@ -352,7 +352,7 @@ struct KeyDetailView: View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    KeyTypeBadge(type: key.type)
+                    Badge(text: key.type, isLoading: key.type.isEmpty)
                     Text(key.key)
                         .font(.title3)
                         .lineLimit(1)

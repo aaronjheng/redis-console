@@ -23,6 +23,10 @@ enum ConnectionEnvironment: String, Codable, CaseIterable {
         case .production: return "shield"
         }
     }
+
+    var badgeForegroundColor: Color { color }
+
+    var badgeBackgroundColor: Color { color.opacity(0.12) }
 }
 
 // MARK: - Connection Config

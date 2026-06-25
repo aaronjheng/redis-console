@@ -63,7 +63,40 @@ struct StatusFooterView: View {
     }
 }
 
-// MARK: - Reusable Delete Button
+// MARK: - Reusable Badge
+
+struct Badge: View {
+    let text: String
+    var systemImage: String?
+    var foregroundColor: Color = .secondary
+    var backgroundColor: Color = Color.secondary.opacity(0.12)
+    var isLoading: Bool = false
+
+    var body: some View {
+        if isLoading {
+            ProgressView()
+                .controlSize(.small)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .frame(minWidth: 42)
+        } else {
+            HStack(spacing: 2) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                }
+                Text(text)
+            }
+            .font(.caption2.weight(.medium))
+            .lineLimit(1)
+            .foregroundStyle(foregroundColor)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(backgroundColor)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall, style: .continuous))
+            .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+}
 
 struct DeleteIconButton: View {
     let action: () -> Void

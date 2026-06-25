@@ -106,7 +106,6 @@
 				<string>6CC8C138EFAF41CE1D233E5B</string>
 				<string>6223746D934AF4A47B07CAB7</string>
 				<string>307922DA0FD1DFBC0AE1C390</string>
-				<string>8B2CC6E9D5D9430486D7C644</string>
 				<string>CFBF582DD63B199731500A76</string>
 				<string>E2D767E06402B486180E8833</string>
 				<string>AF8415C586FF6FD461002505</string>
@@ -745,13 +744,6 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>6E2E4B02051F42F6A1E7C6A2</key>
-		<dict>
-			<key>fileRef</key>
-			<string>8B2CC6E9D5D9430486D7C644</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
 		<key>6E896A2BE4208032CB46914C</key>
 		<dict>
 			<key>isa</key>
@@ -849,17 +841,6 @@
 			<string>sourcecode.swift</string>
 			<key>path</key>
 			<string>Application/AppLogger.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
-		</dict>
-		<key>8B2CC6E9D5D9430486D7C644</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>UI/KeyTypeBadge.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>

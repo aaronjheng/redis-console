@@ -6,7 +6,7 @@ struct KeyRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            KeyTypeBadge(type: entry.type)
+            Badge(text: entry.type, isLoading: entry.type.isEmpty)
             Text(displayName ?? entry.key)
                 .font(.body)
                 .lineLimit(1)

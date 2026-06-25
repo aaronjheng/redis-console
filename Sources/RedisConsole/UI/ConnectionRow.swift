@@ -14,8 +14,21 @@ struct ConnectionRow: View {
                     .font(.body)
                     .lineLimit(1)
                 Spacer(minLength: AppTheme.spacing)
-                ConnectionEnvironmentBadge(environment: config.environment)
-                ConnectionModeBadge(mode: config.mode)
+                if config.environment != .unspecified {
+                    Badge(
+                        text: config.environment.rawValue,
+                        systemImage: config.environment.icon,
+                        foregroundColor: config.environment.badgeForegroundColor,
+                        backgroundColor: config.environment.badgeBackgroundColor
+                    )
+                    .help("Environment: \(config.environment.rawValue)")
+                }
+                Badge(
+                    text: config.mode.title,
+                    foregroundColor: config.mode.badgeForegroundColor,
+                    backgroundColor: config.mode.badgeBackgroundColor
+                )
+                .help("Connection mode: \(config.mode.title)")
             }
             Text(config.address)
                 .font(.caption)
@@ -24,56 +37,6 @@ struct ConnectionRow: View {
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
-    }
-}
-
-struct ConnectionModeBadge: View {
-    let mode: RedisConnectionMode
-
-    var body: some View {
-        Text(mode.title)
-            .font(.caption2.weight(.medium))
-            .lineLimit(1)
-            .foregroundStyle(foregroundStyle)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(backgroundStyle)
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall, style: .continuous))
-            .fixedSize(horizontal: true, vertical: false)
-            .help("Connection mode: \(mode.title)")
-    }
-
-    private var foregroundStyle: Color {
-        switch mode {
-        case .standalone: return .secondary
-        case .cluster: return .accentColor
-        }
-    }
-
-    private var backgroundStyle: Color {
-        switch mode {
-        case .standalone: return Color.secondary.opacity(0.12)
-        case .cluster: return Color.accentColor.opacity(0.14)
-        }
-    }
-}
-
-struct ConnectionEnvironmentBadge: View {
-    let environment: ConnectionEnvironment
-
-    var body: some View {
-        if environment != .unspecified {
-            Label(environment.rawValue, systemImage: environment.icon)
-                .font(.caption2.weight(.medium))
-                .lineLimit(1)
-                .foregroundStyle(environment.color)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(environment.color.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall, style: .continuous))
-                .fixedSize(horizontal: true, vertical: false)
-                .help("Environment: \(environment.rawValue)")
-        }
     }
 }
 

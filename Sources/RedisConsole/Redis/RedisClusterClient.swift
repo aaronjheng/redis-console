@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Synchronization
 
 struct RedisEndpoint: Codable, Hashable, Sendable {
@@ -67,6 +68,20 @@ enum RedisConnectionMode: String, Codable, CaseIterable, Hashable, Sendable {
         switch self {
         case .standalone: return "Standalone"
         case .cluster: return "Cluster"
+        }
+    }
+
+    var badgeForegroundColor: Color {
+        switch self {
+        case .standalone: return .secondary
+        case .cluster: return .accentColor
+        }
+    }
+
+    var badgeBackgroundColor: Color {
+        switch self {
+        case .standalone: return Color.secondary.opacity(0.12)
+        case .cluster: return Color.accentColor.opacity(0.14)
         }
     }
 }
