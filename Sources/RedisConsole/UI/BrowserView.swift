@@ -224,6 +224,7 @@ struct BrowserView: View {
                 },
                 onCancel: { showingAddKey = false }
             )
+            .presentationSizing(.form)
         }
         .confirmationDialog(
             "Delete Key?",
@@ -277,6 +278,7 @@ struct BrowserView: View {
                         productionConfirmText = ""
                     }
                 )
+                .presentationSizing(.form)
             }
         }
         .onAppear {

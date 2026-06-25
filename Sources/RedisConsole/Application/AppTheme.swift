@@ -12,61 +12,11 @@ enum AppTheme {
     static let cornerRadiusMedium: CGFloat = 6
 
     static let tabBarHeight: CGFloat = 32
-    static let sheetWidth: CGFloat = 400
     static let workspaceFooterHeight: CGFloat = 34
 
     // MARK: - Background Colors
     static var sidebarBackground: Color {
         Color(nsColor: .controlBackgroundColor)
-    }
-}
-
-// MARK: - Reusable Sheet Layout
-
-struct SheetLayout<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-    var cancelAction: () -> Void
-    var primaryAction: (() -> Void)?
-    var primaryActionTitle: String
-    var isPrimaryDisabled: Bool
-
-    init(
-        title: String,
-        cancelAction: @escaping () -> Void,
-        primaryActionTitle: String = "Add",
-        isPrimaryDisabled: Bool = false,
-        primaryAction: (() -> Void)? = nil,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.title = title
-        self.cancelAction = cancelAction
-        self.primaryActionTitle = primaryActionTitle
-        self.isPrimaryDisabled = isPrimaryDisabled
-        self.primaryAction = primaryAction
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(spacing: AppTheme.spacingLarge) {
-            Text(title)
-                .font(.headline)
-
-            content
-                .formStyle(.grouped)
-
-            HStack {
-                Button("Cancel") { cancelAction() }
-                Spacer()
-                if let primaryAction {
-                    Button(primaryActionTitle) { primaryAction() }
-                        .disabled(isPrimaryDisabled)
-                        .keyboardShortcut(.defaultAction)
-                }
-            }
-        }
-        .padding()
-        .frame(width: AppTheme.sheetWidth)
     }
 }
 

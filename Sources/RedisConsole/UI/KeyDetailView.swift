@@ -123,6 +123,7 @@ struct KeyDetailView: View {
                         productionConfirmText = ""
                     }
                 )
+                .presentationSizing(.form)
             }
         }
         .onChange(of: app.selectedKey?.key) {
@@ -206,6 +207,7 @@ struct KeyDetailView: View {
                     },
                     onCancel: { showingAddHashField = false }
                 )
+                .presentationSizing(.form)
             }
 
         case "list":
@@ -245,6 +247,7 @@ struct KeyDetailView: View {
                     },
                     onCancel: { showingAddListElement = false }
                 )
+                .presentationSizing(.form)
             }
 
         case "set":
@@ -281,6 +284,7 @@ struct KeyDetailView: View {
                     },
                     onCancel: { showingAddSetMember = false }
                 )
+                .presentationSizing(.form)
             }
 
         case "zset":
@@ -328,6 +332,7 @@ struct KeyDetailView: View {
                     },
                     onCancel: { showingAddZSetMember = false }
                 )
+                .presentationSizing(.form)
             }
 
         default:

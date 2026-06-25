@@ -10,20 +10,26 @@ struct AddHashFieldSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        SheetLayout(
-            title: "Add Hash Field",
-            cancelAction: onCancel,
-            primaryActionTitle: "Add",
-            isPrimaryDisabled: field.isEmpty,
-            primaryAction: { onSave(field, value) },
-            content: {
-                Form {
-                    TextField("Field name", text: $field)
-                    TextField("Value", text: $value, axis: .vertical)
-                        .lineLimit(3...6)
-                }
+        VStack(spacing: AppTheme.spacingLarge) {
+            Text("Add Hash Field")
+                .font(.headline)
+
+            Form {
+                TextField("Field name", text: $field)
+                TextField("Value", text: $value, axis: .vertical)
+                    .lineLimit(3...6)
             }
-        )
+            .formStyle(.grouped)
+
+            HStack {
+                Button("Cancel") { onCancel() }
+                Spacer()
+                Button("Add") { onSave(field, value) }
+                    .disabled(field.isEmpty)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
     }
 }
 
@@ -35,23 +41,29 @@ struct AddListElementSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        SheetLayout(
-            title: "Add List Element",
-            cancelAction: onCancel,
-            primaryActionTitle: "Add",
-            isPrimaryDisabled: value.isEmpty,
-            primaryAction: { onSave(value, position) },
-            content: {
-                Form {
-                    TextField("Value", text: $value, axis: .vertical)
-                        .lineLimit(3...6)
-                    Picker("Position", selection: $position) {
-                        Text("Head (LPUSH)").tag(KeyDetailView.ListPosition.head)
-                        Text("Tail (RPUSH)").tag(KeyDetailView.ListPosition.tail)
-                    }
+        VStack(spacing: AppTheme.spacingLarge) {
+            Text("Add List Element")
+                .font(.headline)
+
+            Form {
+                TextField("Value", text: $value, axis: .vertical)
+                    .lineLimit(3...6)
+                Picker("Position", selection: $position) {
+                    Text("Head (LPUSH)").tag(KeyDetailView.ListPosition.head)
+                    Text("Tail (RPUSH)").tag(KeyDetailView.ListPosition.tail)
                 }
             }
-        )
+            .formStyle(.grouped)
+
+            HStack {
+                Button("Cancel") { onCancel() }
+                Spacer()
+                Button("Add") { onSave(value, position) }
+                    .disabled(value.isEmpty)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
     }
 }
 
@@ -62,19 +74,25 @@ struct AddSetMemberSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        SheetLayout(
-            title: "Add Set Member",
-            cancelAction: onCancel,
-            primaryActionTitle: "Add",
-            isPrimaryDisabled: member.isEmpty,
-            primaryAction: { onSave(member) },
-            content: {
-                Form {
-                    TextField("Member value", text: $member, axis: .vertical)
-                        .lineLimit(3...6)
-                }
+        VStack(spacing: AppTheme.spacingLarge) {
+            Text("Add Set Member")
+                .font(.headline)
+
+            Form {
+                TextField("Member value", text: $member, axis: .vertical)
+                    .lineLimit(3...6)
             }
-        )
+            .formStyle(.grouped)
+
+            HStack {
+                Button("Cancel") { onCancel() }
+                Spacer()
+                Button("Add") { onSave(member) }
+                    .disabled(member.isEmpty)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
     }
 }
 
@@ -86,19 +104,25 @@ struct AddZSetMemberSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        SheetLayout(
-            title: "Add Sorted Set Member",
-            cancelAction: onCancel,
-            primaryActionTitle: "Add",
-            isPrimaryDisabled: member.isEmpty || score.isEmpty,
-            primaryAction: { onSave(member, score) },
-            content: {
-                Form {
-                    TextField("Member", text: $member)
-                    TextField("Score", text: $score)
-                }
+        VStack(spacing: AppTheme.spacingLarge) {
+            Text("Add Sorted Set Member")
+                .font(.headline)
+
+            Form {
+                TextField("Member", text: $member)
+                TextField("Score", text: $score)
             }
-        )
+            .formStyle(.grouped)
+
+            HStack {
+                Button("Cancel") { onCancel() }
+                Spacer()
+                Button("Add") { onSave(member, score) }
+                    .disabled(member.isEmpty || score.isEmpty)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
     }
 }
 
@@ -140,73 +164,79 @@ struct AddKeySheet: View {
     }
 
     var body: some View {
-        SheetLayout(
-            title: "Add New Key",
-            cancelAction: onCancel,
-            primaryActionTitle: "Add",
-            isPrimaryDisabled: keyName.isEmpty,
-            primaryAction: {
+        VStack(spacing: AppTheme.spacingLarge) {
+            Text("Add New Key")
+                .font(.headline)
+
+            Form {
+                TextField("Key name", text: $keyName)
+                Picker("Type", selection: $keyType) {
+                    Text("String").tag("string")
+                    Text("List").tag("list")
+                    Text("Hash").tag("hash")
+                    Text("Set").tag("set")
+                    Text("Sorted Set").tag("zset")
+                }
+                .onChange(of: keyType) { _, newValue in
+                    resetArrays(for: newValue)
+                }
+
                 switch keyType {
                 case "list":
-                    onSave(keyName, keyType, listValues.joined(separator: "\n"))
+                    dynamicValueRows(
+                        values: $listValues,
+                        placeholder: { "Value \($0 + 1)" },
+                        addLabel: "Add Value"
+                    )
                 case "hash":
-                    let pairs = hashPairs.map { "\($0.field):\($0.value)" }.joined(separator: "\n")
-                    onSave(keyName, keyType, pairs)
+                    dynamicPairRows(
+                        pairs: $hashPairs,
+                        firstPlaceholder: "Field",
+                        secondPlaceholder: "Value",
+                        addLabel: "Add Field"
+                    )
                 case "set":
-                    onSave(keyName, keyType, setMembers.joined(separator: "\n"))
+                    dynamicValueRows(
+                        values: $setMembers,
+                        placeholder: { "Member \($0 + 1)" },
+                        addLabel: "Add Member"
+                    )
                 case "zset":
-                    let pairs = zsetPairs.map { "\($0.score):\($0.member)" }.joined(separator: "\n")
-                    onSave(keyName, keyType, pairs)
+                    dynamicZSetRows(
+                        pairs: $zsetPairs,
+                        addLabel: "Add Member"
+                    )
                 default:
-                    onSave(keyName, keyType, keyValue)
-                }
-            },
-            content: {
-                Form {
-                    TextField("Key name", text: $keyName)
-                    Picker("Type", selection: $keyType) {
-                        Text("String").tag("string")
-                        Text("List").tag("list")
-                        Text("Hash").tag("hash")
-                        Text("Set").tag("set")
-                        Text("Sorted Set").tag("zset")
-                    }
-                    .onChange(of: keyType) { _, newValue in
-                        resetArrays(for: newValue)
-                    }
-
-                    switch keyType {
-                    case "list":
-                        dynamicValueRows(
-                            values: $listValues,
-                            placeholder: { "Value \($0 + 1)" },
-                            addLabel: "Add Value"
-                        )
-                    case "hash":
-                        dynamicPairRows(
-                            pairs: $hashPairs,
-                            firstPlaceholder: "Field",
-                            secondPlaceholder: "Value",
-                            addLabel: "Add Field"
-                        )
-                    case "set":
-                        dynamicValueRows(
-                            values: $setMembers,
-                            placeholder: { "Member \($0 + 1)" },
-                            addLabel: "Add Member"
-                        )
-                    case "zset":
-                        dynamicZSetRows(
-                            pairs: $zsetPairs,
-                            addLabel: "Add Member"
-                        )
-                    default:
-                        TextField("Value", text: $keyValue, axis: .vertical)
-                            .lineLimit(3...6)
-                    }
+                    TextField("Value", text: $keyValue, axis: .vertical)
+                        .lineLimit(3...6)
                 }
             }
-        )
+            .formStyle(.grouped)
+
+            HStack {
+                Button("Cancel") { onCancel() }
+                Spacer()
+                Button("Add") {
+                    switch keyType {
+                    case "list":
+                        onSave(keyName, keyType, listValues.joined(separator: "\n"))
+                    case "hash":
+                        let pairs = hashPairs.map { "\($0.field):\($0.value)" }.joined(separator: "\n")
+                        onSave(keyName, keyType, pairs)
+                    case "set":
+                        onSave(keyName, keyType, setMembers.joined(separator: "\n"))
+                    case "zset":
+                        let pairs = zsetPairs.map { "\($0.score):\($0.member)" }.joined(separator: "\n")
+                        onSave(keyName, keyType, pairs)
+                    default:
+                        onSave(keyName, keyType, keyValue)
+                    }
+                }
+                .disabled(keyName.isEmpty)
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
         .onAppear {
             resetArrays(for: keyType)
         }
