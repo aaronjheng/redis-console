@@ -10,10 +10,13 @@ struct TabContentView: View {
         Group {
             if conn.activeClient?.isConnected == true {
                 WorkspaceView()
+                    .transition(.opacity)
             } else {
                 ConnectionHubView()
+                    .transition(.opacity)
             }
         }
+        .animation(.default, value: conn.activeClient?.isConnected)
         .background(WindowTitleUpdater())
     }
 }
@@ -61,14 +64,15 @@ struct WorkspaceView: View {
                 .frame(minWidth: 220, maxWidth: 280)
 
             switch conn.currentView {
-            case .browser: BrowserView()
-            case .shell: ShellView()
-            case .profiler: ProfilerView()
-            case .slowLog: SlowLogView()
-            case .databaseAnalysis: DatabaseAnalysisView()
-            case .serverInfo: ServerInfoView()
+            case .browser: BrowserView().transition(.opacity)
+            case .shell: ShellView().transition(.opacity)
+            case .profiler: ProfilerView().transition(.opacity)
+            case .slowLog: SlowLogView().transition(.opacity)
+            case .databaseAnalysis: DatabaseAnalysisView().transition(.opacity)
+            case .serverInfo: ServerInfoView().transition(.opacity)
             }
         }
+        .animation(.default, value: conn.currentView)
     }
 }
 

@@ -23,6 +23,7 @@ struct KeyDetailView: View {
     @State private var isAutoRefreshEnabled = false
     @State private var autoRefreshInterval = 5
     @State private var productionConfirmText = ""
+    @State private var deleteFeedbackTrigger = false
 
     private let maxTTL = 2_147_483_647
 
@@ -86,6 +87,7 @@ struct KeyDetailView: View {
                 Button("Delete", role: .destructive) {
                     Task { await app.deleteKey(key) }
                     keyPendingDeletion = nil
+                    deleteFeedbackTrigger.toggle()
                 }
             }
             Button("Cancel", role: .cancel) {
@@ -117,6 +119,7 @@ struct KeyDetailView: View {
                         Task { await app.deleteKey(key) }
                         keyPendingDeletion = nil
                         productionConfirmText = ""
+                        deleteFeedbackTrigger.toggle()
                     },
                     onCancel: {
                         keyPendingDeletion = nil
@@ -130,6 +133,7 @@ struct KeyDetailView: View {
             showingTTLEditor = false
             ttlEditorError = nil
         }
+        .sensoryFeedback(.success, trigger: deleteFeedbackTrigger)
         .task(id: autoRefreshTaskID) {
             guard isAutoRefreshEnabled else { return }
             while !Task.isCancelled {

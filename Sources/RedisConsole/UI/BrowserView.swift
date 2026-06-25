@@ -14,6 +14,7 @@ struct BrowserView: View {
     @State private var productionConfirmText = ""
     @State private var isAutoRefreshEnabled = false
     @State private var autoRefreshInterval = 5
+    @State private var deleteFeedbackTrigger = false
 
     private let listScanCount = 500
     private let treeScanCount = 10_000
@@ -240,6 +241,7 @@ struct BrowserView: View {
                 Button("Delete", role: .destructive) {
                     Task { await app.deleteKey(key) }
                     keyPendingDeletion = nil
+                    deleteFeedbackTrigger.toggle()
                 }
             }
             Button("Cancel", role: .cancel) { keyPendingDeletion = nil }
@@ -271,6 +273,7 @@ struct BrowserView: View {
                         keyPendingDeletion = nil
                         productionDeleteKey = nil
                         productionConfirmText = ""
+                        deleteFeedbackTrigger.toggle()
                     },
                     onCancel: {
                         keyPendingDeletion = nil
@@ -285,6 +288,7 @@ struct BrowserView: View {
             app.keyScanCount = currentScanCount
             searchText = app.keyFilter == "*" ? "" : app.keyFilter
         }
+        .sensoryFeedback(.success, trigger: deleteFeedbackTrigger)
         .task(id: autoRefreshTaskID) {
             guard isAutoRefreshEnabled else { return }
             while !Task.isCancelled {
