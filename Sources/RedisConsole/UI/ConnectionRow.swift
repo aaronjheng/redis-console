@@ -24,6 +24,13 @@ struct ConnectionRow: View {
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
+        .onHover { isHovering in
+            if isHovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
     }
 }
 
