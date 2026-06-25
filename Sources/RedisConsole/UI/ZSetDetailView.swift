@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - ZSet Detail View
 
 struct ZSetRow: Identifiable {
-    let id = UUID()
+    var id: String { member }
     let score: String
     let member: String
 }

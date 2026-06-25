@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - List Detail View
 
 struct ListRow: Identifiable {
-    let id = UUID()
+    var id: Int { index }
     let index: Int
     let value: String
 }

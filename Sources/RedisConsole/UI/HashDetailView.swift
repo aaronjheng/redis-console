@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Hash Detail View
 
 struct HashRow: Identifiable {
-    let id = UUID()
+    var id: String { field }
     let field: String
     let value: String
 }

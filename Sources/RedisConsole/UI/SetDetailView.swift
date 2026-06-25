@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Set Detail View
 
 struct SetRow: Identifiable {
-    let id = UUID()
+    var id: String { member }
     let member: String
 }
 
