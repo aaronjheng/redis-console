@@ -411,7 +411,7 @@ struct KeyDetailView: View {
             }
 
             HStack(spacing: 8) {
-                KeyDetailRefreshControl(
+                KeyRefreshControl(
                     isAutoRefreshEnabled: $isAutoRefreshEnabled,
                     autoRefreshInterval: $autoRefreshInterval,
                     isDisabled: app.isLoadingDetail
@@ -569,7 +569,7 @@ private struct KeyTTLEditorPopover: View {
     }
 }
 
-private struct KeyDetailRefreshControl: View {
+struct KeyRefreshControl: View {
     @Binding var isAutoRefreshEnabled: Bool
     @Binding var autoRefreshInterval: Int
     var isDisabled: Bool
@@ -609,7 +609,7 @@ private struct KeyDetailRefreshControl: View {
         Button {
             onRefresh()
         } label: {
-            Label("Refresh Key", systemImage: "arrow.clockwise")
+            Label("Refresh", systemImage: "arrow.clockwise")
                 .labelStyle(.iconOnly)
                 .font(.system(size: 12, weight: .medium))
                 .frame(width: 26, height: 22)

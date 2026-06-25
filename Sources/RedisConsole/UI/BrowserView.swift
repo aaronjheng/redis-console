@@ -17,6 +17,8 @@ struct BrowserView: View {
     @State private var productionDeleteKey: RedisKeyEntry?
     @State private var productionBulkDelete: BulkDeletePreview?
     @State private var productionConfirmText = ""
+    @State private var isAutoRefreshEnabled = false
+    @State private var autoRefreshInterval = 5
 
     private let listScanCount = 500
     private let treeScanCount = 10_000
@@ -129,14 +131,14 @@ struct BrowserView: View {
 
                         Spacer()
 
-                        Button("Refresh", systemImage: "arrow.clockwise") {
+                        KeyRefreshControl(
+                            isAutoRefreshEnabled: $isAutoRefreshEnabled,
+                            autoRefreshInterval: $autoRefreshInterval,
+                            isDisabled: app.isLoadingKeys
+                        ) {
                             app.keyScanCount = currentScanCount
                             Task { await app.scanKeys(reset: true) }
                         }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
-                        .disabled(app.isLoadingKeys)
-                        .help("Refresh keys")
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
@@ -398,6 +400,15 @@ struct BrowserView: View {
                 )
             }
         }
+        .task(id: autoRefreshTaskID) {
+            guard isAutoRefreshEnabled else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(autoRefreshInterval))
+                guard !Task.isCancelled, !app.isLoadingKeys else { continue }
+                app.keyScanCount = currentScanCount
+                await app.scanKeys(reset: true)
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -436,6 +447,10 @@ struct BrowserView: View {
 
     private var isProduction: Bool {
         app.selectedConnection?.environment == .production
+    }
+
+    private var autoRefreshTaskID: String {
+        "\(isAutoRefreshEnabled)|\(autoRefreshInterval)"
     }
 
     private func copyKeyToPasteboard(_ entry: RedisKeyEntry) {
