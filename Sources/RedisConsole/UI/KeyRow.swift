@@ -16,12 +16,5 @@ struct KeyRow: View {
         .padding(.vertical, AppTheme.spacing)
         .help(entry.key)
         .accessibilityLabel(entry.key)
-        .onHover { isHovering in
-            if isHovering {
-                NSCursor.pointingHand.push()
-            } else {
-                NSCursor.pop()
-            }
-        }
     }
 }
