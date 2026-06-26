@@ -6,7 +6,7 @@ struct WelcomeView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "server.rack")
-                .font(.system(size: 64))
+                .font(.largeTitle)
                 .foregroundStyle(.secondary)
             Text("Redis Console")
                 .font(.title)

@@ -116,7 +116,7 @@ struct ClusterTopologyView: View {
                 x: centerX + CGFloat(cos(angle)) * replicaRadius,
                 y: centerY + CGFloat(sin(angle)) * replicaRadius
             )
-            nodeItems.append(TopologyNodeItem(node: node, position: pos, color: .green))
+            nodeItems.append(TopologyNodeItem(node: node, position: pos, color: DomainColor.statusSuccess))
 
             // Line to primary
             guard let replicaOf = node.replicaOf else { continue }

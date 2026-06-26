@@ -48,7 +48,7 @@ struct KeyDetailView: View {
                         Spacer()
                     }
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(DomainColor.statusError)
                     .padding(.horizontal)
                     .padding(.vertical, 6)
 
@@ -562,7 +562,7 @@ private struct KeyTTLEditorPopover: View {
             if let error {
                 Text(error)
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(DomainColor.statusError)
             }
 
             HStack {
@@ -604,11 +604,11 @@ struct KeyRefreshControl: View {
         }
         .frame(height: 22)
         .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
                 .fill(.background.secondary)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
                 .strokeBorder(.separator, lineWidth: 0.5)
         )
         .opacity(isDisabled ? 0.5 : 1)

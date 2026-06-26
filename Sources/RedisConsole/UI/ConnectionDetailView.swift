@@ -258,7 +258,7 @@ struct ConnectionDetailView: View {
         if let result = testResult {
             HStack(spacing: 4) {
                 Image(systemName: result.hasPrefix("OK") ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundStyle(result.hasPrefix("OK") ? .green : .red)
+                    .foregroundStyle(result.hasPrefix("OK") ? DomainColor.statusSuccess : DomainColor.statusError)
                 Text(result)
                     .font(.caption)
                     .foregroundStyle(.secondary)

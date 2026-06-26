@@ -77,7 +77,7 @@ struct ShellView: View {
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(.quaternary)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
                         }
                         .buttonStyle(.plain)
                     }
@@ -194,12 +194,12 @@ struct ShellHistoryRow: View {
 
             Text(entry.result)
                 .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(entry.isError ? .red : .primary)
+                .foregroundStyle(entry.isError ? DomainColor.statusError : .primary)
                 .textSelection(.enabled)
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(entry.isError ? Color.red.opacity(0.1) : Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .background(entry.isError ? DomainColor.statusError.opacity(0.1) : Color(nsColor: .controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
         }
     }
 }

@@ -81,7 +81,7 @@ struct BrowserView: View {
                     .help("Dismiss")
                 }
                 .font(.caption)
-                .foregroundStyle(.red)
+                .foregroundStyle(DomainColor.statusError)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
 
@@ -760,7 +760,7 @@ struct ProductionConfirmView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.shield.fill")
                 .font(.largeTitle)
-                .foregroundStyle(.red)
+                .foregroundStyle(DomainColor.statusError)
 
             Text(title)
                 .font(.title2)
@@ -773,10 +773,10 @@ struct ProductionConfirmView: View {
 
             HStack(spacing: 0) {
                 Image(systemName: "shield")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(DomainColor.statusError)
                 Text("This is a PRODUCTION database.")
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(DomainColor.statusError)
             }
 
             HStack(spacing: 4) {

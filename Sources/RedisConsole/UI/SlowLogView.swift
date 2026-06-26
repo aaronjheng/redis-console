@@ -95,9 +95,9 @@ struct SlowLogView: View {
 
     private func durationColor(_ duration: Int) -> Color {
         if duration >= 1_000_000 {
-            return .red
+            return DomainColor.statusError
         } else if duration >= 100_000 {
-            return .orange
+            return DomainColor.statusWarning
         } else if duration >= 10_000 {
             return .yellow
         }
@@ -146,11 +146,11 @@ private struct SlowLogRefreshControl: View {
         }
         .frame(height: 22)
         .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
                 .fill(.background.secondary)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
                 .strokeBorder(.separator, lineWidth: 0.5)
         )
         .opacity(isLoading ? 0.5 : 1)

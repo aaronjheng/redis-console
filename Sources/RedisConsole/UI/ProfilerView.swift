@@ -247,8 +247,8 @@ private struct ProfilerStatusPill: View {
     }
 
     private var indicatorColor: Color {
-        if isStarting { return .orange }
-        return isRunning ? .green : .secondary
+        if isStarting { return DomainColor.statusWarning }
+        return isRunning ? DomainColor.statusSuccess : .secondary
     }
 }
 
@@ -258,7 +258,7 @@ private struct ProfilerErrorBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
+                .foregroundStyle(DomainColor.statusWarning)
             Text(message)
                 .font(.caption)
                 .foregroundStyle(.primary)
@@ -267,7 +267,7 @@ private struct ProfilerErrorBanner: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(Color.orange.opacity(0.12))
+        .background(DomainColor.statusWarning.opacity(0.12))
     }
 }
 

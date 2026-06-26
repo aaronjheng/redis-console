@@ -38,7 +38,7 @@ struct DatabaseAnalysisView: View {
             if let error = app.analysisError {
                 Text(error)
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(DomainColor.statusError)
                     .padding(.horizontal)
                 Divider()
             }
@@ -119,11 +119,11 @@ struct DatabaseAnalysisView: View {
             if analysis.isEstimate {
                 Text("Estimate")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(DomainColor.statusWarning)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(.orange.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .background(DomainColor.statusWarning.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
             }
         }
         .padding(.horizontal)
@@ -175,12 +175,12 @@ struct DatabaseAnalysisView: View {
                 }
                 .padding(8)
                 .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
             }
         }
         .padding(12)
         .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
     }
 
     private func topKeysSection(_ analysis: DatabaseAnalysis) -> some View {
@@ -214,12 +214,12 @@ struct DatabaseAnalysisView: View {
                 }
                 .padding(8)
                 .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
             }
         }
         .padding(12)
         .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
     }
 
     private func expirationSection(_ analysis: DatabaseAnalysis) -> some View {
@@ -244,10 +244,10 @@ struct DatabaseAnalysisView: View {
 
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 3)
+                                    RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall)
                                         .fill(.quaternary)
                                         .frame(height: 16)
-                                    RoundedRectangle(cornerRadius: 3)
+                                    RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall)
                                         .fill(expirationColor(bucket.label))
                                         .frame(width: max(4, geo.size.width * CGFloat(bucket.keyCount) / CGFloat(maxCount)), height: 16)
                                 }
@@ -266,12 +266,12 @@ struct DatabaseAnalysisView: View {
                 }
                 .padding(8)
                 .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
             }
         }
         .padding(12)
         .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
     }
 
     private func typeIcon(_ type: String) -> String {
@@ -286,27 +286,11 @@ struct DatabaseAnalysisView: View {
     }
 
     private func typeColor(_ type: String) -> Color {
-        switch type.lowercased() {
-        case "string": return .blue
-        case "list": return .green
-        case "hash": return .orange
-        case "set": return .purple
-        case "zset": return .pink
-        default: return .secondary
-        }
+        DomainColor.typeColor(type)
     }
 
     private func expirationColor(_ label: String) -> Color {
-        switch label {
-        case "< 1h": return .red
-        case "1-6h": return .orange
-        case "6-24h": return .yellow
-        case "1-7d": return .blue
-        case "7-30d": return .green
-        case "> 30d": return .secondary
-        case "No expiry": return .gray
-        default: return .secondary
-        }
+        DomainColor.expirationColor(label)
     }
 
     private func exportAnalysis() {

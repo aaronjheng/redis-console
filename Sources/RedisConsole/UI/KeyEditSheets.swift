@@ -262,7 +262,7 @@ struct AddKeySheet: View {
                             values.wrappedValue.remove(at: index)
                         }
                         .labelStyle(.iconOnly)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(DomainColor.statusError)
                         .buttonStyle(.borderless)
                     }
                 }
@@ -303,7 +303,7 @@ struct AddKeySheet: View {
                             pairs.wrappedValue.remove(at: index)
                         }
                         .labelStyle(.iconOnly)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(DomainColor.statusError)
                         .buttonStyle(.borderless)
                     }
                 }
@@ -344,7 +344,7 @@ struct AddKeySheet: View {
                             pairs.wrappedValue.remove(at: index)
                         }
                         .labelStyle(.iconOnly)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(DomainColor.statusError)
                         .buttonStyle(.borderless)
                     }
                 }

@@ -129,9 +129,9 @@ struct StringDetailView: View {
                         .font(.system(.body, design: .monospaced))
                         .padding(8)
                         .background(Color(nsColor: .textBackgroundColor))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium)
                                 .stroke(Color.accentColor, lineWidth: 2)
                         )
 
@@ -234,10 +234,10 @@ private enum JSONSyntaxHighlighter {
                     to: &attributed,
                     source: source,
                     range: stringRange,
-                    color: isObjectKey ? .teal : .green
+                    color: isObjectKey ? DomainColor.jsonKey : DomainColor.jsonString
                 )
                 for escapeRange in escapeRanges {
-                    applyColor(to: &attributed, source: source, range: escapeRange, color: .orange)
+                    applyColor(to: &attributed, source: source, range: escapeRange, color: DomainColor.jsonBoolean)
                 }
                 continue
             }
@@ -248,7 +248,7 @@ private enum JSONSyntaxHighlighter {
                 while index < chars.count, isNumberBody(char: chars[index]) {
                     index += 1
                 }
-                applyColor(to: &attributed, source: source, range: numberStart..<index, color: .blue)
+                applyColor(to: &attributed, source: source, range: numberStart..<index, color: DomainColor.jsonNumber)
                 continue
             }
 
@@ -257,9 +257,9 @@ private enum JSONSyntaxHighlighter {
                 let color: Color =
                     switch keyword {
                     case "true", "false":
-                        .orange
+                        DomainColor.jsonBoolean
                     case "null":
-                        .red
+                        DomainColor.jsonNull
                     default:
                         .primary
                     }
