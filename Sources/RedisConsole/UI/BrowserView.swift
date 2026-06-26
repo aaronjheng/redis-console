@@ -327,7 +327,7 @@ struct BrowserView: View {
     // MARK: - Helpers
 
     private var filteredKeys: [RedisKeyEntry] {
-        app.keys.filter { app.keyTypeFilter.isEmpty || $0.type == app.keyTypeFilter }
+        app.keys.filter { app.keyTypeFilter.isEmpty || $0.type.isEmpty || $0.type == app.keyTypeFilter }
     }
 
     private var currentScanCount: Int {
