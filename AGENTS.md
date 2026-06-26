@@ -18,6 +18,26 @@ Redis Console is a native macOS Redis client written in Swift, with SSH tunnel s
 
 - Prefer SwiftUI; use AppKit only when necessary
 
+## Design System
+
+All UI work must follow the design system in `Design/`. Read the relevant sections before modifying any view.
+
+### Required reading
+
+| Task | Read first |
+|---|---|
+| Change spacing, sizing, corner radii, or typography | `Design/TOKENS.md` |
+| Change colors or add a new color usage | `Design/COLORS.md` |
+| Add or modify buttons, badges, banners, tables, empty states, loading, cards, sheets, popovers | `Design/COMPONENTS.md` |
+| Change layout, sidebars, headers, or panel structure | `Design/LAYOUT.md` |
+
+### Rules
+
+1. Use existing tokens and components from `Design/` before introducing ad-hoc values.
+2. Do not hardcode colors, spacing, fonts, or corner radii in views.
+3. If a view genuinely needs a new token or component, add it to the relevant `Design/*.md` file first, then use it in code.
+4. After UI changes, regenerate the UI Inventory with `just generate-ui-inventory` and review the affected screenshots.
+
 ## Code Quality
 
 - Follow `.swift-format` and `.swiftlint.yml` configurations
@@ -60,4 +80,13 @@ just install
 
 # Clean build artifacts
 just clean
+
+# Generate UI Inventory (screenshots + metadata)
+just generate-ui-inventory
 ```
+
+## UI Inventory Generator
+
+The project includes a deterministic UI Inventory Generator under `Sources/RedisConsole/UIInventory/`. It captures screenshots of every user-visible UI state without a real Redis server.
+
+**When working on UI Inventory tasks** (adding entries, modifying fake data, auditing coverage, fixing capture issues), read `Sources/RedisConsole/UIInventory/AGENTS.md` first — it contains the complete design rationale, architecture decisions, audit methodology, and step-by-step guides.

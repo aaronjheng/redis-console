@@ -142,6 +142,7 @@
 				<string>4802E28E6C154B3FA32C51DD</string>
 				<string>6AC6C4B80F017969CEB19B06</string>
 				<string>4CA6B3946EE148E4AB3E6C47</string>
+				<string>E3C96B2BF728EEB77D363B1B</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -210,6 +211,17 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>14273FC27E52360BD0F0C6AA</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>ScreenshotCapture.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>17A045CD0D1ACB98D3834EB9</key>
 		<dict>
 			<key>isa</key>
@@ -239,6 +251,17 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>1EDC0BEC9DE85A80264395FC</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UIInventoryRegistry.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>1EE8D581409B1B7A2AB96384</key>
 		<dict>
 			<key>fileRef</key>
@@ -261,6 +284,13 @@
 		<dict>
 			<key>fileRef</key>
 			<string>9EC4428D0FA54FB68D6B4A52</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>2789ABD7CB2BF2EBA94E7184</key>
+		<dict>
+			<key>fileRef</key>
+			<string>4AABD056A6773D48E7E14AFD</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -429,6 +459,13 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>32D6CD4720F32943F12FA357</key>
+		<dict>
+			<key>fileRef</key>
+			<string>B352DD8FC3AAB4BED4081698</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>3363820C7CB1D380067B3186</key>
 		<dict>
 			<key>buildSettings</key>
@@ -497,6 +534,17 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>37BCF1EE695C87E11708D0F3</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>InventoryExporter.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>38CC641D3286AA0C9E3F13BA</key>
 		<dict>
 			<key>fileRef</key>
@@ -555,6 +603,17 @@
 			<string>sourcecode.swift</string>
 			<key>path</key>
 			<string>UI/ShellView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>4AABD056A6773D48E7E14AFD</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>FakeRedisSession.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -658,6 +717,12 @@
 				<string>D4F731F3E4344143B8D697A3</string>
 				<string>BB9EAE77079349349F2EE621</string>
 				<string>887B11D2D2F941D3B9F989DA</string>
+				<string>E879E5C0E2AC40D935642BD3</string>
+				<string>2789ABD7CB2BF2EBA94E7184</string>
+				<string>C40192052FFE0265771B2F94</string>
+				<string>DDB2C7AEEBE6369AD8107408</string>
+				<string>C295F97DD570673C8ACC49E5</string>
+				<string>32D6CD4720F32943F12FA357</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -1221,6 +1286,17 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>B352DD8FC3AAB4BED4081698</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>InventoryGenerator.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>B3D974DB8863C491649CE938</key>
 		<dict>
 			<key>children</key>
@@ -1354,6 +1430,20 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>C295F97DD570673C8ACC49E5</key>
+		<dict>
+			<key>fileRef</key>
+			<string>37BCF1EE695C87E11708D0F3</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>C40192052FFE0265771B2F94</key>
+		<dict>
+			<key>fileRef</key>
+			<string>1EDC0BEC9DE85A80264395FC</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>C4166411BD7E73C24B17A9B2</key>
 		<dict>
 			<key>fileRef</key>
@@ -1460,6 +1550,13 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>DDB2C7AEEBE6369AD8107408</key>
+		<dict>
+			<key>fileRef</key>
+			<string>14273FC27E52360BD0F0C6AA</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>E1202E9EAD648CAADB72313E</key>
 		<dict>
 			<key>isa</key>
@@ -1518,6 +1615,24 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>E3C96B2BF728EEB77D363B1B</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>F4767C185BE98DA4238F4369</string>
+				<string>4AABD056A6773D48E7E14AFD</string>
+				<string>1EDC0BEC9DE85A80264395FC</string>
+				<string>14273FC27E52360BD0F0C6AA</string>
+				<string>37BCF1EE695C87E11708D0F3</string>
+				<string>B352DD8FC3AAB4BED4081698</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>path</key>
+			<string>UIInventory</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>E4CC206328F4F250C17D5DA5</key>
 		<dict>
 			<key>children</key>
@@ -1545,6 +1660,13 @@
 			<string>Debug</string>
 			<key>isa</key>
 			<string>XCConfigurationList</string>
+		</dict>
+		<key>E879E5C0E2AC40D935642BD3</key>
+		<dict>
+			<key>fileRef</key>
+			<string>F4767C185BE98DA4238F4369</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
 		</dict>
 		<key>EBBB9DD78140920F3F35D5A6</key>
 		<dict>
@@ -1618,6 +1740,17 @@
 			<string>D40A3ED953B1431590D304AA</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
+		</dict>
+		<key>F4767C185BE98DA4238F4369</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UIInventoryTypes.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
 		</dict>
 		<key>F59767EE7E02A667EEC3A156</key>
 		<dict>
