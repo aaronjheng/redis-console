@@ -470,6 +470,15 @@ extension ConnectionState {
 
     private func keyValueRows(from values: [RESPValue?]) -> [(String, String)] {
         var rows: [(String, String)] = []
+        for value in values {
+            guard let value else { continue }
+            if case .array(let pair) = value, pair.count >= 2 {
+                let key = pair[0]?.string ?? pair[0]?.displayString ?? ""
+                let val = pair[1]?.string ?? pair[1]?.displayString ?? ""
+                rows.append((key, val))
+            }
+        }
+        if !rows.isEmpty { return rows }
         var itemIndex = 0
         while itemIndex + 1 < values.count {
             guard let key = values[itemIndex] else {
@@ -485,6 +494,15 @@ extension ConnectionState {
 
     private func scoredRows(from values: [RESPValue?]) -> [(String, String)] {
         var rows: [(String, String)] = []
+        for value in values {
+            guard let value else { continue }
+            if case .array(let pair) = value, pair.count >= 2 {
+                let member = pair[0]?.string ?? pair[0]?.displayString ?? ""
+                let score = pair[1]?.string ?? pair[1]?.displayString ?? ""
+                rows.append((score, member))
+            }
+        }
+        if !rows.isEmpty { return rows }
         var itemIndex = 0
         while itemIndex + 1 < values.count {
             let member = values[itemIndex]?.string ?? values[itemIndex]?.displayString ?? ""

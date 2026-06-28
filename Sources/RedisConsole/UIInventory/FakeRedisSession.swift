@@ -439,8 +439,7 @@ final class FakeRedisSession: RedisSession, @unchecked Sendable {
             if withScores {
                 var result: [RESPValue?] = []
                 for (member, score) in slice {
-                    result.append(.bulkString(member))
-                    result.append(.bulkString(String(score)))
+                    result.append(.array([.bulkString(member), .bulkString(String(score))]))
                 }
                 return .array(result)
             }
@@ -612,8 +611,7 @@ final class FakeRedisSession: RedisSession, @unchecked Sendable {
             let filtered = key.hashFields.filter { fnmatch(matchPattern, $0.0, 0) == 0 }
             var values: [RESPValue?] = []
             for (field, value) in filtered {
-                values.append(.bulkString(field))
-                values.append(.bulkString(value))
+                values.append(.array([.bulkString(field), .bulkString(value)]))
             }
             return .array([.bulkString("0"), .array(values)])
 
@@ -625,8 +623,7 @@ final class FakeRedisSession: RedisSession, @unchecked Sendable {
             let filtered = key.zsetMembers.filter { fnmatch(matchPattern, $0.0, 0) == 0 }
             var values: [RESPValue?] = []
             for (member, score) in filtered {
-                values.append(.bulkString(member))
-                values.append(.bulkString(String(score)))
+                values.append(.array([.bulkString(member), .bulkString(String(score))]))
             }
             return .array([.bulkString("0"), .array(values)])
 
