@@ -37,7 +37,7 @@ struct DatabaseAnalysisView: View {
 
             if let error = app.analysisError {
                 Text(error)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(DomainColor.statusError)
                     .padding(.horizontal)
                 Divider()
@@ -96,14 +96,14 @@ struct DatabaseAnalysisView: View {
         HStack(spacing: AppTheme.spacingLarge) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Last analyzed:")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
                 HStack(spacing: 0) {
                     Text(analysis.analyzedAt, style: .time)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text(" (\(analysis.keysSampled) keys)")
-                        .font(.caption2)
+                        .font(.subheadline)
                         .foregroundStyle(.tertiary)
                 }
             }
@@ -118,7 +118,7 @@ struct DatabaseAnalysisView: View {
 
             if analysis.isEstimate {
                 Text("Estimate")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(DomainColor.statusWarning)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -133,21 +133,20 @@ struct DatabaseAnalysisView: View {
     private func typeDistributionSection(_ analysis: DatabaseAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Type Distribution")
-                .font(.subheadline)
-                .bold()
+                .font(.headline)
 
             let types = analysis.typeDistribution.keys.sorted()
             if types.isEmpty {
                 Text("No data")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 4) {
                     HStack {
-                        Text("Type").font(.caption).foregroundStyle(.secondary).frame(width: 60, alignment: .leading)
-                        Text("Count").font(.caption).foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
-                        Text("Memory").font(.caption).foregroundStyle(.secondary).frame(width: 80, alignment: .trailing)
-                        Text("Avg").font(.caption).foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
+                        Text("Type").font(.subheadline).foregroundStyle(.secondary).frame(width: 60, alignment: .leading)
+                        Text("Count").font(.subheadline).foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
+                        Text("Memory").font(.subheadline).foregroundStyle(.secondary).frame(width: 80, alignment: .trailing)
+                        Text("Avg").font(.subheadline).foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
                     }
                     ForEach(types, id: \.self) { type in
                         if let stats = analysis.typeDistribution[type] {
@@ -156,17 +155,17 @@ struct DatabaseAnalysisView: View {
                                     Image(systemName: typeIcon(type))
                                         .foregroundStyle(typeColor(type))
                                     Text(type.capitalized)
-                                        .font(.caption)
+                                        .font(.subheadline)
                                 }
                                 .frame(width: 60, alignment: .leading)
                                 Text("\(stats.count)")
-                                    .font(.system(.caption, design: .monospaced))
+                                    .font(.system(.subheadline, design: .monospaced))
                                     .frame(width: 60, alignment: .trailing)
                                 Text(ByteCountFormatter.string(fromByteCount: Int64(stats.memory), countStyle: .file))
-                                    .font(.system(.caption, design: .monospaced))
+                                    .font(.system(.subheadline, design: .monospaced))
                                     .frame(width: 80, alignment: .trailing)
                                 Text(ByteCountFormatter.string(fromByteCount: Int64(stats.avgSize), countStyle: .file))
-                                    .font(.system(.caption, design: .monospaced))
+                                    .font(.system(.subheadline, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .frame(width: 60, alignment: .trailing)
                             }
@@ -186,12 +185,11 @@ struct DatabaseAnalysisView: View {
     private func topKeysSection(_ analysis: DatabaseAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Top Keys by Memory")
-                .font(.subheadline)
-                .bold()
+                .font(.headline)
 
             if analysis.topKeysByMemory.isEmpty {
                 Text("No data")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 2) {
@@ -199,13 +197,13 @@ struct DatabaseAnalysisView: View {
                         HStack(spacing: 4) {
                             Image(systemName: typeIcon(entry.type))
                                 .foregroundStyle(typeColor(entry.type))
-                                .font(.caption2)
+                                .font(.subheadline)
                             Text(entry.key)
-                                .font(.caption)
+                                .font(.subheadline)
                                 .lineLimit(1)
                             Spacer()
                             Text(entry.memoryText)
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.system(.subheadline, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
                         .padding(.horizontal, 4)
@@ -225,12 +223,11 @@ struct DatabaseAnalysisView: View {
     private func expirationSection(_ analysis: DatabaseAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Expiration Timeline")
-                .font(.subheadline)
-                .bold()
+                .font(.headline)
 
             if analysis.expirationSummary.isEmpty {
                 Text("No data")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
                 let maxCount = analysis.expirationSummary.map(\.keyCount).max() ?? 1
@@ -238,7 +235,7 @@ struct DatabaseAnalysisView: View {
                     ForEach(analysis.expirationSummary) { bucket in
                         HStack(spacing: 8) {
                             Text(bucket.label)
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 60, alignment: .leading)
 
@@ -255,10 +252,10 @@ struct DatabaseAnalysisView: View {
                             .frame(height: 16)
 
                             Text("\(bucket.keyCount)")
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.system(.subheadline, design: .monospaced))
                                 .frame(width: 50, alignment: .trailing)
                             Text(bucket.memoryText)
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.system(.subheadline, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 70, alignment: .trailing)
                         }
@@ -341,10 +338,10 @@ struct StatItem: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(label)
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
             Text(value)
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.subheadline, design: .monospaced))
                 .foregroundStyle(.primary)
         }
     }
