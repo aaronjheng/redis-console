@@ -73,7 +73,7 @@ struct ShellView: View {
                             showCompletions = false
                         } label: {
                             Text(cmd)
-                                .font(.caption)
+                                .font(.subheadline)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(.quaternary)
@@ -188,12 +188,12 @@ struct ShellHistoryRow: View {
                     .bold()
                 Spacer()
                 Text(entry.timestamp, style: .time)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
             }
 
             Text(entry.result)
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.subheadline, design: .monospaced))
                 .foregroundStyle(entry.isError ? DomainColor.statusError : .primary)
                 .textSelection(.enabled)
                 .padding(8)

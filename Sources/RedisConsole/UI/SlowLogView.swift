@@ -36,7 +36,7 @@ struct SlowLogView: View {
                 Table(app.slowLogEntries) {
                     TableColumn("ID") { entry in
                         Text("#\(entry.id)")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
@@ -44,28 +44,28 @@ struct SlowLogView: View {
 
                     TableColumn("Duration") { entry in
                         Text(entry.durationText)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.system(.subheadline, design: .monospaced))
                             .foregroundStyle(durationColor(entry.duration))
                     }
                     .width(90)
 
                     TableColumn("Time") { entry in
                         Text(entry.timestamp, style: .time)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .width(70)
 
                     TableColumn("Command") { entry in
                         Text(entry.commandText)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.system(.subheadline, design: .monospaced))
                             .lineLimit(1)
                             .textSelection(.enabled)
                     }
 
                     TableColumn("Client") { entry in
                         Text(entry.clientIP)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .width(130)

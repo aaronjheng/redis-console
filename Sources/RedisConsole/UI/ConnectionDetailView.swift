@@ -89,7 +89,7 @@ struct ConnectionDetailView: View {
                             TextField("Client Certificate Path (optional)", text: $tls.clientCertificatePath)
                             TextField("Client Key Path (optional)", text: $tls.clientKeyPath)
                             Text("For mTLS, provide both client certificate and key")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -118,7 +118,7 @@ struct ConnectionDetailView: View {
                             SecureField("Password (optional)", text: $ssh.password)
                             TextField("Private Key Path (optional)", text: $ssh.privateKeyPath)
                             Text("Provide a password or a private key file path")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -260,7 +260,7 @@ struct ConnectionDetailView: View {
                 Image(systemName: result.hasPrefix("OK") ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(result.hasPrefix("OK") ? DomainColor.statusSuccess : DomainColor.statusError)
                 Text(result)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
         }

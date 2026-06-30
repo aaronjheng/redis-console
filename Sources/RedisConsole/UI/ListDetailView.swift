@@ -60,7 +60,7 @@ struct ListDetailView: View {
             Table(listRows) {
                 TableColumn("Index") { row in
                     Text("\(row.index)")
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.system(.subheadline, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .copyableCell("\(row.index)", row: "\(row.index)\t\(row.value)")
                 }

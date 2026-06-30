@@ -11,7 +11,7 @@ struct ConnectionRow: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: AppTheme.spacingSmall) {
                 Text(config.name)
-                    .font(.body)
+                    .font(.headline)
                     .lineLimit(1)
                 Spacer(minLength: AppTheme.spacing)
                 if config.environment != .unspecified {

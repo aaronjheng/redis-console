@@ -80,7 +80,7 @@ struct BrowserView: View {
                     .buttonStyle(.borderless)
                     .help("Dismiss")
                 }
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(DomainColor.statusError)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
@@ -310,7 +310,7 @@ struct BrowserView: View {
                     ProgressView()
                         .controlSize(.small)
                     Text("Scanning...")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(8)
@@ -589,7 +589,7 @@ private struct KeyNamespaceNodeView: View {
                 HStack {
                     Spacer()
                     Text("\(namespaceKeys.count - pageSize) more keys...")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
@@ -630,7 +630,7 @@ private struct KeyNamespaceRow: View {
                 .truncationMode(.middle)
             Spacer()
             Text("\(namespace.keyCount)")
-                .font(.caption)
+                .font(.subheadline)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
         }
@@ -775,13 +775,13 @@ struct ProductionConfirmView: View {
                 Image(systemName: "shield")
                     .foregroundStyle(DomainColor.statusError)
                 Text("This is a PRODUCTION database.")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(DomainColor.statusError)
             }
 
             HStack(spacing: 4) {
                 Text("Type \"\(confirmText)\" to confirm:")
-                    .font(.caption)
+                    .font(.subheadline)
                 Spacer()
             }
 

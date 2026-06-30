@@ -56,13 +56,13 @@ struct ClusterTopologyView: View {
             }
 
             Text(item.node.endpoint.host)
-                .font(.caption2)
+                .font(.caption)
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: 100)
 
             Text(item.node.endpoint.port.description)
-                .font(.caption2)
+                .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .help(nodeTooltip(item.node))

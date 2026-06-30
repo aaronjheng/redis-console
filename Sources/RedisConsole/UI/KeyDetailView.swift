@@ -47,7 +47,7 @@ struct KeyDetailView: View {
                             .lineLimit(2)
                         Spacer()
                     }
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(DomainColor.statusError)
                     .padding(.horizontal)
                     .padding(.vertical, 6)
@@ -497,7 +497,7 @@ struct KeyDetailView: View {
                 ForEach(Array(app.keyDetailRows.enumerated()), id: \.offset) { _, row in
                     HStack(alignment: .top) {
                         Text(row.0)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.system(.subheadline, design: .monospaced))
                             .foregroundStyle(.secondary)
                             .frame(width: 100, alignment: .leading)
                             .copyableCell(row.0, row: "\(row.0)\t\(row.1)")
@@ -514,7 +514,7 @@ struct KeyDetailView: View {
                     Text("Value")
                     Spacer()
                 }
-                .font(.caption)
+                .font(.subheadline)
             }
         }
         .listStyle(.inset)
@@ -541,7 +541,7 @@ private struct KeyTTLEditorPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(keyName)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -555,13 +555,13 @@ private struct KeyTTLEditorPopover: View {
                     .frame(width: 140)
                     .onSubmit(onSave)
                 Text("s")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
             if let error {
                 Text(error)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(DomainColor.statusError)
             }
 

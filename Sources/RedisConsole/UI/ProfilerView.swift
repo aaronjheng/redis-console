@@ -139,7 +139,7 @@ private struct ProfilerEmptyStateView: View {
             if !isRunning && !isStarting {
                 Spacer().frame(height: 16)
                 Label("MONITOR can slow busy servers", systemImage: "exclamationmark.triangle")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -232,7 +232,7 @@ private struct ProfilerStatusPill: View {
                 .fill(indicatorColor)
                 .frame(width: 7, height: 7)
             Text(statusText)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 8)
@@ -260,7 +260,7 @@ private struct ProfilerErrorBanner: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(DomainColor.statusWarning)
             Text(message)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.primary)
                 .lineLimit(2)
             Spacer()
@@ -321,7 +321,7 @@ private struct ProfilerHeaderRow: View {
             Text("Arguments")
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .font(.caption)
+        .font(.subheadline)
         .foregroundStyle(.secondary)
         .padding(.horizontal)
         .padding(.vertical, 7)
@@ -358,7 +358,7 @@ private struct ProfilerEntryRow: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .truncationMode(.middle)
             }
-            .font(.system(.caption, design: .monospaced))
+            .font(.system(.subheadline, design: .monospaced))
             .lineLimit(1)
             .padding(.horizontal)
             .padding(.vertical, 6)
@@ -394,11 +394,11 @@ private struct ProfilerFooterView: View {
             if let selectedEntry {
                 HStack(alignment: .top, spacing: 8) {
                     Text("Raw")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(width: 42, alignment: .leading)
                     Text(selectedEntry.rawLine)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.system(.subheadline, design: .monospaced))
                         .lineLimit(3)
                         .textSelection(.enabled)
                     Spacer()
