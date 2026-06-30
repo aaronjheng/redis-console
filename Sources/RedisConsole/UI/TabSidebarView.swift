@@ -16,6 +16,7 @@ struct WorkspaceSidebarView: View {
                         HStack(alignment: .firstTextBaseline, spacing: AppTheme.spacingSmall) {
                             Text(selectedConnection.name)
                                 .font(.title3)
+                                .fontWeight(.bold)
                                 .lineLimit(1)
                             Spacer(minLength: AppTheme.spacing)
                             Badge(
