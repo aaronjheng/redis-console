@@ -31,7 +31,7 @@ struct ConnectionRow: View {
                 .help("Connection mode: \(config.mode.title)")
             }
             Text(config.address)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
