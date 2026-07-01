@@ -36,16 +36,13 @@ struct DatabaseAnalysisView: View {
             .padding()
 
             if let error = app.analysisError {
-                Text(error)
-                    .font(.subheadline)
-                    .foregroundStyle(DomainColor.statusError)
-                    .padding(.horizontal)
+                ErrorBanner(message: error)
                 Divider()
             }
 
             if app.isLoadingAnalysis {
                 Spacer()
-                ProgressView("Analyzing database...")
+                LoadingState(message: "Analyzing database...")
                 Spacer()
             } else if let analysis = app.analysis {
                 analysisContent(analysis)
@@ -131,10 +128,7 @@ struct DatabaseAnalysisView: View {
     }
 
     private func typeDistributionSection(_ analysis: DatabaseAnalysis) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Type Distribution")
-                .font(.headline)
-
+        Card(title: "Type Distribution") {
             let types = analysis.typeDistribution.keys.sorted()
             if types.isEmpty {
                 Text("No data")
@@ -177,16 +171,10 @@ struct DatabaseAnalysisView: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
             }
         }
-        .padding(12)
-        .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
     }
 
     private func topKeysSection(_ analysis: DatabaseAnalysis) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Top Keys by Memory")
-                .font(.headline)
-
+        Card(title: "Top Keys by Memory") {
             if analysis.topKeysByMemory.isEmpty {
                 Text("No data")
                     .font(.subheadline)
@@ -215,16 +203,10 @@ struct DatabaseAnalysisView: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
             }
         }
-        .padding(12)
-        .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
     }
 
     private func expirationSection(_ analysis: DatabaseAnalysis) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Expiration Timeline")
-                .font(.headline)
-
+        Card(title: "Expiration Timeline") {
             if analysis.expirationSummary.isEmpty {
                 Text("No data")
                     .font(.subheadline)
@@ -266,9 +248,6 @@ struct DatabaseAnalysisView: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
             }
         }
-        .padding(12)
-        .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
     }
 
     private func typeIcon(_ type: String) -> String {

@@ -44,7 +44,7 @@ struct ProfilerView: View {
             )
 
             if let error = app.profilerError {
-                ProfilerErrorBanner(message: error)
+                ErrorBanner(message: error, severity: .warning)
             }
 
             ProfilerContentView(
@@ -249,25 +249,6 @@ private struct ProfilerStatusPill: View {
     private var indicatorColor: Color {
         if isStarting { return DomainColor.statusWarning }
         return isRunning ? DomainColor.statusSuccess : .secondary
-    }
-}
-
-private struct ProfilerErrorBanner: View {
-    let message: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(DomainColor.statusWarning)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-                .lineLimit(2)
-            Spacer()
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(DomainColor.statusWarning.opacity(0.12))
     }
 }
 

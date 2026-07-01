@@ -68,23 +68,7 @@ struct BrowserView: View {
             Divider()
 
             if let error = app.connectionError {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle")
-                    Text(error)
-                        .lineLimit(2)
-                    Spacer()
-                    Button("Dismiss", systemImage: "xmark") {
-                        app.connectionError = nil
-                    }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
-                    .help("Dismiss")
-                }
-                .font(.subheadline)
-                .foregroundStyle(DomainColor.statusError)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-
+                ErrorBanner(message: error, dismissAction: { app.connectionError = nil })
                 Divider()
             }
 

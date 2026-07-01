@@ -71,87 +71,38 @@ Badge(
 
 ## Error Banner
 
-Create a new `ErrorBanner` component.
+Use the existing `ErrorBanner` view in `AppTheme.swift`. Supports `.error` and `.warning` severity, with optional dismiss action.
 
 ```swift
-struct ErrorBanner: View {
-    let message: String
-    var body: some View {
-        HStack(spacing: AppTheme.spacing) {
-            Image(systemName: "exclamationmark.triangle.fill")
-            Text(message)
-            Spacer()
-        }
-        .font(.caption.weight(.medium))
-        .foregroundStyle(.red)
-        .padding(AppTheme.spacing)
-        .background(.red.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
-    }
-}
+ErrorBanner(message: "Connection failed", dismissAction: { dismiss() })
+ErrorBanner(message: "MONITOR can slow busy servers", severity: .warning)
 ```
 
-**Apply to:** `browser-error`, `detail-error`, `analysis-error`, `profiler-error`, `shell-danger`.
+**Applied in:** BrowserView (connection error), KeyDetailView (detail error), DatabaseAnalysisView (analysis error), ProfilerView (warning banner).
 
 ---
 
 ## Loading State
 
-Create a `LoadingOverlay` or `LoadingState` component.
+Use the existing `LoadingState` view in `AppTheme.swift`.
 
 ```swift
-struct LoadingState: View {
-    let message: String
-    var body: some View {
-        VStack(spacing: AppTheme.spacing) {
-            ProgressView()
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(AppTheme.spacingLarge)
-    }
-}
+LoadingState(message: "Loading value...")
 ```
 
-**Rules:**
-- Center in the active panel.
-- Use the same spinner everywhere.
-- For inline loading (e.g., slow log refresh), dim the control and show a small spinner.
+**Applied in:** KeyDetailView, DatabaseAnalysisView.
+
+**For inline loading** (e.g., slow log refresh, scanning keys), use `ProgressView().controlSize(.small)` directly.
 
 ---
 
 ## Empty State
 
-Create a reusable `EmptyState` component.
+**Status: `[not implemented]`** — not yet extracted as a shared component.
 
-```swift
-struct EmptyState: View {
-    let icon: String
-    let title: String
-    let subtitle: String?
-    var body: some View {
-        ContentUnavailableView {
-            Image(systemName: icon)
-                .font(.system(size: 48, weight: .light))
-                .foregroundStyle(.secondary)
-        } description: {
-            Text(title)
-                .font(.headline)
-            if let subtitle {
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-```
+Currently each view uses inline `ContentUnavailableView` directly. This is acceptable for now since each empty state has unique layout (button placement, spacing). Extract only when a consistent pattern emerges across 3+ views.
 
-**Rules:**
-- Use system SF Symbols unless a custom icon is clearly needed.
-- Keep icon size consistent (48pt).
-- Use the same title/subtitle style everywhere.
+**Views using inline empty states:** BrowserView (2), KeyDetailView, ProfilerView (3), ServerInfoView, SlowLogView, ShellView, DatabaseAnalysisView.
 
 ---
 
@@ -184,25 +135,20 @@ Table(of: Row.self, selection: $selection) { ... }
 
 ## Cards / Panels
 
-Create a `Card` component for dashboard-style views.
+Use the existing `Card` view in `AppTheme.swift` for dashboard-style sections.
 
 ```swift
-struct Card<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text(title).font(.headline)
-            content
-        }
-        .padding(AppTheme.spacingLarge)
-        .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
-    }
+Card(title: "Type Distribution") {
+    // content
 }
 ```
 
-**Usage:** `DatabaseAnalysisView`, `ProfilerView` summary, `ServerInfoView` cluster summary.
+**Applied in:** DatabaseAnalysisView (type distribution, top keys, expiration timeline).
+
+**Rules:**
+- Title uses `.headline` automatically.
+- Content is left-aligned with standard card padding.
+- Background uses `.bar` with `cornerRadiusLarge`.
 
 ---
 

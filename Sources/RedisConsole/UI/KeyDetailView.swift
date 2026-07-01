@@ -41,23 +41,13 @@ struct KeyDetailView: View {
                 Divider()
 
                 if let error = app.keyDetailError {
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle")
-                        Text(error)
-                            .lineLimit(2)
-                        Spacer()
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(DomainColor.statusError)
-                    .padding(.horizontal)
-                    .padding(.vertical, 6)
-
+                    ErrorBanner(message: error)
                     Divider()
                 }
 
                 if app.isLoadingDetail {
                     Spacer()
-                    ProgressView("Loading value...")
+                    LoadingState(message: "Loading value...")
                     Spacer()
                 } else {
                     detailContent(key: key)

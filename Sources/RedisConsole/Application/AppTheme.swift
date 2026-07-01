@@ -168,6 +168,89 @@ struct Badge: View {
     }
 }
 
+// MARK: - Error Banner
+
+struct ErrorBanner: View {
+    enum Severity {
+        case error
+        case warning
+
+        var icon: String { "exclamationmark.triangle.fill" }
+        var color: Color {
+            switch self {
+            case .error: DomainColor.statusError
+            case .warning: DomainColor.statusWarning
+            }
+        }
+        var background: Color { color.opacity(0.12) }
+    }
+
+    let message: String
+    var severity: Severity = .error
+    var dismissAction: (() -> Void)?
+
+    var body: some View {
+        HStack(spacing: AppTheme.spacing) {
+            Image(systemName: severity.icon)
+                .foregroundStyle(severity.color)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(severity == .warning ? .primary : severity.color)
+                .lineLimit(2)
+            Spacer()
+            if let dismissAction {
+                Button("Dismiss", systemImage: "xmark") {
+                    dismissAction()
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .help("Dismiss")
+            }
+        }
+        .padding(.horizontal, AppTheme.spacing)
+        .padding(.vertical, 6)
+        .background(severity.background)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
+    }
+}
+
+// MARK: - Loading State
+
+struct LoadingState: View {
+    let message: String
+
+    var body: some View {
+        VStack(spacing: AppTheme.spacing) {
+            ProgressView()
+                .controlSize(.small)
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(AppTheme.spacingLarge)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Card
+
+struct Card<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacing) {
+            Text(title)
+                .font(.headline)
+            content
+        }
+        .padding(AppTheme.spacingLarge)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.bar)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
+    }
+}
+
 struct DeleteIconButton: View {
     let action: () -> Void
     var helpText: String?
