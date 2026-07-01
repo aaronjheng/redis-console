@@ -6,7 +6,14 @@ struct KeyRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Badge(text: entry.type, isLoading: entry.type.isEmpty)
+            Text(entry.type)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(width: 48, alignment: .center)
+                .padding(.vertical, 2)
+                .background(.quaternary.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall, style: .continuous))
             Text(displayName ?? entry.key)
                 .font(.body)
                 .lineLimit(1)
