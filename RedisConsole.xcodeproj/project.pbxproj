@@ -115,7 +115,8 @@
 				<string>A157CCBF9ADB6B699C6416FA</string>
 				<string>32A834210EBBC9DF44554827</string>
 				<string>34DCE9E49BA70BF20F6F82E8</string>
-				<string>FEF0092A0D2058DD291ECD3F</string>
+				<string>788DE047E55A32D079BE</string>
+				<string>D499544E2952AF7EBA6A</string>
 				<string>075617E28FD0E7BB40A29BCF</string>
 				<string>EED2F3356F2FD347D2FE4EA4</string>
 				<string>FF94C12BB25368F858F2D60A</string>
@@ -552,10 +553,17 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
-		<key>3BC8D42C86FD17A97AF500D1</key>
+		<key>88DA4632D559739D0313</key>
 		<dict>
 			<key>fileRef</key>
-			<string>FEF0092A0D2058DD291ECD3F</string>
+			<string>788DE047E55A32D079BE</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>8D734F73835D2DCA32C8</key>
+		<dict>
+			<key>fileRef</key>
+			<string>D499544E2952AF7EBA6A</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -689,7 +697,8 @@
 				<string>C04CD7C654C0F2EDF797682D</string>
 				<string>59AC308B35EAC800725934A3</string>
 				<string>12E4521C5CF120098DD00D86</string>
-				<string>3BC8D42C86FD17A97AF500D1</string>
+				<string>88DA4632D559739D0313</string>
+				<string>8D734F73835D2DCA32C8</string>
 				<string>10693750F69F859FC4E80EB5</string>
 				<string>5229483C61015293F62DB68B</string>
 				<string>73DFE7FD90FC7B63E795E8C5</string>
@@ -1813,14 +1822,25 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>FEF0092A0D2058DD291ECD3F</key>
+		<key>788DE047E55A32D079BE</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/TabSidebarView.swift</string>
+			<string>UI/WorkspaceSidebarView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>D499544E2952AF7EBA6A</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/ConnectionHubSidebarView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
