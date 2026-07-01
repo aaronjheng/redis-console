@@ -44,13 +44,14 @@ struct ShellView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 8) {
+                        LazyVStack(alignment: .leading, spacing: 6) {
                             ForEach(app.shellHistory) { entry in
                                 ShellHistoryRow(entry: entry)
                                     .id(entry.id)
+                                    .padding(.horizontal)
                             }
                         }
-                        .padding()
+                        .padding(.vertical, 8)
                     }
                     .onChange(of: app.shellHistory.count) { _, _ in
                         if let last = app.shellHistory.last {
@@ -177,29 +178,48 @@ struct ShellHistoryRow: View {
     let entry: ShellHistoryEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("> ")
-                    .font(.system(.body, design: .monospaced))
-                    .bold()
-                    .foregroundStyle(Color.accentColor)
+        VStack(alignment: .leading, spacing: 6) {
+            // Command header
+            HStack(spacing: 6) {
+                Image(systemName: entry.isError ? "xmark.circle.fill" : "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(entry.isError ? DomainColor.statusError : DomainColor.statusSuccess)
+                    .frame(width: 16)
+
                 Text(ShellSyntaxHighlighter.highlight(entry.command))
                     .font(.system(.body, design: .monospaced))
                     .bold()
+                    .lineLimit(3)
+
                 Spacer()
+
                 Text(entry.timestamp, style: .time)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
 
+            // Result block
             Text(entry.result)
                 .font(.system(.subheadline, design: .monospaced))
                 .foregroundStyle(entry.isError ? DomainColor.statusError : .primary)
                 .textSelection(.enabled)
-                .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(entry.isError ? DomainColor.statusError.opacity(0.1) : Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
+                .padding(10)
+                .background {
+                    if entry.isError {
+                        DomainColor.statusError.opacity(0.08)
+                    } else {
+                        Color(nsColor: .textBackgroundColor)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium)
+                        .stroke(entry.isError ? DomainColor.statusError.opacity(0.2) : Color.gray.opacity(0.2), lineWidth: 1)
+                }
         }
+        .padding(10)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
     }
 }
