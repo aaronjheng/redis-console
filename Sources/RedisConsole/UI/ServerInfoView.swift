@@ -104,7 +104,7 @@ struct ServerInfoView: View {
     private var clusterNodeList: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Nodes")
-                .font(.subheadline)
+                .font(.body)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -136,7 +136,7 @@ struct ServerInfoView: View {
                     Text(node.endpoint.address)
                         .font(.headline)
                     Text(nodeSubtitle(node))
-                        .font(.subheadline)
+                        .font(.body)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -204,12 +204,12 @@ struct ServerInfoView: View {
     private func infoRow(_ key: String, _ value: String) -> some View {
         HStack {
             Text(key)
-                .font(.system(.subheadline, design: .monospaced))
+                .font(.system(.body, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 160, alignment: .leading)
             Spacer()
             Text(value)
-                .font(.system(.subheadline, design: .monospaced))
+                .font(.system(.body, design: .monospaced))
                 .textSelection(.enabled)
         }
     }
@@ -218,19 +218,19 @@ struct ServerInfoView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(capability.name)
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.primary)
                     .textSelection(.enabled)
                 Spacer()
                 Text(capability.version ?? "-")
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
 
             if !capability.details.isEmpty {
                 Text(capabilityDetails(capability))
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .textSelection(.enabled)
@@ -249,11 +249,11 @@ struct ServerInfoView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(node.endpoint.address)
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(.system(.body, design: .monospaced))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(nodeSubtitle(node))
-                    .font(.subheadline)
+                    .font(.body)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .truncationMode(.middle)
@@ -269,10 +269,10 @@ struct ServerInfoView: View {
     private func summaryItem(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.subheadline)
+                .font(.body)
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.system(.subheadline, design: .monospaced))
+                .font(.system(.body, design: .monospaced))
                 .textSelection(.enabled)
         }
     }
