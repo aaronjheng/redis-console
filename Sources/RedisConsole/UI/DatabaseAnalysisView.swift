@@ -73,18 +73,18 @@ struct DatabaseAnalysisView: View {
                 summaryBar(analysis)
                 Divider()
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                VStack(spacing: 8) {
                     // Type Distribution
                     typeDistributionSection(analysis)
                     // Top Keys
                     topKeysSection(analysis)
                 }
-                .padding()
+                .padding([.horizontal, .top])
 
                 // Expiration Timeline
                 expirationSection(analysis)
                     .padding(.horizontal)
-                    .padding(.bottom)
+                    .padding(.bottom, 8)
             }
         }
     }
@@ -132,36 +132,32 @@ struct DatabaseAnalysisView: View {
             let types = analysis.typeDistribution.keys.sorted()
             if types.isEmpty {
                 Text("No data")
-                    .font(.subheadline)
+                    .font(.body)
                     .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 4) {
                     HStack {
-                        Text("Type").font(.subheadline).foregroundStyle(.secondary).frame(width: 60, alignment: .leading)
-                        Text("Count").font(.subheadline).foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
-                        Text("Memory").font(.subheadline).foregroundStyle(.secondary).frame(width: 80, alignment: .trailing)
-                        Text("Avg").font(.subheadline).foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
+                        Text("Type").font(.body).foregroundStyle(.secondary).frame(width: 60, alignment: .leading)
+                        Text("Count").font(.body).foregroundStyle(.secondary).frame(width: 70, alignment: .trailing)
+                        Text("Memory").font(.body).foregroundStyle(.secondary).frame(width: 120, alignment: .trailing)
+                        Text("Avg").font(.body).foregroundStyle(.secondary).frame(width: 100, alignment: .trailing)
                     }
                     ForEach(types, id: \.self) { type in
                         if let stats = analysis.typeDistribution[type] {
                             HStack {
-                                HStack(spacing: 4) {
-                                    Image(systemName: typeIcon(type))
-                                        .foregroundStyle(typeColor(type))
-                                    Text(type.capitalized)
-                                        .font(.subheadline)
-                                }
-                                .frame(width: 60, alignment: .leading)
+                                Text(type.capitalized)
+                                    .font(.body)
+                                    .frame(width: 60, alignment: .leading)
                                 Text("\(stats.count)")
-                                    .font(.system(.subheadline, design: .monospaced))
-                                    .frame(width: 60, alignment: .trailing)
+                                    .font(.system(.body, design: .monospaced))
+                                    .frame(width: 70, alignment: .trailing)
                                 Text(ByteCountFormatter.string(fromByteCount: Int64(stats.memory), countStyle: .file))
-                                    .font(.system(.subheadline, design: .monospaced))
-                                    .frame(width: 80, alignment: .trailing)
+                                    .font(.system(.body, design: .monospaced))
+                                    .frame(width: 120, alignment: .trailing)
                                 Text(ByteCountFormatter.string(fromByteCount: Int64(stats.avgSize), countStyle: .file))
-                                    .font(.system(.subheadline, design: .monospaced))
+                                    .font(.system(.body, design: .monospaced))
                                     .foregroundStyle(.secondary)
-                                    .frame(width: 60, alignment: .trailing)
+                                    .frame(width: 100, alignment: .trailing)
                             }
                         }
                     }
@@ -177,25 +173,21 @@ struct DatabaseAnalysisView: View {
         Card(title: "Top Keys by Memory") {
             if analysis.topKeysByMemory.isEmpty {
                 Text("No data")
-                    .font(.subheadline)
+                    .font(.body)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(spacing: 2) {
+                Grid(horizontalSpacing: 8, verticalSpacing: 2) {
                     ForEach(analysis.topKeysByMemory.prefix(10)) { entry in
-                        HStack(spacing: 4) {
-                            Image(systemName: typeIcon(entry.type))
-                                .foregroundStyle(typeColor(entry.type))
-                                .font(.subheadline)
+                        GridRow {
                             Text(entry.key)
-                                .font(.subheadline)
+                                .font(.body)
                                 .lineLimit(1)
-                            Spacer()
+                                .gridColumnAlignment(.leading)
                             Text(entry.memoryText)
-                                .font(.system(.subheadline, design: .monospaced))
+                                .font(.system(.body, design: .monospaced))
                                 .foregroundStyle(.secondary)
+                                .frame(width: 80, alignment: .trailing)
                         }
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
                     }
                 }
                 .padding(8)
@@ -209,7 +201,7 @@ struct DatabaseAnalysisView: View {
         Card(title: "Expiration Timeline") {
             if analysis.expirationSummary.isEmpty {
                 Text("No data")
-                    .font(.subheadline)
+                    .font(.body)
                     .foregroundStyle(.secondary)
             } else {
                 let maxCount = analysis.expirationSummary.map(\.keyCount).max() ?? 1
@@ -217,7 +209,7 @@ struct DatabaseAnalysisView: View {
                     ForEach(analysis.expirationSummary) { bucket in
                         HStack(spacing: 8) {
                             Text(bucket.label)
-                                .font(.subheadline)
+                                .font(.body)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 60, alignment: .leading)
 
@@ -234,10 +226,10 @@ struct DatabaseAnalysisView: View {
                             .frame(height: 16)
 
                             Text("\(bucket.keyCount)")
-                                .font(.system(.subheadline, design: .monospaced))
+                                .font(.system(.body, design: .monospaced))
                                 .frame(width: 50, alignment: .trailing)
                             Text(bucket.memoryText)
-                                .font(.system(.subheadline, design: .monospaced))
+                                .font(.system(.body, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 70, alignment: .trailing)
                         }
@@ -317,10 +309,10 @@ struct StatItem: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(label)
-                .font(.subheadline)
+                .font(.body)
                 .foregroundStyle(.tertiary)
             Text(value)
-                .font(.system(.subheadline, design: .monospaced))
+                .font(.system(.body, design: .monospaced))
                 .foregroundStyle(.primary)
         }
     }
