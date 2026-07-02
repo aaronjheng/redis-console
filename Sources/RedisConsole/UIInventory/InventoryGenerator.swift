@@ -108,7 +108,8 @@ final class InventoryGenerator {
 
         let outputDir: URL
         if let outputIndex = args.firstIndex(of: "--output"),
-            outputIndex + 1 < args.count {
+            outputIndex + 1 < args.count
+        {
             outputDir = URL(fileURLWithPath: args[outputIndex + 1])
         } else {
             outputDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)

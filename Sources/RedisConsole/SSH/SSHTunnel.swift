@@ -886,7 +886,7 @@ private final class ErrorHandler: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = Any
 
     func errorCaught(context: ChannelHandlerContext, error: Error) {
-        print("[SSHTunnel] Channel error: \(error)")
+        AppLogger.error("channel error", category: "SSHTunnel", fields: ["error": "\(error)"])
         context.close(promise: nil)
     }
 }
