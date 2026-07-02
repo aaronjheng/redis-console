@@ -13,7 +13,7 @@
 
 - Sidebars use `sidebarBackground`.
 - Main content and detail panels use the default window background.
-- Footer bars sit at the bottom of the main content or detail panel.
+- Footer bars sit at the bottom of the main content or detail panel. Use `WorkspaceFooterBar` consistently — currently missing from DatabaseAnalysisView, ShellView, and ServerInfoView.
 
 ---
 
@@ -34,3 +34,5 @@ VStack(alignment: .leading, spacing: AppTheme.spacingSmall) {
 - Left-align all headers.
 - Use `.headline` for view titles.
 - Use `.caption` + `.secondary` for subtitles.
+
+**Compliance:** ServerInfoView, DatabaseAnalysisView, SlowLogView, ProfilerView, and ShellView currently use `.padding()` (SwiftUI default, ~16pt) instead of the standard `AppTheme.spacing` (8pt). These should be updated to match the standard header padding.

@@ -8,7 +8,7 @@ struct ConnectionRow: View {
     let isConnected: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppTheme.spacingXSmall) {
             HStack(spacing: AppTheme.spacingSmall) {
                 Text(config.name)
                     .font(.headline)
@@ -35,7 +35,7 @@ struct ConnectionRow: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, AppTheme.spacingSmall)
         .contentShape(Rectangle())
     }
 }

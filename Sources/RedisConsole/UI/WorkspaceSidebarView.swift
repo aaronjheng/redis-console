@@ -12,7 +12,7 @@ struct WorkspaceSidebarView: View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 if let selectedConnection = conn.selectedConnection {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: AppTheme.spacingSmall) {
                         HStack(alignment: .firstTextBaseline, spacing: AppTheme.spacingSmall) {
                             Text(selectedConnection.name)
                                 .font(.title3)
@@ -33,7 +33,7 @@ struct WorkspaceSidebarView: View {
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
+                    .padding(AppTheme.spacing)
                 }
             }
 

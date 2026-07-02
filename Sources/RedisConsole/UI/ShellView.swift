@@ -44,14 +44,14 @@ struct ShellView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 6) {
+                        LazyVStack(alignment: .leading, spacing: AppTheme.spacingSmallMedium) {
                             ForEach(app.shellHistory) { entry in
                                 ShellHistoryRow(entry: entry)
                                     .id(entry.id)
-                                    .padding(.horizontal)
+                                    .padding(.horizontal, AppTheme.spacingLarge)
                             }
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, AppTheme.spacing)
                     }
                     .onChange(of: app.shellHistory.count) { _, _ in
                         if let last = app.shellHistory.last {
@@ -67,7 +67,7 @@ struct ShellView: View {
 
             // Completion suggestions
             if showCompletions && !filteredCompletions.isEmpty {
-                HStack(spacing: 4) {
+                HStack(spacing: AppTheme.spacingSmall) {
                     ForEach(filteredCompletions.prefix(10), id: \.self) { cmd in
                         Button {
                             input = cmd + " "
@@ -75,20 +75,20 @@ struct ShellView: View {
                         } label: {
                             Text(cmd)
                                 .font(.subheadline)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
+                                .padding(.horizontal, AppTheme.spacingSmallMedium)
+                                .padding(.vertical, AppTheme.spacingXSmall)
                                 .background(.quaternary)
                                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, AppTheme.spacing)
+                .padding(.vertical, AppTheme.spacingSmall)
             }
 
             // Input area
-            HStack(spacing: 8) {
+            HStack(spacing: AppTheme.spacing) {
                 Text(">")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(Color.accentColor)
@@ -135,8 +135,13 @@ struct ShellView: View {
                     .buttonStyle(.borderless)
                     .disabled(input.isEmpty)
             }
-            .padding()
+            .padding(AppTheme.spacingLarge)
             .background(.bar)
+        }
+        Divider()
+        WorkspaceFooterBar {
+            StatusFooterView(countText: "\(app.shellHistory.count) commands")
+            Spacer()
         }
         .onAppear { inputFocused = true }
         .alert("Dangerous Command", isPresented: $showDangerousCommandAlert) {
@@ -178,13 +183,13 @@ struct ShellHistoryRow: View {
     let entry: ShellHistoryEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: AppTheme.spacingSmallMedium) {
             // Command header
-            HStack(spacing: 6) {
+            HStack(spacing: AppTheme.spacingSmallMedium) {
                 Image(systemName: entry.isError ? "xmark.circle.fill" : "checkmark.circle.fill")
                     .font(.caption)
                     .foregroundStyle(entry.isError ? DomainColor.statusError : DomainColor.statusSuccess)
-                    .frame(width: 16)
+                    .frame(width: AppTheme.spacingLarge)
 
                 Text(ShellSyntaxHighlighter.highlight(entry.command))
                     .font(.system(.body, design: .monospaced))
@@ -204,22 +209,22 @@ struct ShellHistoryRow: View {
                 .foregroundStyle(entry.isError ? DomainColor.statusError : .primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
+                .padding(AppTheme.spacingMedium)
                 .background {
                     if entry.isError {
                         DomainColor.statusError.opacity(0.08)
                     } else {
-                        Color(nsColor: .textBackgroundColor)
+                        AppTheme.textEditorBackground
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
                 .overlay {
                     RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium)
-                        .stroke(entry.isError ? DomainColor.statusError.opacity(0.2) : Color.gray.opacity(0.2), lineWidth: 1)
+                        .stroke(entry.isError ? DomainColor.statusError.opacity(0.2) : Color.secondary.opacity(0.2), lineWidth: 1)
                 }
         }
-        .padding(10)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .padding(AppTheme.spacingMedium)
+        .background(AppTheme.controlBackground)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
     }
 }

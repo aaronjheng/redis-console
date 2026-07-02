@@ -4,7 +4,7 @@ import SwiftUI
 
 struct WelcomeView: View {
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: AppTheme.spacingLarge) {
             Image(systemName: "server.rack")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)

@@ -22,11 +22,15 @@ These should be the default for most UI. They adapt to appearance automatically.
 
 ## NSColor Wrappers
 
+Use the `AppTheme` wrappers instead of raw `Color(nsColor:)` calls.
+
 | Token | Value | Usage |
 |---|---|---|
 | `sidebarBackground` | `Color(nsColor: .controlBackgroundColor)` | Sidebars |
 | `controlBackground` | `Color(nsColor: .controlBackgroundColor)` | Card internals, result backgrounds |
-| `textEditorBackground` | `Color(nsColor: .textBackgroundColor)` | String editor |
+| `textEditorBackground` | `Color(nsColor: .textBackgroundColor)` | String editor, shell results |
+
+**Rule:** Always use `AppTheme.controlBackground` and `AppTheme.textEditorBackground` instead of writing `Color(nsColor: .controlBackgroundColor)` or `Color(nsColor: .textBackgroundColor)` directly. These are duplicated in `ServerInfoView`, `DatabaseAnalysisView`, `ShellView`, `StringDetailView`, and `ProfilerView` — replace all occurrences.
 
 ---
 
@@ -39,9 +43,17 @@ Do not use raw `.red` / `.green` / `.blue` directly; route through semantic doma
 | Token | Color | Usage |
 |---|---|---|
 | `statusSuccess` | `.green` | Success, OK, dev environment |
-| `statusWarning` | `.orange` | Warnings, estimates |
+| `statusWarning` | `.orange` | Warnings, estimates, TTL expiry |
 | `statusError` | `.red` | Errors, destructive actions, production env |
-| `statusInfo` | `.blue` | Info, neutral highlights |
+| `statusInfo` | `.blue` | Info, neutral highlights, cluster nodes |
+
+### Warning Background
+
+| Token | Value | Usage |
+|---|---|---|
+| `warningBackground` | `DomainColor.statusWarning.opacity(0.12)` | Warning banner and badge backgrounds |
+
+Use `warningBackground` consistently — do not mix `opacity(0.1)` and `opacity(0.12)`.
 
 ### Redis Data Types
 
@@ -68,6 +80,25 @@ Apply these consistently to key-type badges, analysis charts, and detail icons.
 | `7–30d` | `.green` |
 | `> 30d` | `.secondary` |
 | `No expiry` | `.gray` |
+
+### Cluster Topology
+
+| Token | Color | Usage |
+|---|---|---|
+| `clusterNode` | `DomainColor.statusInfo` (`.blue`) | Primary cluster node indicators |
+| `clusterLine` | `Color.blue.opacity(0.4)` | Topology connection lines |
+
+Use these instead of raw `.blue` in `ClusterTopologyView`.
+
+### Slow Log Severity
+
+| Token | Color | Usage |
+|---|---|---|
+| `slowLogLow` | `.secondary` | Sub-millisecond / fast commands |
+| `slowLogMedium` | `DomainColor.statusWarning` (`.orange`) | Moderate latency |
+| `slowLogHigh` | `DomainColor.statusError` (`.red`) | High latency commands |
+
+Use these instead of raw `.yellow` in `SlowLogView`.
 
 ### Syntax Highlighting
 

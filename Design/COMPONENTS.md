@@ -14,8 +14,8 @@ Button(label, systemImage: icon) { action() }
     .buttonStyle(.borderless)
 ```
 
-**Usage:** Browser, Detail, Server Info, Profiler, Analysis toolbars.  
-**Future:** Wrap in a custom `ButtonStyle` or view modifier to centralize `.help`, `.foregroundStyle`, and hover behavior.
+**Usage:** Browser, Detail, Server Info, Profiler, Analysis toolbars (~15 occurrences).  
+**Action needed:** Wrap in a custom `ButtonStyle` or view modifier to centralize `.help`, `.foregroundStyle`, and hover behavior. This pattern is duplicated extensively across views.
 
 ### `PrimaryButton`
 
@@ -62,10 +62,12 @@ Badge(
 ```
 
 **Variants to add:**
-- `EnvironmentBadge(environment:)`
-- `ConnectionModeBadge(mode:)`
+- `EnvironmentBadge(environment:)` — uses status color tokens
+- `ConnectionModeBadge(mode:)` — standalone/cluster/sentinel
 - `KeyTypeBadge(type:)` — uses the type-color tokens in `COLORS.md`
-- `StatusBadge(status:)`
+- `StatusBadge(status:)` — success/warning/error/info
+
+**Current status:** None of these variants exist yet. `Badge` is used directly with ad-hoc parameters in `ConnectionRow` and `WorkspaceSidebarView`. The Database Analysis "Estimate" tag also uses inline styling instead of the shared `Badge` component — replace with `Badge`.
 
 ---
 
@@ -79,6 +81,8 @@ ErrorBanner(message: "MONITOR can slow busy servers", severity: .warning)
 ```
 
 **Applied in:** BrowserView (connection error), KeyDetailView (detail error), DatabaseAnalysisView (analysis error), ProfilerView (warning banner).
+
+**Background opacity:** Warning background uses `warningBackground` (`DomainColor.statusWarning.opacity(0.12)`). Use this consistently — do not mix `opacity(0.1)` and `opacity(0.12)`.
 
 ---
 
@@ -98,11 +102,11 @@ LoadingState(message: "Loading value...")
 
 ## Empty State
 
-**Status: `[not implemented]`** — not yet extracted as a shared component.
+**Status:** `[not implemented]` — not yet extracted as a shared component.
 
 Currently each view uses inline `ContentUnavailableView` directly. This is acceptable for now since each empty state has unique layout (button placement, spacing). Extract only when a consistent pattern emerges across 3+ views.
 
-**Views using inline empty states:** BrowserView (2), KeyDetailView, ProfilerView (3), ServerInfoView, SlowLogView, ShellView, DatabaseAnalysisView.
+**Views using inline empty states:** BrowserView (2), KeyDetailView (1), ProfilerView (3), ServerInfoView (1), SlowLogView (1), ShellView (1), DatabaseAnalysisView (1).
 
 ---
 
@@ -114,6 +118,9 @@ Use `WorkspaceFooterBar` and `StatusFooterView` from `AppTheme.swift`.
 - Height is fixed at `workspaceFooterHeight` (34).
 - Font is `.caption`.
 - Text must not truncate; use compact formats or allow wrapping.
+
+**Applied in:** BrowserView, all detail views, ProfilerView, SlowLogView.  
+**Missing from:** DatabaseAnalysisView, ShellView, ServerInfoView — these should adopt `WorkspaceFooterBar` for consistency.
 
 ---
 
@@ -165,11 +172,17 @@ Card(title: "Type Distribution") {
 **Form style:** Use `.formStyle(.grouped)` for all sheets.  
 **Sizing:** Use `.presentationSizing(.form)` for consistent sheet widths.
 
+### Safety Confirmations
+
+For destructive production operations, use the typed confirmation pattern from `ProductionConfirmView` (requires typing a confirmation string like "DELETE"). The simpler `.alert()` with Cancel/Execute pattern used in `ShellView` is insufficient for production-destructive commands. Unify on typed confirmation for all destructive operations on production environments.
+
 ---
 
 ## Refresh Control
 
-Unify `KeyRefreshControl` and `SlowLogRefreshControl` into one component.
+**Status:** `[to implement]` — two near-identical private structs exist that must be unified.
+
+`KeyRefreshControl` (`KeyDetailView.swift`) and `SlowLogRefreshControl` (`SlowLogView.swift`) are ~95% identical. Extract a single `RefreshControl` component:
 
 ```swift
 struct RefreshControl: View {
@@ -182,7 +195,10 @@ struct RefreshControl: View {
 ```
 
 **Rules:**
-- Height 22pt.
-- Refresh button 26×22pt.
+- Height `refreshControlHeight` (22pt).
+- Refresh button `refreshButtonSize` (26×22pt).
+- Separator `refreshSeparatorSize` (0.5×14pt).
 - Interval label uses `.caption2`.
 - Disable/hide refresh while loading.
+- Use `hoverHighlight` for hover background.
+- Replace deprecated `.system(size:)` fonts with `.caption` / `.caption2`.

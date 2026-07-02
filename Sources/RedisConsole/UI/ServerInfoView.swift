@@ -27,7 +27,7 @@ struct ServerInfoView: View {
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
             }
-            .padding()
+            .padding(AppTheme.spacingLarge)
 
             if isClusterMode && !app.clusterNodes.isEmpty {
                 clusterInfoView
@@ -44,6 +44,15 @@ struct ServerInfoView: View {
                 Spacer()
             } else {
                 serverInfoList
+            }
+            Divider()
+            WorkspaceFooterBar {
+                StatusFooterView(countText: "\(sections.count) sections")
+                if !app.serverCapabilities.isEmpty {
+                    Text("·")
+                    Text("\(app.serverCapabilities.count) modules")
+                }
+                Spacer()
             }
         }
     }
@@ -96,9 +105,9 @@ struct ServerInfoView: View {
                 .help("Toggle topology view")
             }
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .padding(.horizontal, AppTheme.spacingLarge)
+        .padding(.vertical, AppTheme.spacing)
+        .background(AppTheme.controlBackground)
     }
 
     private var clusterNodeList: some View {
@@ -106,11 +115,11 @@ struct ServerInfoView: View {
             Text("Nodes")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, AppTheme.spacingLargeMedium)
+                .padding(.vertical, AppTheme.spacing)
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
+                LazyVStack(alignment: .leading, spacing: AppTheme.spacingXSmall) {
                     ForEach(app.clusterNodes) { node in
                         Button {
                             Task { await app.selectServerInfoNode(node.endpoint) }
@@ -120,19 +129,19 @@ struct ServerInfoView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 8)
+                .padding(.horizontal, AppTheme.spacing)
+                .padding(.bottom, AppTheme.spacing)
             }
         }
         .background(AppTheme.sidebarBackground)
     }
 
     private var selectedNodeHeader: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppTheme.spacingLargeMedium) {
             if let node = selectedNode {
                 Image(systemName: node.role == .primary ? "server.rack" : "externaldrive.connected.to.line.below")
                     .foregroundStyle(Color.accentColor)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppTheme.spacingXSmall) {
                     Text(node.endpoint.address)
                         .font(.headline)
                     Text(nodeSubtitle(node))
@@ -147,8 +156,8 @@ struct ServerInfoView: View {
             }
             Spacer()
         }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
+        .padding(.horizontal, AppTheme.spacingLarge)
+        .padding(.vertical, AppTheme.spacingMedium)
     }
 
     private var serverInfoList: some View {
@@ -215,7 +224,7 @@ struct ServerInfoView: View {
     }
 
     private func capabilityRow(_ capability: RedisServerCapability) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: AppTheme.spacingSmall) {
             HStack(alignment: .firstTextBaseline) {
                 Text(capability.name)
                     .font(.system(.subheadline, design: .monospaced))
@@ -236,18 +245,18 @@ struct ServerInfoView: View {
                     .textSelection(.enabled)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, AppTheme.spacingXSmall)
     }
 
     private func clusterNodeRow(_ node: RedisClusterNodeSummary) -> some View {
         let isSelected = app.selectedServerInfoNode == node.endpoint
 
-        return HStack(alignment: .top, spacing: 8) {
+        return HStack(alignment: .top, spacing: AppTheme.spacing) {
             Image(systemName: node.role == .primary ? "server.rack" : "externaldrive.connected.to.line.below")
-                .frame(width: 16)
+                .frame(width: AppTheme.spacingLarge)
                 .foregroundStyle(isSelected ? Color.accentColor : .secondary)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: AppTheme.spacingXSmall) {
                 Text(node.endpoint.address)
                     .font(.system(.subheadline, design: .monospaced))
                     .lineLimit(1)
@@ -260,14 +269,14 @@ struct ServerInfoView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
+        .padding(.horizontal, AppTheme.spacing)
+        .padding(.vertical, AppTheme.spacingSmallMedium)
+        .background(isSelected ? AppTheme.selectedRowBackground : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
     }
 
     private func summaryItem(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppTheme.spacingXSmall) {
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

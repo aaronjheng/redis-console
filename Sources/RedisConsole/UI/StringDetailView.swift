@@ -124,18 +124,18 @@ struct StringDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             if isEditing {
-                VStack(spacing: 8) {
+                VStack(spacing: AppTheme.spacing) {
                     TextEditor(text: $editValue)
                         .font(.system(.body, design: .monospaced))
-                        .padding(8)
-                        .background(Color(nsColor: .textBackgroundColor))
+                        .padding(AppTheme.spacing)
+                        .background(AppTheme.textEditorBackground)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
                         .overlay(
                             RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium)
                                 .stroke(Color.accentColor, lineWidth: 2)
                         )
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppTheme.spacing) {
                         Spacer()
                         Button("Cancel") {
                             isEditing = false
@@ -148,7 +148,7 @@ struct StringDetailView: View {
                         .buttonStyle(.borderedProminent)
                     }
                 }
-                .padding()
+                .padding(AppTheme.spacingLarge)
             } else {
                 ZStack(alignment: .topTrailing) {
                     ScrollView {
@@ -162,14 +162,14 @@ struct StringDetailView: View {
                         .font(.system(.body, design: .monospaced))
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
+                        .padding(AppTheme.spacingLarge)
                     }
                     .onTapGesture(count: 2) {
                         editValue = value
                         isEditing = true
                     }
 
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppTheme.spacingSmall) {
                         Picker("", selection: $format) {
                             ForEach(StringValueFormat.allCases) { format in
                                 Text(format.title).tag(format)
@@ -187,7 +187,7 @@ struct StringDetailView: View {
                         .buttonStyle(.borderless)
                         .help("Edit value")
                     }
-                    .padding()
+                    .padding(AppTheme.spacingLarge)
                 }
             }
 

@@ -33,7 +33,7 @@ struct DatabaseAnalysisView: View {
                 .disabled(app.analysis == nil)
                 .help("Export")
             }
-            .padding()
+            .padding(AppTheme.spacingLarge)
 
             if let error = app.analysisError {
                 ErrorBanner(message: error)
@@ -59,6 +59,16 @@ struct DatabaseAnalysisView: View {
                 .padding(.top, AppTheme.spacing)
                 Spacer()
             }
+            Divider()
+            WorkspaceFooterBar {
+                if let analysis = app.analysis {
+                    StatusFooterView(
+                        countText: "\(analysis.totalKeys) keys",
+                        sizeText: analysis.serverMetrics.usedMemoryHuman
+                    )
+                }
+                Spacer()
+            }
         }
         .onDisappear {
             app.cancelAnalysis()
@@ -73,25 +83,25 @@ struct DatabaseAnalysisView: View {
                 summaryBar(analysis)
                 Divider()
 
-                VStack(spacing: 8) {
+                VStack(spacing: AppTheme.spacing) {
                     // Type Distribution
                     typeDistributionSection(analysis)
                     // Top Keys
                     topKeysSection(analysis)
                 }
-                .padding([.horizontal, .top])
+                .padding([.horizontal, .top], AppTheme.spacingLarge)
 
                 // Expiration Timeline
                 expirationSection(analysis)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
+                    .padding(.horizontal, AppTheme.spacingLarge)
+                    .padding(.bottom, AppTheme.spacing)
             }
         }
     }
 
     private func summaryBar(_ analysis: DatabaseAnalysis) -> some View {
         HStack(spacing: AppTheme.spacingLarge) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: AppTheme.spacingXSmall) {
                 Text("Last analyzed:")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
@@ -114,17 +124,15 @@ struct DatabaseAnalysisView: View {
             StatItem(label: "Clients", value: "\(analysis.serverMetrics.connectedClients)")
 
             if analysis.isEstimate {
-                Text("Estimate")
-                    .font(.subheadline)
-                    .foregroundStyle(DomainColor.statusWarning)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(DomainColor.statusWarning.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
+                Badge(
+                    text: "Estimate",
+                    foregroundColor: DomainColor.statusWarning,
+                    backgroundColor: DomainColor.statusWarning.opacity(0.12)
+                )
             }
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.horizontal, AppTheme.spacingLarge)
+        .padding(.vertical, AppTheme.spacing)
     }
 
     private func typeDistributionSection(_ analysis: DatabaseAnalysis) -> some View {
@@ -135,7 +143,7 @@ struct DatabaseAnalysisView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(spacing: 4) {
+                VStack(spacing: AppTheme.spacingSmall) {
                     HStack {
                         Text("Type").font(.body).foregroundStyle(.secondary).frame(width: 60, alignment: .leading)
                         Text("Count").font(.body).foregroundStyle(.secondary).frame(width: 70, alignment: .trailing)
@@ -162,8 +170,8 @@ struct DatabaseAnalysisView: View {
                         }
                     }
                 }
-                .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .padding(AppTheme.spacing)
+                .background(AppTheme.controlBackground)
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
             }
         }
@@ -190,8 +198,8 @@ struct DatabaseAnalysisView: View {
                         }
                     }
                 }
-                .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .padding(AppTheme.spacing)
+                .background(AppTheme.controlBackground)
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
             }
         }
@@ -205,9 +213,9 @@ struct DatabaseAnalysisView: View {
                     .foregroundStyle(.secondary)
             } else {
                 let maxCount = analysis.expirationSummary.map(\.keyCount).max() ?? 1
-                VStack(spacing: 6) {
+                VStack(spacing: AppTheme.spacingSmallMedium) {
                     ForEach(analysis.expirationSummary) { bucket in
-                        HStack(spacing: 8) {
+                        HStack(spacing: AppTheme.spacing) {
                             Text(bucket.label)
                                 .font(.body)
                                 .foregroundStyle(.secondary)
@@ -217,13 +225,13 @@ struct DatabaseAnalysisView: View {
                                 ZStack(alignment: .leading) {
                                     RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall)
                                         .fill(.quaternary)
-                                        .frame(height: 16)
+                                        .frame(height: AppTheme.spacingLarge)
                                     RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall)
                                         .fill(expirationColor(bucket.label))
                                         .frame(width: max(4, geo.size.width * CGFloat(bucket.keyCount) / CGFloat(maxCount)), height: 16)
                                 }
                             }
-                            .frame(height: 16)
+                            .frame(height: AppTheme.spacingLarge)
 
                             Text("\(bucket.keyCount)")
                                 .font(.system(.body, design: .monospaced))
@@ -235,8 +243,8 @@ struct DatabaseAnalysisView: View {
                         }
                     }
                 }
-                .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .padding(AppTheme.spacing)
+                .background(AppTheme.controlBackground)
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
             }
         }

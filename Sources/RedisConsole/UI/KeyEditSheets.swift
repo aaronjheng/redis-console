@@ -29,7 +29,7 @@ struct AddHashFieldSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding()
+        .padding(AppTheme.spacingLarge)
     }
 }
 
@@ -63,7 +63,7 @@ struct AddListElementSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding()
+        .padding(AppTheme.spacingLarge)
     }
 }
 
@@ -92,7 +92,7 @@ struct AddSetMemberSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding()
+        .padding(AppTheme.spacingLarge)
     }
 }
 
@@ -122,7 +122,7 @@ struct AddZSetMemberSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding()
+        .padding(AppTheme.spacingLarge)
     }
 }
 
@@ -236,7 +236,7 @@ struct AddKeySheet: View {
                 .keyboardShortcut(.defaultAction)
             }
         }
-        .padding()
+        .padding(AppTheme.spacingLarge)
         .onAppear {
             resetArrays(for: keyType)
         }
@@ -248,7 +248,7 @@ struct AddKeySheet: View {
         placeholder: @escaping (Int) -> String,
         addLabel: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppTheme.spacing) {
             ForEach(Array(values.wrappedValue.enumerated()), id: \.offset) { index, _ in
                 HStack {
                     TextField(
@@ -283,7 +283,7 @@ struct AddKeySheet: View {
         secondPlaceholder: String,
         addLabel: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppTheme.spacing) {
             ForEach(Array(pairs.wrappedValue.enumerated()), id: \.offset) { index, _ in
                 HStack {
                     TextField(
@@ -322,7 +322,7 @@ struct AddKeySheet: View {
         pairs: Binding<[(score: String, member: String)]>,
         addLabel: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppTheme.spacing) {
             ForEach(Array(pairs.wrappedValue.enumerated()), id: \.offset) { index, _ in
                 HStack {
                     TextField(

@@ -16,7 +16,7 @@ struct DetailSearchField: View {
     let onSearch: () -> Void
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: AppTheme.spacingSmallMedium) {
             TextField(placeholder, text: $searchText)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(onSearch)

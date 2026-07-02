@@ -39,7 +39,7 @@ struct ClusterTopologyView: View {
     @ViewBuilder
     private func nodeView(_ item: TopologyNodeItem) -> some View {
         let isSelected = selectedEndpoint == item.node.endpoint
-        VStack(spacing: 4) {
+        VStack(spacing: AppTheme.spacingSmall) {
             ZStack {
                 Circle()
                     .fill(item.color)
@@ -105,7 +105,7 @@ struct ClusterTopologyView: View {
                 x: centerX + CGFloat(cos(angle)) * primaryRadius,
                 y: centerY + CGFloat(sin(angle)) * primaryRadius
             )
-            nodeItems.append(TopologyNodeItem(node: node, position: pos, color: .blue))
+            nodeItems.append(TopologyNodeItem(node: node, position: pos, color: DomainColor.statusInfo))
         }
 
         // Layout replicas in outer circle, connected to their primary
@@ -132,7 +132,7 @@ struct ClusterTopologyView: View {
                 TopologyLine(
                     from: primaryItem.position,
                     to: pos,
-                    color: .blue.opacity(0.4)
+                    color: DomainColor.statusInfo.opacity(0.4)
                 )
             )
         }

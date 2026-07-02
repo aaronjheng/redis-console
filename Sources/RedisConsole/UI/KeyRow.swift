@@ -5,14 +5,14 @@ struct KeyRow: View {
     var displayName: String?
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppTheme.spacing) {
             Text(entry.type)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .frame(width: 48, alignment: .center)
-                .padding(.vertical, 2)
-                .background(.quaternary.opacity(0.5))
+                .padding(.vertical, AppTheme.spacingXSmall)
+                .background(Color.secondary.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall, style: .continuous))
             Text(displayName ?? entry.key)
                 .font(.body)

@@ -32,7 +32,7 @@ struct ConnectionHubSidebarView: View {
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
             }
-            .padding()
+            .padding(AppTheme.spacingLarge)
 
             Divider()
 

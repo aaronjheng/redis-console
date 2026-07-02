@@ -32,7 +32,7 @@ struct ZSetDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: AppTheme.spacing) {
                 DetailSearchField(
                     searchText: $pendingSearchText,
                     placeholder: "Member filter",

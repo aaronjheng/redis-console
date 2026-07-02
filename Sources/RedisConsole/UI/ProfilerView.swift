@@ -137,7 +137,7 @@ private struct ProfilerEmptyStateView: View {
                 )
             }
             if !isRunning && !isStarting {
-                Spacer().frame(height: 16)
+                Spacer().frame(height: AppTheme.spacingLarge)
                 Label("MONITOR can slow busy servers", systemImage: "exclamationmark.triangle")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -158,7 +158,7 @@ private struct ProfilerToolbarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
+            HStack(spacing: AppTheme.spacingLargeMedium) {
                 Text("Profiler")
                     .font(.headline)
 
@@ -175,11 +175,11 @@ private struct ProfilerToolbarView: View {
                     Label("Clear", systemImage: "trash")
                 }
             }
-            .padding()
+            .padding(AppTheme.spacingLarge)
 
             Divider()
 
-            HStack(spacing: 10) {
+            HStack(spacing: AppTheme.spacingMedium) {
                 ZStack(alignment: .trailing) {
                     TextField("Filter command, node, source, database, or raw text", text: $filterText)
                         .textFieldStyle(.roundedBorder)
@@ -191,7 +191,7 @@ private struct ProfilerToolbarView: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .foregroundStyle(.secondary)
-                        .padding(.trailing, 8)
+                        .padding(.trailing, AppTheme.spacing)
                     }
                 }
 
@@ -203,8 +203,8 @@ private struct ProfilerToolbarView: View {
 
                 Color.clear.frame(width: 0, height: 0)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 6)
+            .padding(.horizontal, AppTheme.spacingLarge)
+            .padding(.vertical, AppTheme.spacingSmallMedium)
 
             Divider()
         }
@@ -235,7 +235,7 @@ private struct ProfilerStatusPill: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, AppTheme.spacing)
         .padding(.vertical, 3)
         .background(.quaternary)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
@@ -288,7 +288,7 @@ private struct ProfilerEntriesView: View {
 
 private struct ProfilerHeaderRow: View {
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: AppTheme.spacingMedium) {
             Text("Time")
                 .frame(width: 100, alignment: .leading)
             Text("DB")
@@ -304,9 +304,9 @@ private struct ProfilerHeaderRow: View {
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)
-        .padding(.horizontal)
+        .padding(.horizontal, AppTheme.spacingLarge)
         .padding(.vertical, 7)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(AppTheme.controlBackground)
     }
 }
 
@@ -317,7 +317,7 @@ private struct ProfilerEntryRow: View {
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: 10) {
+            HStack(spacing: AppTheme.spacingMedium) {
                 Text(entry.timeText)
                     .frame(width: 100, alignment: .leading)
                     .foregroundStyle(.secondary)
@@ -341,10 +341,10 @@ private struct ProfilerEntryRow: View {
             }
             .font(.system(.subheadline, design: .monospaced))
             .lineLimit(1)
-            .padding(.horizontal)
-            .padding(.vertical, 6)
+            .padding(.horizontal, AppTheme.spacingLarge)
+            .padding(.vertical, AppTheme.spacingSmallMedium)
             .contentShape(Rectangle())
-            .background(isSelected ? Color.accentColor.opacity(0.16) : Color.clear)
+            .background(isSelected ? AppTheme.selectedRowBackground : Color.clear)
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -373,7 +373,7 @@ private struct ProfilerFooterView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let selectedEntry {
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: AppTheme.spacing) {
                     Text("Raw")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -384,8 +384,8 @@ private struct ProfilerFooterView: View {
                         .textSelection(.enabled)
                     Spacer()
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
+                .padding(.horizontal, AppTheme.spacingLarge)
+                .padding(.vertical, AppTheme.spacing)
 
                 Divider()
             }

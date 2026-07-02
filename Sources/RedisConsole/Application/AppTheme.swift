@@ -3,8 +3,12 @@ import SwiftUI
 // MARK: - Theme Constants
 
 enum AppTheme {
-    static let spacing: CGFloat = 8
+    static let spacingXSmall: CGFloat = 2
     static let spacingSmall: CGFloat = 4
+    static let spacingSmallMedium: CGFloat = 6
+    static let spacing: CGFloat = 8
+    static let spacingMedium: CGFloat = 10
+    static let spacingLargeMedium: CGFloat = 12
     static let spacingLarge: CGFloat = 16
     static let spacingXLarge: CGFloat = 20
 
@@ -17,11 +21,17 @@ enum AppTheme {
     static let refreshControlHeight: CGFloat = 22
     static let refreshButtonWidth: CGFloat = 26
     static let refreshButtonHeight: CGFloat = 22
+    static let refreshSeparatorWidth: CGFloat = 0.5
+    static let refreshSeparatorHeight: CGFloat = 14
+    static let refreshMenuPlaceholderWidth: CGFloat = 18
     static let badgeMinWidth: CGFloat = 42
 
     static let sidebarMinWidth: CGFloat = 220
     static let sidebarMaxWidth: CGFloat = 280
     static let detailPanelMinWidth: CGFloat = 400
+
+    static let hoverHighlight: Color = Color.primary.opacity(0.08)
+    static let selectedRowBackground: Color = Color.accentColor.opacity(0.14)
 
     // MARK: - Background Colors
     static var sidebarBackground: Color {
@@ -102,7 +112,6 @@ struct WorkspaceFooterBar<Content: View>: View {
         .font(.caption)
         .controlSize(.regular)
         .imageScale(.medium)
-        .lineLimit(1)
         .padding(.horizontal, AppTheme.spacing)
         .frame(height: AppTheme.workspaceFooterHeight)
         .frame(maxWidth: .infinity)
@@ -146,11 +155,11 @@ struct Badge: View {
         if isLoading {
             ProgressView()
                 .controlSize(.small)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
+                .padding(.horizontal, AppTheme.spacingSmallMedium)
+                .padding(.vertical, AppTheme.spacingXSmall)
                 .frame(minWidth: AppTheme.badgeMinWidth)
         } else {
-            HStack(spacing: 2) {
+            HStack(spacing: AppTheme.spacingXSmall) {
                 if let systemImage {
                     Image(systemName: systemImage)
                 }
@@ -159,8 +168,8 @@ struct Badge: View {
             .font(.caption2.weight(.medium))
             .lineLimit(1)
             .foregroundStyle(foregroundColor)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
+            .padding(.horizontal, AppTheme.spacingSmallMedium)
+            .padding(.vertical, AppTheme.spacingXSmall)
             .background(backgroundColor)
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall, style: .continuous))
             .fixedSize(horizontal: true, vertical: false)
@@ -208,7 +217,7 @@ struct ErrorBanner: View {
             }
         }
         .padding(.horizontal, AppTheme.spacing)
-        .padding(.vertical, 6)
+        .padding(.vertical, AppTheme.spacingSmallMedium)
         .background(severity.background)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
     }
@@ -267,5 +276,142 @@ struct DeleteIconButton: View {
         .labelStyle(.iconOnly)
         .buttonStyle(.borderless)
         .help(helpText ?? "Delete")
+    }
+}
+
+// MARK: - Refresh Control
+
+struct RefreshControl: View {
+    @Binding var autoRefreshInterval: TimeInterval
+    let isLoading: Bool
+    let intervals: [TimeInterval]
+    let onRefresh: () -> Void
+
+    private var isAutoRefreshEnabled: Bool {
+        autoRefreshInterval > 0
+    }
+
+    private static func intervalTitle(_ seconds: TimeInterval) -> String {
+        let s = Int(seconds)
+        if s.isMultiple(of: 60) {
+            return "\(s / 60)m"
+        }
+        return "\(s)s"
+    }
+
+    @State private var isRefreshHovering = false
+    @State private var isMenuHovering = false
+
+    var body: some View {
+        HStack(spacing: 0) {
+            refreshButton
+            separator
+            intervalMenu
+        }
+        .frame(height: AppTheme.refreshControlHeight)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
+                .fill(.background.secondary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
+                .strokeBorder(.separator, lineWidth: 0.5)
+        )
+        .opacity(isLoading ? 0.5 : 1)
+    }
+
+    private var refreshButton: some View {
+        Button {
+            onRefresh()
+        } label: {
+            Label("Refresh", systemImage: "arrow.clockwise")
+                .labelStyle(.iconOnly)
+                .font(.caption)
+                .frame(width: AppTheme.refreshButtonWidth, height: AppTheme.refreshButtonHeight)
+                .contentShape(Rectangle())
+                .background(
+                    isRefreshHovering && !isLoading
+                        ? AppTheme.hoverHighlight
+                        : Color.clear
+                )
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: AppTheme.cornerRadiusMedium,
+                        bottomLeadingRadius: AppTheme.cornerRadiusMedium,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 0,
+                        style: .continuous
+                    )
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+        .onHover { isRefreshHovering = $0 }
+        .help("Refresh")
+    }
+
+    private var separator: some View {
+        Rectangle()
+            .fill(.separator)
+            .frame(width: AppTheme.refreshSeparatorWidth, height: AppTheme.refreshSeparatorHeight)
+    }
+
+    private var intervalMenu: some View {
+        Menu {
+            Button {
+                autoRefreshInterval = 0
+            } label: {
+                menuItemLabel(text: "Off", checked: !isAutoRefreshEnabled)
+            }
+            Divider()
+            ForEach(intervals, id: \.self) { interval in
+                Button {
+                    autoRefreshInterval = interval
+                } label: {
+                    menuItemLabel(
+                        text: Self.intervalTitle(interval),
+                        checked: isAutoRefreshEnabled && autoRefreshInterval == interval
+                    )
+                }
+            }
+        } label: {
+            HStack(spacing: 0) {
+                if isAutoRefreshEnabled {
+                    Text(Self.intervalTitle(autoRefreshInterval))
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundStyle(.tint)
+                        .padding(.horizontal, AppTheme.spacingSmallMedium)
+                } else {
+                    Color.clear.frame(width: AppTheme.refreshMenuPlaceholderWidth, height: AppTheme.refreshControlHeight)
+                }
+            }
+            .frame(height: AppTheme.refreshControlHeight)
+            .contentShape(Rectangle())
+            .background(
+                isMenuHovering && !isLoading
+                    ? AppTheme.hoverHighlight
+                    : Color.clear
+            )
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: AppTheme.cornerRadiusMedium,
+                    topTrailingRadius: AppTheme.cornerRadiusMedium,
+                    style: .continuous
+                )
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.visible)
+        .fixedSize()
+        .disabled(isLoading)
+        .onHover { isMenuHovering = $0 }
+        .help(isAutoRefreshEnabled ? "Auto refresh every \(Self.intervalTitle(autoRefreshInterval))" : "Auto refresh off")
+    }
+
+    private func menuItemLabel(text: String, checked: Bool) -> some View {
+        Text(checked ? "\(text)  \u{2713}" : text)
     }
 }

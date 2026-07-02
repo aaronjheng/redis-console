@@ -20,8 +20,7 @@ struct KeyDetailView: View {
     @State private var showingTTLEditor = false
     @State private var ttlInput = ""
     @State private var ttlEditorError: String?
-    @State private var isAutoRefreshEnabled = false
-    @State private var autoRefreshInterval = 5
+    @State private var autoRefreshInterval: TimeInterval = 0
     @State private var productionConfirmText = ""
     @State private var deleteFeedbackTrigger = false
 
@@ -125,7 +124,7 @@ struct KeyDetailView: View {
         }
         .sensoryFeedback(.success, trigger: deleteFeedbackTrigger)
         .task(id: autoRefreshTaskID) {
-            guard isAutoRefreshEnabled else { return }
+            guard autoRefreshInterval > 0 else { return }
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(autoRefreshInterval))
                 guard !Task.isCancelled, app.selectedKey != nil, !app.isLoadingDetail else { continue }
@@ -135,7 +134,7 @@ struct KeyDetailView: View {
     }
 
     private var autoRefreshTaskID: String {
-        "\(app.selectedKey?.key ?? "")|\(isAutoRefreshEnabled)|\(autoRefreshInterval)"
+        "\(app.selectedKey?.key ?? "")|\(autoRefreshInterval)"
     }
 
     private var isProduction: Bool {
@@ -339,9 +338,9 @@ struct KeyDetailView: View {
     }
 
     private func headerView(key: RedisKeyEntry) -> some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(spacing: AppTheme.spacing) {
+            VStack(alignment: .leading, spacing: AppTheme.spacingSmall) {
+                HStack(alignment: .firstTextBaseline, spacing: AppTheme.spacing) {
                     Badge(text: key.type, isLoading: key.type.isEmpty)
                     Text(key.key)
                         .font(.title3)
@@ -350,16 +349,16 @@ struct KeyDetailView: View {
                     Spacer(minLength: 0)
                 }
 
-                HStack(spacing: 10) {
+                HStack(spacing: AppTheme.spacingMedium) {
                     if let length = app.keyDetailLength ?? key.length {
-                        HStack(spacing: 2) {
+                        HStack(spacing: AppTheme.spacingXSmall) {
                             Image(systemName: "number")
                             Text("Length: \(length)")
                         }
                         .foregroundStyle(.secondary)
                     }
                     if let size = app.valueSize ?? key.size {
-                        HStack(spacing: 2) {
+                        HStack(spacing: AppTheme.spacingXSmall) {
                             Image(systemName: "memorychip")
                             Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory))
                         }
@@ -368,7 +367,7 @@ struct KeyDetailView: View {
                     Button {
                         beginEditingTTL(for: key)
                     } label: {
-                        HStack(spacing: 2) {
+                        HStack(spacing: AppTheme.spacingXSmall) {
                             Image(systemName: "clock")
                             Text("TTL: \(key.ttlText)")
                             Image(systemName: "pencil")
@@ -376,7 +375,7 @@ struct KeyDetailView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(key.hasExpiry ? Color.orange : .secondary)
+                    .foregroundStyle(key.hasExpiry ? DomainColor.statusWarning : .secondary)
                     .disabled(app.isLoadingDetail)
                     .accessibilityLabel("Edit TTL, \(key.ttlText)")
                     .help("Edit TTL")
@@ -397,7 +396,7 @@ struct KeyDetailView: View {
                         }
                     }
                     if let refreshedAt = app.keyDetailLastRefreshedAt {
-                        HStack(spacing: 2) {
+                        HStack(spacing: AppTheme.spacingXSmall) {
                             Image(systemName: "clock.arrow.circlepath")
                             Text(refreshedAt, style: .time)
                         }
@@ -409,11 +408,11 @@ struct KeyDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack(spacing: 8) {
-                KeyRefreshControl(
-                    isAutoRefreshEnabled: $isAutoRefreshEnabled,
+            HStack(spacing: AppTheme.spacing) {
+                RefreshControl(
                     autoRefreshInterval: $autoRefreshInterval,
-                    isDisabled: app.isLoadingDetail
+                    isLoading: app.isLoadingDetail,
+                    intervals: [5, 10, 15, 30, 60]
                 ) {
                     Task { await app.refreshSelectedKey() }
                 }
@@ -441,7 +440,7 @@ struct KeyDetailView: View {
                 .help("Delete key")
             }
         }
-        .padding(8)
+        .padding(AppTheme.spacing)
     }
 
     private func beginEditingTTL(for key: RedisKeyEntry) {
@@ -516,7 +515,7 @@ struct KeyDetailView: View {
                 .font(.system(.body, design: .monospaced))
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
+                .padding(AppTheme.spacingLarge)
         }
     }
 }
@@ -529,7 +528,7 @@ private struct KeyTTLEditorPopover: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppTheme.spacingLargeMedium) {
             Text(keyName)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -537,7 +536,7 @@ private struct KeyTTLEditorPopover: View {
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 8) {
+            HStack(spacing: AppTheme.spacing) {
                 Text("TTL")
                     .font(.headline)
                 TextField("No limit", text: $ttlInput)
@@ -563,140 +562,7 @@ private struct KeyTTLEditorPopover: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding()
+        .padding(AppTheme.spacingLarge)
         .frame(width: 260)
-    }
-}
-
-struct KeyRefreshControl: View {
-    @Binding var isAutoRefreshEnabled: Bool
-    @Binding var autoRefreshInterval: Int
-    var isDisabled: Bool
-    var onRefresh: () -> Void
-
-    private static let intervals = [5, 10, 15, 30, 60]
-
-    private static func intervalTitle(_ seconds: Int) -> String {
-        if seconds.isMultiple(of: 60) {
-            return "\(seconds / 60)m"
-        }
-        return "\(seconds)s"
-    }
-
-    @State private var isRefreshHovering = false
-    @State private var isMenuHovering = false
-
-    var body: some View {
-        HStack(spacing: 0) {
-            refreshButton
-            separator
-            intervalMenu
-        }
-        .frame(height: 22)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
-                .fill(.background.secondary)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
-                .strokeBorder(.separator, lineWidth: 0.5)
-        )
-        .opacity(isDisabled ? 0.5 : 1)
-    }
-
-    private var refreshButton: some View {
-        Button {
-            onRefresh()
-        } label: {
-            Label("Refresh", systemImage: "arrow.clockwise")
-                .labelStyle(.iconOnly)
-                .font(.system(size: 12, weight: .medium))
-                .frame(width: 26, height: 22)
-                .contentShape(Rectangle())
-                .background(
-                    isRefreshHovering && !isDisabled
-                        ? Color.primary.opacity(0.08)
-                        : Color.clear
-                )
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 6,
-                        bottomLeadingRadius: 6,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: 0,
-                        style: .continuous
-                    )
-                )
-        }
-        .buttonStyle(.plain)
-        .disabled(isDisabled)
-        .onHover { isRefreshHovering = $0 }
-        .help("Refresh")
-    }
-
-    private var separator: some View {
-        Rectangle()
-            .fill(.separator)
-            .frame(width: 0.5, height: 14)
-    }
-
-    private var intervalMenu: some View {
-        Menu {
-            Button {
-                isAutoRefreshEnabled = false
-            } label: {
-                menuItemLabel(text: "Off", checked: !isAutoRefreshEnabled)
-            }
-            Divider()
-            ForEach(Self.intervals, id: \.self) { interval in
-                Button {
-                    isAutoRefreshEnabled = true
-                    autoRefreshInterval = interval
-                } label: {
-                    menuItemLabel(
-                        text: Self.intervalTitle(interval),
-                        checked: isAutoRefreshEnabled && autoRefreshInterval == interval
-                    )
-                }
-            }
-        } label: {
-            HStack(spacing: 0) {
-                if isAutoRefreshEnabled {
-                    Text(Self.intervalTitle(autoRefreshInterval))
-                        .font(.system(size: 11, weight: .medium))
-                        .monospacedDigit()
-                        .foregroundStyle(.tint)
-                        .padding(.horizontal, 6)
-                } else {
-                    Color.clear.frame(width: 18, height: 22)
-                }
-            }
-            .frame(height: 22)
-            .contentShape(Rectangle())
-            .background(
-                isMenuHovering && !isDisabled
-                    ? Color.primary.opacity(0.08)
-                    : Color.clear
-            )
-            .clipShape(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 0,
-                    bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 6,
-                    topTrailingRadius: 6,
-                    style: .continuous
-                )
-            )
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.visible)
-        .fixedSize()
-        .disabled(isDisabled)
-        .onHover { isMenuHovering = $0 }
-        .help(isAutoRefreshEnabled ? "Auto refresh every \(Self.intervalTitle(autoRefreshInterval))" : "Auto refresh off")
-    }
-
-    private func menuItemLabel(text: String, checked: Bool) -> some View {
-        Text(checked ? "\(text)  ✓" : text)
     }
 }

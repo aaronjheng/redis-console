@@ -1,7 +1,7 @@
 # Redis Console Design System
 
-**Version:** 1.0  
-**Date:** 2026-06-26  
+**Version:** 1.1  
+**Date:** 2026-07-02  
 **Platform:** macOS 26+  
 **Framework:** SwiftUI 6+ with AppKit bridges
 
@@ -20,7 +20,13 @@
 
 | Document | Contents |
 |---|---|
-| [`TOKENS.md`](TOKENS.md) | Spacing, corner radii, typography, sizing |
-| [`COLORS.md`](COLORS.md) | Semantic colors, NSColor wrappers, domain color palettes |
-| [`COMPONENTS.md`](COMPONENTS.md) | Buttons, badges, banners, tables, empty states, loading, cards, sheets, popovers |
+| [`TOKENS.md`](TOKENS.md) | Spacing, corner radii, typography, sizing, interaction state colors |
+| [`COLORS.md`](COLORS.md) | Semantic colors, NSColor wrappers, domain color palettes, cluster topology, slow log severity |
+| [`COMPONENTS.md`](COMPONENTS.md) | Buttons, badges, banners, tables, empty states, loading, cards, sheets, popovers, refresh control, safety confirmations |
 | [`LAYOUT.md`](LAYOUT.md) | Three-panel workspace, header rhythm |
+
+---
+
+## Audit
+
+The latest UI audit is available at `../ui-inventory/UI_AUDIT.md`. It is a disposable artifact regenerated with each `just generate-ui-inventory` + audit cycle. The Design System documents here are the persistent, committed specification.

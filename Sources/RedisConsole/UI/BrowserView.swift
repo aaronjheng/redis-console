@@ -12,8 +12,7 @@ struct BrowserView: View {
     @State private var keyListScrollTarget: String?
     @State private var productionDeleteKey: RedisKeyEntry?
     @State private var productionConfirmText = ""
-    @State private var isAutoRefreshEnabled = false
-    @State private var autoRefreshInterval = 5
+    @State private var autoRefreshInterval: TimeInterval = 0
     @State private var deleteFeedbackTrigger = false
 
     private let listScanCount = 500
@@ -24,7 +23,7 @@ struct BrowserView: View {
 
         VStack(spacing: 0) {
             // MARK: Header Bar
-            HStack(spacing: 8) {
+            HStack(spacing: AppTheme.spacing) {
                 Picker("", selection: $app.keyTypeFilter) {
                     Text("All Types").tag("")
                     Text("String").tag("string")
@@ -43,7 +42,7 @@ struct BrowserView: View {
                             app.keyScanCount = currentScanCount
                             Task { await app.scanKeys(reset: true) }
                         }
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppTheme.spacingSmall) {
                         if !searchText.isEmpty {
                             Button("Clear Search", systemImage: "xmark.circle.fill") {
                                 searchText = ""
@@ -57,13 +56,13 @@ struct BrowserView: View {
                         }
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
-                            .padding(.trailing, 8)
+                            .padding(.trailing, AppTheme.spacing)
                     }
                 }
                 .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
+            .padding(.horizontal, AppTheme.spacing)
+            .padding(.vertical, AppTheme.spacing)
 
             Divider()
 
@@ -78,7 +77,7 @@ struct BrowserView: View {
             ) {
                 // MARK: Left Panel
                 VStack(spacing: 0) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: AppTheme.spacingSmallMedium) {
                         Picker(
                             "Key List Style",
                             selection: Binding(
@@ -106,17 +105,17 @@ struct BrowserView: View {
 
                         Spacer()
 
-                        KeyRefreshControl(
-                            isAutoRefreshEnabled: $isAutoRefreshEnabled,
+                        RefreshControl(
                             autoRefreshInterval: $autoRefreshInterval,
-                            isDisabled: app.isLoadingKeys
+                            isLoading: app.isLoadingKeys,
+                            intervals: [5, 10, 15, 30, 60]
                         ) {
                             app.keyScanCount = currentScanCount
                             Task { await app.scanKeys(reset: true) }
                         }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, AppTheme.spacing)
+                    .padding(.vertical, AppTheme.spacingSmallMedium)
 
                     Divider()
 
@@ -274,7 +273,7 @@ struct BrowserView: View {
         }
         .sensoryFeedback(.success, trigger: deleteFeedbackTrigger)
         .task(id: autoRefreshTaskID) {
-            guard isAutoRefreshEnabled else { return }
+            guard autoRefreshInterval > 0 else { return }
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(autoRefreshInterval))
                 guard !Task.isCancelled, !app.isLoadingKeys else { continue }
@@ -290,20 +289,20 @@ struct BrowserView: View {
     private var loadMoreOrScanningView: some View {
         if app.hasMoreKeys {
             if app.isLoadingKeys {
-                HStack(spacing: 6) {
+                HStack(spacing: AppTheme.spacingSmallMedium) {
                     ProgressView()
                         .controlSize(.small)
                     Text("Scanning...")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                .padding(8)
+                .padding(AppTheme.spacing)
             } else {
                 Button("Load more") {
                     app.keyScanCount = currentScanCount
                     Task { await app.scanKeys() }
                 }
-                .padding(8)
+                .padding(AppTheme.spacing)
             }
         }
     }
@@ -323,7 +322,7 @@ struct BrowserView: View {
     }
 
     private var autoRefreshTaskID: String {
-        "\(isAutoRefreshEnabled)|\(autoRefreshInterval)"
+        "\(autoRefreshInterval)"
     }
 
     private func copyKeyToPasteboard(_ entry: RedisKeyEntry) {
@@ -577,7 +576,7 @@ private struct KeyNamespaceNodeView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, AppTheme.spacingSmall)
             }
         } label: {
             KeyNamespaceRow(namespace: namespace)
@@ -606,7 +605,7 @@ private struct KeyNamespaceRow: View {
     let namespace: KeyNamespaceNode
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppTheme.spacing) {
             Image(systemName: "folder")
                 .foregroundStyle(.tint)
             Text(namespace.name)
@@ -741,7 +740,7 @@ struct ProductionConfirmView: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: AppTheme.spacingLarge) {
             Image(systemName: "exclamationmark.shield.fill")
                 .font(.largeTitle)
                 .foregroundStyle(DomainColor.statusError)
@@ -763,7 +762,7 @@ struct ProductionConfirmView: View {
                     .foregroundStyle(DomainColor.statusError)
             }
 
-            HStack(spacing: 4) {
+            HStack(spacing: AppTheme.spacingSmall) {
                 Text("Type \"\(confirmText)\" to confirm:")
                     .font(.subheadline)
                 Spacer()
@@ -782,7 +781,7 @@ struct ProductionConfirmView: View {
                     .disabled(input != confirmText)
             }
         }
-        .padding()
+        .padding(AppTheme.spacingLarge)
         .frame(width: 320)
     }
 
