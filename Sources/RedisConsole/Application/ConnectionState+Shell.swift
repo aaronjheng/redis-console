@@ -25,6 +25,10 @@ extension ConnectionState {
                 } else {
                     // Create a dedicated tunnel for shell
                     let tunnel = SSHTunnel()
+                    tunnel.setupTimeoutSeconds = config.ssh.setupTimeout
+                    tunnel.connectionAttemptTimeout = .seconds(Int64(config.ssh.connectionAttemptTimeout))
+                    tunnel.maxConnectionAttempts = config.ssh.maxConnectionAttempts
+                    tunnel.authTimeoutSeconds = config.ssh.authTimeout
                     try await tunnel.start(
                         sshHost: config.ssh.host,
                         sshPort: config.ssh.port,
@@ -51,7 +55,8 @@ extension ConnectionState {
                     verifyServerCertificate: config.tls.verifyServerCertificate,
                     caCertificatePath: config.tls.caCertificatePath,
                     clientCertificatePath: config.tls.clientCertificatePath,
-                    clientKeyPath: config.tls.clientKeyPath
+                    clientKeyPath: config.tls.clientKeyPath,
+                    connectionTimeout: config.connectionTimeout
                 )
             case .cluster:
                 client = RedisClusterClient(
@@ -63,6 +68,7 @@ extension ConnectionState {
                     caCertificatePath: config.tls.caCertificatePath,
                     clientCertificatePath: config.tls.clientCertificatePath,
                     clientKeyPath: config.tls.clientKeyPath,
+                    connectionTimeout: config.connectionTimeout,
                     endpointResolver: sshClusterTunnelManager
                 )
             }

@@ -49,13 +49,17 @@ extension ConnectionState {
                     switch resolvedConfig.mode {
                     case .standalone:
                         let tunnel = SSHTunnel()
+                        tunnel.setupTimeoutSeconds = resolvedConfig.ssh.setupTimeout
+                        tunnel.connectionAttemptTimeout = .seconds(Int64(resolvedConfig.ssh.connectionAttemptTimeout))
+                        tunnel.maxConnectionAttempts = resolvedConfig.ssh.maxConnectionAttempts
+                        tunnel.authTimeoutSeconds = resolvedConfig.ssh.authTimeout
                         sshTunnel = tunnel
                         AppLogger.info(
                             "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.ssh.port) "
                                 + "user=\(effectiveSSHUser) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
                             category: "Connection"
                         )
-                        try await withTimeout(SSHTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
+                        try await withTimeout(tunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
                             try await tunnel.start(
                                 sshHost: sshHost,
                                 sshPort: resolvedConfig.ssh.port,
@@ -99,7 +103,8 @@ extension ConnectionState {
                         verifyServerCertificate: resolvedConfig.tls.verifyServerCertificate,
                         caCertificatePath: resolvedConfig.tls.caCertificatePath,
                         clientCertificatePath: resolvedConfig.tls.clientCertificatePath,
-                        clientKeyPath: resolvedConfig.tls.clientKeyPath
+                        clientKeyPath: resolvedConfig.tls.clientKeyPath,
+                        connectionTimeout: resolvedConfig.connectionTimeout
                     )
                 case .cluster:
                     redis = RedisClusterClient(
@@ -111,12 +116,13 @@ extension ConnectionState {
                         caCertificatePath: resolvedConfig.tls.caCertificatePath,
                         clientCertificatePath: resolvedConfig.tls.clientCertificatePath,
                         clientKeyPath: resolvedConfig.tls.clientKeyPath,
+                        connectionTimeout: resolvedConfig.connectionTimeout,
                         endpointResolver: clusterEndpointResolver
                     )
                 }
                 client = redis
 
-                try await withTimeout(10, context: "Redis connection") {
+                try await withTimeout(resolvedConfig.connectionTimeout, context: "Redis connection") {
                     try await redis.connect()
                 }
                 AppLogger.info("redis connected mode=\(resolvedConfig.mode.rawValue) \(resolvedConfig.address)", category: "Connection")

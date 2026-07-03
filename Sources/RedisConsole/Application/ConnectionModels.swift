@@ -39,6 +39,12 @@ struct SSHConfig: Codable, Hashable {
     var password: String = ""
     var privateKeyPath: String = ""
     var privateKeyPassphrase: String = ""
+
+    // Timeout settings (in seconds)
+    var setupTimeout: TimeInterval = 30
+    var connectionAttemptTimeout: TimeInterval = 5
+    var maxConnectionAttempts: Int = 4
+    var authTimeout: TimeInterval = 10
 }
 
 struct TLSConfig: Codable, Hashable {
@@ -64,6 +70,10 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
     var tls: TLSConfig = TLSConfig()
     var environment: ConnectionEnvironment = .unspecified
 
+    // Timeout settings (in seconds)
+    var connectionTimeout: TimeInterval = 10
+    var pingTimeout: TimeInterval = 5
+
     enum CodingKeys: String, CodingKey {
         case id
         case name
@@ -76,6 +86,8 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         case password
         case tls
         case environment
+        case connectionTimeout
+        case pingTimeout
     }
 
     static let `default` = RedisConnectionConfig(name: "localhost", host: "127.0.0.1")
@@ -104,7 +116,9 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         password: String = "",
         ssh: SSHConfig = SSHConfig(),
         tls: TLSConfig = TLSConfig(),
-        environment: ConnectionEnvironment = .unspecified
+        environment: ConnectionEnvironment = .unspecified,
+        connectionTimeout: TimeInterval = 10,
+        pingTimeout: TimeInterval = 5
     ) {
         self.id = id
         self.name = name
@@ -117,6 +131,8 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         self.ssh = ssh
         self.tls = tls
         self.environment = environment
+        self.connectionTimeout = connectionTimeout
+        self.pingTimeout = pingTimeout
     }
 
     static func parseURI(_ uri: String) -> RedisConnectionConfig? {
@@ -164,6 +180,8 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         ssh = try container.decodeIfPresent(SSHConfig.self, forKey: .ssh) ?? SSHConfig()
         tls = try container.decodeIfPresent(TLSConfig.self, forKey: .tls) ?? TLSConfig()
         environment = try container.decodeIfPresent(ConnectionEnvironment.self, forKey: .environment) ?? .unspecified
+        connectionTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .connectionTimeout) ?? 10
+        pingTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .pingTimeout) ?? 5
     }
 
     func encode(to encoder: Encoder) throws {
@@ -178,5 +196,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         try container.encode(ssh, forKey: .ssh)
         try container.encode(tls, forKey: .tls)
         try container.encode(environment, forKey: .environment)
+        try container.encode(connectionTimeout, forKey: .connectionTimeout)
+        try container.encode(pingTimeout, forKey: .pingTimeout)
     }
 }

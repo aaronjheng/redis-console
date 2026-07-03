@@ -219,6 +219,7 @@ final class RedisClusterClient: RedisSession {
         clientCertificatePath: String = "",
         clientKeyPath: String = "",
         preferredProtocolVersion: RESPProtocolVersion = .resp3,
+        connectionTimeout: TimeInterval = 10,
         endpointResolver: (any RedisClusterEndpointResolver)? = nil
     ) {
         self.seedNodes = RedisEndpoint.unique(seedNodes)
@@ -234,7 +235,8 @@ final class RedisClusterClient: RedisSession {
                 caCertificatePath: caCertificatePath,
                 clientCertificatePath: clientCertificatePath,
                 clientKeyPath: clientKeyPath,
-                preferredProtocolVersion: preferredProtocolVersion
+                preferredProtocolVersion: preferredProtocolVersion,
+                connectionTimeout: connectionTimeout
             )
         }
     }

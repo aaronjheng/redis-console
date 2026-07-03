@@ -291,6 +291,7 @@ final class RedisClient: Sendable {
     let clientCertificatePath: String
     let clientKeyPath: String
     let preferredProtocolVersion: RESPProtocolVersion
+    let connectionTimeout: TimeInterval
 
     private var negotiatedProtocolVersion: RESPProtocolVersion {
         get { state.withLock { $0.negotiatedProtocolVersion } }
@@ -317,7 +318,8 @@ final class RedisClient: Sendable {
         caCertificatePath: String = "",
         clientCertificatePath: String = "",
         clientKeyPath: String = "",
-        preferredProtocolVersion: RESPProtocolVersion = .resp3
+        preferredProtocolVersion: RESPProtocolVersion = .resp3,
+        connectionTimeout: TimeInterval = 10
     ) {
         self.host = host
         self.port = port
@@ -329,6 +331,7 @@ final class RedisClient: Sendable {
         self.clientCertificatePath = clientCertificatePath
         self.clientKeyPath = clientKeyPath
         self.preferredProtocolVersion = preferredProtocolVersion
+        self.connectionTimeout = connectionTimeout
         queue.setSpecific(key: queueKey, value: true)
     }
 

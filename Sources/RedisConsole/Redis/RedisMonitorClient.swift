@@ -60,6 +60,7 @@ final class RedisMonitorClient: @unchecked Sendable {
     private let caCertificatePath: String
     private let clientCertificatePath: String
     private let clientKeyPath: String
+    private let connectionTimeout: TimeInterval
 
     init(
         host: String,
@@ -70,7 +71,8 @@ final class RedisMonitorClient: @unchecked Sendable {
         verifyServerCertificate: Bool = true,
         caCertificatePath: String = "",
         clientCertificatePath: String = "",
-        clientKeyPath: String = ""
+        clientKeyPath: String = "",
+        connectionTimeout: TimeInterval = 10
     ) {
         self.host = host
         self.port = port
@@ -81,6 +83,7 @@ final class RedisMonitorClient: @unchecked Sendable {
         self.caCertificatePath = caCertificatePath
         self.clientCertificatePath = clientCertificatePath
         self.clientKeyPath = clientKeyPath
+        self.connectionTimeout = connectionTimeout
         queue.setSpecific(key: queueKey, value: true)
     }
 

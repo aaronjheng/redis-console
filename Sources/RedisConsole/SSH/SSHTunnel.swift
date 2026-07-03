@@ -11,11 +11,12 @@ class SSHTunnel: @unchecked Sendable {
         case nioSSH
     }
 
-    static let setupTimeoutSeconds: TimeInterval = 30
-
-    private static let connectionAttemptTimeout: TimeAmount = .seconds(5)
-    private static let maxConnectionAttempts = 4
-    private static let connectionRetryDelaysNanoseconds: [UInt64] = [
+    // Configurable timeout settings
+    var setupTimeoutSeconds: TimeInterval = 30
+    var connectionAttemptTimeout: TimeAmount = .seconds(5)
+    var maxConnectionAttempts = 4
+    var authTimeoutSeconds: TimeInterval = 10
+    private var connectionRetryDelaysNanoseconds: [UInt64] = [
         300_000_000,
         800_000_000,
         1_600_000_000,
@@ -125,7 +126,7 @@ class SSHTunnel: @unchecked Sendable {
     private func connectSSHWithRetry(group: NIOTSEventLoopGroup) async throws -> Channel {
         var lastError: Error?
 
-        for attempt in 1...Self.maxConnectionAttempts {
+        for attempt in 1...maxConnectionAttempts {
             try Task.checkCancellation()
 
             do {
@@ -136,14 +137,14 @@ class SSHTunnel: @unchecked Sendable {
                 let mappedError = mappedSSHError(error)
                 lastError = mappedError
 
-                guard attempt < Self.maxConnectionAttempts, isRetriableConnectionError(error) else {
+                guard attempt < maxConnectionAttempts, isRetriableConnectionError(error) else {
                     throw mappedError
                 }
 
-                let retryDelay = Self.connectionRetryDelayNanoseconds(after: attempt)
+                let retryDelay = connectionRetryDelayNanoseconds(after: attempt)
                 AppLogger.warn(
                     "ssh connect attempt failed ssh=\(sshHost):\(sshPort) "
-                        + "attempt=\(attempt)/\(Self.maxConnectionAttempts) "
+                        + "attempt=\(attempt)/\(maxConnectionAttempts) "
                         + "retryInMs=\(retryDelay / 1_000_000) error=\(mappedError)",
                     category: "SSHTunnel"
                 )
@@ -160,7 +161,7 @@ class SSHTunnel: @unchecked Sendable {
         let handshakePromise = group.next().makePromise(of: Void.self)
 
         let bootstrap = NIOTSConnectionBootstrap(group: group)
-            .connectTimeout(Self.connectionAttemptTimeout)
+            .connectTimeout(connectionAttemptTimeout)
             .channelOption(NIOTSChannelOptions.waitForActivity, value: false)
             .channelInitializer { channel in
                 let sshHandler = NIOSSHHandler(
@@ -190,7 +191,7 @@ class SSHTunnel: @unchecked Sendable {
 
             // Wait for SSH authentication to complete.
             do {
-                try await withTimeout(10, context: "SSH authentication") {
+                try await withTimeout(authTimeoutSeconds, context: "SSH authentication") {
                     try await handshakePromise.futureResult.get()
                 }
             } catch {
@@ -205,7 +206,7 @@ class SSHTunnel: @unchecked Sendable {
         }
     }
 
-    private static func connectionRetryDelayNanoseconds(after attempt: Int) -> UInt64 {
+    private func connectionRetryDelayNanoseconds(after attempt: Int) -> UInt64 {
         let index = max(0, min(attempt - 1, connectionRetryDelaysNanoseconds.count - 1))
         return connectionRetryDelaysNanoseconds[index]
     }
@@ -414,6 +415,7 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
     private let sshUser: String
     private let sshPassword: String?
     private let privateKeyPath: String?
+    private let setupTimeout: TimeInterval
     private var tunnels: [RedisEndpoint: SSHTunnel] = [:]
     private var generation = 0
 
@@ -425,6 +427,7 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
         sshUser = trimmedUser.isEmpty ? NSUserName() : trimmedUser
         sshPassword = ssh.password.isEmpty ? nil : ssh.password
         privateKeyPath = ssh.privateKeyPath.isEmpty ? nil : ssh.privateKeyPath
+        setupTimeout = ssh.setupTimeout
     }
 
     func clientEndpoint(for endpoint: RedisEndpoint) async throws -> RedisEndpoint {
@@ -438,6 +441,7 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
 
         let startGeneration = generation
         let tunnel = SSHTunnel()
+        tunnel.setupTimeoutSeconds = setupTimeout
         let configuredSSHHost = sshHost
         let configuredSSHPort = sshPort
         let configuredSSHUser = sshUser
@@ -450,7 +454,7 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
         )
 
         do {
-            try await withTimeout(SSHTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
+            try await withTimeout(setupTimeout, context: "SSH tunnel setup") {
                 try await tunnel.start(
                     sshHost: configuredSSHHost,
                     sshPort: configuredSSHPort,

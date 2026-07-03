@@ -22,6 +22,8 @@ struct ConnectionDetailView: View {
     @State private var uriInput = ""
     @State private var isCreatingNew = false
     @State private var cachedConfig: RedisConnectionConfig?
+    @State private var connectionTimeout: TimeInterval = 10
+    @State private var pingTimeout: TimeInterval = 5
 
     private var editingConfig: RedisConnectionConfig? {
         cachedConfig
@@ -219,6 +221,8 @@ struct ConnectionDetailView: View {
         config.ssh = ssh
         config.tls = tls
         config.environment = environment
+        config.connectionTimeout = connectionTimeout
+        config.pingTimeout = pingTimeout
         return config
     }
 
@@ -237,6 +241,8 @@ struct ConnectionDetailView: View {
             ssh = config.ssh
             tls = config.tls
             environment = config.environment
+            connectionTimeout = config.connectionTimeout
+            pingTimeout = config.pingTimeout
         case .newConnection:
             isCreatingNew = true
             cachedConfig = nil
@@ -303,9 +309,13 @@ struct ConnectionDetailView: View {
             switch connectionMode {
             case .standalone:
                 let createdTunnel = SSHTunnel()
+                createdTunnel.setupTimeoutSeconds = ssh.setupTimeout
+                createdTunnel.connectionAttemptTimeout = .seconds(Int64(ssh.connectionAttemptTimeout))
+                createdTunnel.maxConnectionAttempts = ssh.maxConnectionAttempts
+                createdTunnel.authTimeoutSeconds = ssh.authTimeout
                 tunnel = createdTunnel
                 do {
-                    try await withTimeout(SSHTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
+                    try await withTimeout(createdTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
                         try await createdTunnel.start(
                             sshHost: trimmedSSHHost,
                             sshPort: ssh.port,
@@ -350,7 +360,8 @@ struct ConnectionDetailView: View {
                 verifyServerCertificate: tls.verifyServerCertificate,
                 caCertificatePath: tls.caCertificatePath,
                 clientCertificatePath: tls.clientCertificatePath,
-                clientKeyPath: tls.clientKeyPath
+                clientKeyPath: tls.clientKeyPath,
+                connectionTimeout: connectionTimeout
             )
         case .cluster:
             createdClient = RedisClusterClient(
@@ -362,16 +373,17 @@ struct ConnectionDetailView: View {
                 caCertificatePath: tls.caCertificatePath,
                 clientCertificatePath: tls.clientCertificatePath,
                 clientKeyPath: tls.clientKeyPath,
+                connectionTimeout: connectionTimeout,
                 endpointResolver: clusterEndpointResolver
             )
         }
         client = createdClient
         do {
-            try await withTimeout(10, context: "Redis connection") {
+            try await withTimeout(connectionTimeout, context: "Redis connection") {
                 try await createdClient.connect()
             }
             let start = Date()
-            let pong = try await withTimeout(5, context: "Redis PING") {
+            let pong = try await withTimeout(pingTimeout, context: "Redis PING") {
                 try await createdClient.send("PING")
             }
             if case .error(let message) = pong {

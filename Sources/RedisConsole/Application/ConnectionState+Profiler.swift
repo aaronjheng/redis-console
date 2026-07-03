@@ -156,7 +156,7 @@ extension ConnectionState {
         let monitorClient = makeProfilerMonitorClient(config: config, host: connectHost, port: connectPort)
         profilerMonitorClients = [monitorClient]
 
-        let rawStream = try await withTimeout(10, context: "Redis profiler connection") {
+        let rawStream = try await withTimeout(config.connectionTimeout, context: "Redis profiler connection") {
             try await monitorClient.startMonitoring()
         }
 
@@ -224,7 +224,7 @@ extension ConnectionState {
             monitorClients.append(monitorClient)
             profilerMonitorClients = monitorClients
 
-            let rawStream = try await withTimeout(10, context: "Redis profiler connection to \(endpoint.address)") {
+            let rawStream = try await withTimeout(config.connectionTimeout, context: "Redis profiler connection to \(endpoint.address)") {
                 try await monitorClient.startMonitoring()
             }
 
@@ -260,7 +260,8 @@ extension ConnectionState {
             verifyServerCertificate: config.tls.verifyServerCertificate,
             caCertificatePath: config.tls.caCertificatePath,
             clientCertificatePath: config.tls.clientCertificatePath,
-            clientKeyPath: config.tls.clientKeyPath
+            clientKeyPath: config.tls.clientKeyPath,
+            connectionTimeout: config.connectionTimeout
         )
     }
 
@@ -277,8 +278,12 @@ extension ConnectionState {
         }
 
         let tunnel = SSHTunnel()
+        tunnel.setupTimeoutSeconds = config.ssh.setupTimeout
+        tunnel.connectionAttemptTimeout = .seconds(Int64(config.ssh.connectionAttemptTimeout))
+        tunnel.maxConnectionAttempts = config.ssh.maxConnectionAttempts
+        tunnel.authTimeoutSeconds = config.ssh.authTimeout
         do {
-            try await withTimeout(SSHTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
+            try await withTimeout(config.ssh.setupTimeout, context: "SSH tunnel setup") {
                 try await tunnel.start(
                     sshHost: sshHost,
                     sshPort: config.ssh.port,
