@@ -84,14 +84,6 @@ Sources/RedisConsole/
 └── Design/               # Design system documentation (tokens, colors, components, layout)
 ```
 
-## Tech Stack
-
-- **Language**: Swift 6.3+
-- **UI Framework**: SwiftUI + AppKit (hybrid as needed)
-- **SSH**: [swift-nio-ssh](https://github.com/apple/swift-nio-ssh) (vendored)
-- **Code Formatting**: swift-format
-- **Code Linting**: SwiftLint
-
 ## License
 
 Redis Console is licensed under the [BSD-3-Clause License](https://opensource.org/licenses/BSD-3-Clause). See [LICENSE](LICENSE) for more details.
