@@ -53,37 +53,6 @@ just format-check
 just clean
 ```
 
-## Project Structure
-
-```
-Sources/RedisConsole/
-├── App/                  # App entry point, lifecycle, tab management, appearance
-├── Models/               # Pure data models, organized by domain
-│   ├── Connection/       #   Connection, SSH, TLS configuration
-│   ├── Browser/          #   Key entries, database analysis
-│   ├── Shell/            #   Shell history
-│   ├── SlowLog/          #   Slow log entries
-│   └── Profiler/         #   Profiler captures and entries
-├── State/                # Observable state (ConnectionState + extensions, AppStore)
-├── Theme/                # Design tokens, color palette, reusable UI components
-├── Redis/                # Redis protocol layer
-│   ├── RESP/             #   RESP2/RESP3 parser and encoder
-│   ├── Client/           #   Standalone & cluster clients, session protocol
-│   └── Monitor/          #   MONITOR command streaming client
-├── SSH/                  # SSH tunnel, cluster tunnel manager, key parsing, NIO handlers
-├── Infrastructure/       # Keychain store, async timeout utility
-├── UI/                   # SwiftUI views, organized by feature
-│   ├── Root/             #   Top-level content view and navigation
-│   ├── Connection/       #   Connection hub (list, edit, import/export)
-│   ├── Workspace/        #   Connected workspace sidebar
-│   ├── Browser/          #   Key browser, key detail, edit sheets
-│   ├── KeyDetail/        #   Type-specific value viewers (string/hash/list/set/zset)
-│   ├── Shell/            #   CLI shell view and syntax highlighter
-│   └── Tools/            #   Profiler, slow log, database analysis, server info, cluster topology
-├── UIInventory/          # Deterministic screenshot generator for UI states
-└── Design/               # Design system documentation (tokens, colors, components, layout)
-```
-
 ## License
 
 Redis Console is licensed under the [BSD-3-Clause License](https://opensource.org/licenses/BSD-3-Clause). See [LICENSE](LICENSE) for more details.
