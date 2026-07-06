@@ -1,31 +1,5 @@
 import AppKit
-import Observation
 import SwiftUI
-
-// MARK: - Tab Manager
-
-@MainActor
-@Observable
-class TabManager {
-    var tabStates: [ConnectionState] = []
-
-    func createTab() -> ConnectionState {
-        let state = ConnectionState()
-        tabStates.append(state)
-        return state
-    }
-
-    func closeTab(_ state: ConnectionState) {
-        state.disconnect()
-        tabStates.removeAll { $0.id == state.id }
-    }
-
-    func tabIndex(for state: ConnectionState) -> Int? {
-        tabStates.firstIndex(where: { $0.id == state.id })
-    }
-}
-
-// MARK: - Window Delegate Manager
 
 @MainActor
 final class WindowDelegateManager {
@@ -46,48 +20,6 @@ final class WindowDelegateManager {
         delegates.removeValue(forKey: id)
     }
 }
-
-// MARK: - Appearance Preference
-
-enum AppAppearance: Int, CaseIterable {
-    case system = 0
-    case light = 1
-    case dark = 2
-
-    private static let userDefaultsKey = "com.redisconsole.appearance"
-
-    var name: String {
-        switch self {
-        case .system: return "System"
-        case .light: return "Light"
-        case .dark: return "Dark"
-        }
-    }
-
-    static var current: AppAppearance {
-        let raw = UserDefaults.standard.integer(forKey: userDefaultsKey)
-        return AppAppearance(rawValue: raw) ?? .system
-    }
-
-    @MainActor
-    func apply() {
-        UserDefaults.standard.set(rawValue, forKey: Self.userDefaultsKey)
-    }
-
-    @MainActor
-    func applyToWindow(_ window: NSWindow) {
-        switch self {
-        case .system:
-            window.appearance = nil
-        case .light:
-            window.appearance = NSAppearance(named: .aqua)
-        case .dark:
-            window.appearance = NSAppearance(named: .darkAqua)
-        }
-    }
-}
-
-// MARK: - AppDelegate
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -184,7 +116,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.tabbingMode = .preferred
         window.tabbingIdentifier = "RedisConsole"
 
-        // Add as tab to existing window, or show as new window
         if let existingWindow = NSApp.keyWindow {
             existingWindow.addTabbedWindow(window, ordered: .above)
             window.makeKeyAndOrderFront(nil)
@@ -196,7 +127,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         stateToWindow[state.id] = window
         requestTabChromeRefresh()
 
-        // Clean up when window closes
         let delegate = WindowDelegate { [weak self] in
             Task { @MainActor in
                 self?.tabManager.closeTab(state)
@@ -211,7 +141,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func buildMenuBar() {
         let mainMenu = NSMenu()
 
-        // App menu
         let appMenuItem = NSMenuItem()
         mainMenu.addItem(appMenuItem)
         let appMenu = NSMenu()
@@ -226,7 +155,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             keyEquivalent: "q")
         appMenuItem.submenu = appMenu
 
-        // File menu
         let fileMenuItem = NSMenuItem()
         mainMenu.addItem(fileMenuItem)
         let fileMenu = NSMenu(title: "File")
@@ -238,14 +166,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         fileMenu.addItem(closeTabItem)
         fileMenuItem.submenu = fileMenu
 
-        // Window menu
         let windowMenuItem = NSMenuItem()
         mainMenu.addItem(windowMenuItem)
         let windowMenu = NSMenu(title: "Window")
-        let nextTabItem = NSMenuItem(title: "Show Next Tab", action: #selector(selectNextTab), keyEquivalent: "→")
+        let nextTabItem = NSMenuItem(title: "Show Next Tab", action: #selector(selectNextTab), keyEquivalent: "\u{2192}")
         nextTabItem.keyEquivalentModifierMask = [.command]
         windowMenu.addItem(nextTabItem)
-        let prevTabItem = NSMenuItem(title: "Show Previous Tab", action: #selector(selectPreviousTab), keyEquivalent: "←")
+        let prevTabItem = NSMenuItem(title: "Show Previous Tab", action: #selector(selectPreviousTab), keyEquivalent: "\u{2190}")
         prevTabItem.keyEquivalentModifierMask = [.command]
         windowMenu.addItem(prevTabItem)
         windowMenu.addItem(.separator())
@@ -262,7 +189,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowMenuItem.submenu = windowMenu
         NSApp.windowsMenu = windowMenu
 
-        // Edit menu
         let editMenuItem = NSMenuItem()
         mainMenu.addItem(editMenuItem)
         let editMenu = NSMenu(title: "Edit")
@@ -275,7 +201,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editMenuItem.submenu = editMenu
 
-        // View menu
         let viewMenuItem = NSMenuItem()
         mainMenu.addItem(viewMenuItem)
         let viewMenu = NSMenu(title: "View")
@@ -342,7 +267,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func syncTabAccessories(in windows: [NSWindow]) {
         for (index, window) in windows.enumerated() {
             if windows.count > 1, index < tabShortcutLimit {
-                window.tab.accessoryView = makeTabAccessoryView(text: "⌘\(index + 1)")
+                window.tab.accessoryView = makeTabAccessoryView(text: "\u{2318}\(index + 1)")
             } else {
                 window.tab.accessoryView = nil
             }
@@ -375,8 +300,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-// MARK: - Window Delegate
-
 class WindowDelegate: NSObject, NSWindowDelegate {
     let onClose: () -> Void
 
@@ -388,8 +311,6 @@ class WindowDelegate: NSObject, NSWindowDelegate {
         onClose()
     }
 }
-
-// MARK: - App Entry Point
 
 @main
 struct RedisConsoleApp {
