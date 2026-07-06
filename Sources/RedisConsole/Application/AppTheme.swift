@@ -292,11 +292,11 @@ struct RefreshControl: View {
     }
 
     private static func intervalTitle(_ seconds: TimeInterval) -> String {
-        let s = Int(seconds)
-        if s.isMultiple(of: 60) {
-            return "\(s / 60)m"
+        let totalSeconds = Int(seconds)
+        if totalSeconds.isMultiple(of: 60) {
+            return "\(totalSeconds / 60)m"
         }
-        return "\(s)s"
+        return "\(totalSeconds)s"
     }
 
     @State private var isRefreshHovering = false

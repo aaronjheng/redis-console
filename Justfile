@@ -9,10 +9,10 @@ lint-fix:
     swiftlint lint --fix Sources
 
 format:
-    swift-format format -i --recursive Sources
+    swift format --recursive --in-place Sources
 
 format-check:
-    swift-format lint --recursive Sources
+    swift format lint --recursive Sources
 
 build-release:
     xcodebuild -project RedisConsole.xcodeproj -scheme RedisConsole -configuration '{{ configuration }}' -destination 'platform=macOS,arch=arm64' -derivedDataPath '{{ derived_data }}' -allowProvisioningUpdates build

@@ -9,7 +9,7 @@ enum ScreenshotCapture {
     static func capture(
         view: some View,
         size: NSSize,
-        appearance: NSAppearance = NSAppearance(named: .darkAqua)!
+        appearance: NSAppearance = NSAppearance(named: .darkAqua) ?? .init()
     ) -> Data? {
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: size),
@@ -48,7 +48,7 @@ enum ScreenshotCapture {
     static func capture(
         rootView: some View,
         size: NSSize,
-        appearance: NSAppearance = NSAppearance(named: .darkAqua)!
+        appearance: NSAppearance = NSAppearance(named: .darkAqua) ?? .init()
     ) -> Data? {
         capture(view: rootView, size: size, appearance: appearance)
     }

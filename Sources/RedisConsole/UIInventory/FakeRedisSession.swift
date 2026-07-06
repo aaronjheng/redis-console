@@ -59,6 +59,7 @@ struct FakeRedisData: Sendable {
             Key(
                 name: "cache:product:42", type: "string",
                 stringValue:
+                    // swiftlint:disable:next line_length
                     "Product 42 is a premium widget with advanced features including smart connectivity, voice control, and energy-efficient operation. Designed for modern homes and offices.",
                 hashFields: [], listElements: [], setMembers: [], zsetMembers: [], ttl: 7200, memoryUsage: 184),
             Key(
@@ -537,6 +538,7 @@ final class FakeRedisSession: RedisSession, @unchecked Sendable {
             let subcommand = args[safe: 1]?.uppercased() ?? ""
             if subcommand == "INFO" {
                 return .bulkString(
+                    // swiftlint:disable:next line_length
                     "cluster_enabled:0\r\ncluster_state:ok\r\ncluster_slots_assigned:0\r\ncluster_slots_ok:0\r\ncluster_slots_pfail:0\r\ncluster_slots_fail:0\r\ncluster_known_nodes:1\r\ncluster_size:0\r\n"
                 )
             }

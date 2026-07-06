@@ -109,7 +109,7 @@ final class InventoryGenerator {
         let outputDir: URL
         if let outputIndex = args.firstIndex(of: "--output"),
             outputIndex + 1 < args.count
-        {
+        {  // swiftlint:disable:this opening_brace
             outputDir = URL(fileURLWithPath: args[outputIndex + 1])
         } else {
             outputDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
