@@ -137,11 +137,12 @@ struct ShellView: View {
             }
             .padding(AppTheme.spacingLarge)
             .background(.bar)
-        }
-        Divider()
-        WorkspaceFooterBar {
-            StatusFooterView(countText: "\(app.shellHistory.count) commands")
-            Spacer()
+
+            Divider()
+            WorkspaceFooterBar {
+                StatusFooterView(countText: "\(app.shellHistory.count) commands")
+                Spacer()
+            }
         }
         .onAppear { inputFocused = true }
         .alert("Dangerous Command", isPresented: $showDangerousCommandAlert) {
