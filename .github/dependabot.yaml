@@ -4,6 +4,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: swift
     directory: /
@@ -12,3 +16,7 @@ updates:
     commit-message:
       prefix: deps
     open-pull-requests-limit: 5
+    groups:
+      swift:
+        patterns:
+          - "*"
