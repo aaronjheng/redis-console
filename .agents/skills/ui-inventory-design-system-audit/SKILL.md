@@ -1,18 +1,17 @@
 ---
-name: ui-inventory-design-system-audit
-description: Use when the user wants to audit a UI Inventory, identify design inconsistencies, and produce or update a Design System. Triggered by phrases like "UI audit", "design system", "audit inventory", "analyze screenshots", or when working with ui-inventory assets.
+name: ui-inventory-audit
+description: Use when the user wants to audit a UI Inventory, identify inconsistencies, and review coverage. Triggered by phrases like "UI audit", "audit inventory", "analyze screenshots", or when working with ui-inventory assets.
 ---
 
-# UI Inventory → Design System Audit Skill
+# UI Inventory Audit Skill
 
-This skill turns a generated UI Inventory into a structured UI Audit and Design System specification. It is designed for macOS/SwiftUI projects that already have a deterministic screenshot generator (like Redis Console's `Sources/RedisConsole/UIInventory/`), but the workflow is generic enough to adapt to other stacks.
+This skill turns a generated UI Inventory into a structured UI Audit report. It is designed for macOS/SwiftUI projects that already have a deterministic screenshot generator (like Redis Console's `Sources/RedisConsole/UIInventory/`), but the workflow is generic enough to adapt to other stacks.
 
 ## When to use
 
-- The user asks for a UI audit or design-system review.
+- The user asks for a UI audit or coverage review.
 - There is an existing `ui-inventory/` directory with screenshots and metadata.
 - The user wants to compare screenshots against codebase style definitions.
-- The user wants to document or update a design system.
 
 ## Prerequisites
 
@@ -52,17 +51,13 @@ Prompt:
 
 ### Step 3 — Synthesize findings
 
-The audit produces two artifacts with different lifetimes:
+The audit produces one artifact:
 
 1. **UI Audit report (intermediate, do not commit)**
    - Combine the three subagent reports into a one-time audit summary.
    - Output to `ui-inventory/UI_AUDIT.md` or a temporary location.
    - This document is intentionally disposable: re-run the workflow and the audit changes.
    - Include: methodology, P0/P1/P2 findings, missing coverage, and proposed cleanup actions.
-
-2. **Design consistency findings (persistent, commit)**
-   - Document design consistency issues and recommended fixes.
-   - Treat this as a living document: update when the audit reveals new issues or resolved inconsistencies.
 
 ### Step 4 — Update the generator if needed
 
@@ -78,7 +73,7 @@ If the audit reveals capture bugs (e.g., screenshots not saved, dialogs not capt
 If the project does not already have this skill, create:
 
 ```
-.agents/skills/ui-inventory-design-system-audit/SKILL.md
+.agents/skills/ui-inventory-audit/SKILL.md
 ```
 
 Use this file as the template. Customize the generator command and file paths to match the project.
@@ -107,4 +102,4 @@ cat ui-inventory/summary.md
 - Add a fourth subagent to diff two inventory runs for regression analysis.
 
 - Add a `capturable: Bool` field to inventory metadata for non-capturable states.
-- Automate the workflow with a `just audit-design-system` command.
+- Automate the workflow with a `just audit-ui-inventory` command.
