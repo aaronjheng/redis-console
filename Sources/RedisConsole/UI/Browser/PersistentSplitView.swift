@@ -8,7 +8,7 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
     let rightMinWidth: CGFloat
 
     init(
-        dividerPositionKey: String = "com.redisconsole.browserSplitDividerPosition.v2",
+        dividerPositionKey: String = "com.redisconsole.browserSplitDividerPosition.v3",
         leftMinWidth: CGFloat = 250,
         rightMinWidth: CGFloat = 250,
         @ViewBuilder left: () -> Left,
@@ -53,6 +53,8 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
     class SplitViewController: NSSplitViewController {
         private let dividerPositionKey: String
         private var didRestoreDividerPosition = false
+        private var isProgrammaticResize = false
+        private var lastSplitViewWidth: CGFloat = 0
 
         init(dividerPositionKey: String) {
             self.dividerPositionKey = dividerPositionKey
@@ -71,7 +73,7 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
 
         override func splitViewDidResizeSubviews(_ notification: Notification) {
             super.splitViewDidResizeSubviews(notification)
-            saveDividerPosition()
+            saveDividerPositionIfNeeded()
         }
 
         private func restoreDividerPositionIfNeeded() {
@@ -86,13 +88,28 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
             let position = min(max(total * fraction, minPosition), maxPosition)
 
             didRestoreDividerPosition = true
+            lastSplitViewWidth = total
+            isProgrammaticResize = true
             splitView.setPosition(position, ofDividerAt: 0)
+            DispatchQueue.main.async { [weak self] in
+                self?.isProgrammaticResize = false
+            }
         }
 
-        private func saveDividerPosition() {
-            guard didRestoreDividerPosition else { return }
-            let total = splitView.frame.width
-            guard total > 0, let leftWidth = splitViewItems.first?.viewController.view.frame.width else { return }
+        private func saveDividerPositionIfNeeded() {
+            let currentWidth = splitView.frame.width
+            defer { lastSplitViewWidth = currentWidth }
+
+            guard didRestoreDividerPosition, !isProgrammaticResize else { return }
+
+            // Only persist on user-initiated divider drags — skip window resizes and
+            // programmatic layout to avoid drifting away from the intended ratio.
+            guard abs(currentWidth - lastSplitViewWidth) < 1 else { return }
+
+            let total = currentWidth
+            guard total > 0,
+                let leftWidth = splitViewItems.first?.viewController.view.frame.width
+            else { return }
             let fraction = min(max(leftWidth / total, 0.1), 0.9)
             UserDefaults.standard.set(Double(fraction), forKey: dividerPositionKey)
         }
