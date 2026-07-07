@@ -7,6 +7,8 @@ description: Use when the user wants to audit a UI Inventory, identify inconsist
 
 This skill turns a generated UI Inventory into a structured UI Audit report. It is designed for macOS/SwiftUI projects that already have a deterministic screenshot generator (like Redis Console's `Sources/RedisConsole/UIInventory/`), but the workflow is generic enough to adapt to other stacks.
 
+For Redis Console specifically, the audit should compare screenshots against the design system tokens in `Sources/RedisConsole/Theme/` (`AppColor.swift`, `AppFont.swift`, `AppMetrics.swift`, `UIComponents.swift`).
+
 ## When to use
 
 - The user asks for a UI audit or coverage review.
@@ -16,7 +18,7 @@ This skill turns a generated UI Inventory into a structured UI Audit report. It 
 ## Prerequisites
 
 - A generated UI Inventory exists (screenshots + metadata + summary).
-- The codebase is accessible so style definitions can be audited.
+- The codebase is accessible so design system tokens can be audited.
 - `just generate-ui-inventory` or an equivalent command is available.
 
 ## Workflow
@@ -37,7 +39,7 @@ Delegate to three subagents in parallel. Each subagent should return a structure
 #### Subagent A: Codebase Style Audit
 
 Prompt:
-> Analyze the codebase for all style definitions: colors, fonts, spacing, corner radii, buttons, tables, lists, sheets, popovers, dialogs, cards, badges, banners, and empty states. Return exact file paths, line numbers, color values, and a list of inconsistencies or hardcoded values that should be centralized.
+> Analyze the codebase for all style definitions, starting with the design system tokens in `Sources/RedisConsole/Theme/` (`AppColor.swift`, `AppFont.swift`, `AppMetrics.swift`, `UIComponents.swift`). Then audit views for colors, fonts, spacing, corner radii, buttons, tables, lists, sheets, popovers, dialogs, cards, badges, banners, and empty states. Return exact file paths, line numbers, token values, and a list of inconsistencies or hardcoded values that should use the design system.
 
 #### Subagent B: Inventory Metadata Audit
 
@@ -53,10 +55,9 @@ Prompt:
 
 The audit produces one artifact:
 
-1. **UI Audit report (intermediate, do not commit)**
-   - Combine the three subagent reports into a one-time audit summary.
-   - Output to `ui-inventory/UI_AUDIT.md` or a temporary location.
-   - This document is intentionally disposable: re-run the workflow and the audit changes.
+1. **UI Audit report**
+   - Combine the three subagent reports into a structured audit summary.
+   - Output to `ui-inventory/UI_AUDIT.md`.
    - Include: methodology, P0/P1/P2 findings, missing coverage, and proposed cleanup actions.
 
 ### Step 4 — Update the generator if needed
@@ -80,7 +81,7 @@ Use this file as the template. Customize the generator command and file paths to
 
 ## Output conventions
 
-- `UI_AUDIT.md` is an intermediate, disposable artifact. Generate it inside `ui-inventory/` (a build artifact) or a temp directory; do not commit it.
+- `UI_AUDIT.md` lives at `ui-inventory/UI_AUDIT.md`. In this project it is tracked, so update it in place and commit changes alongside generator fixes.
 - Keep findings specific: reference screenshot IDs, file paths, and line numbers where possible.
 - Prioritize safety-critical UI (production confirmations, destructive actions) over cosmetic polish.
 
@@ -101,5 +102,5 @@ cat ui-inventory/summary.md
 
 - Add a fourth subagent to diff two inventory runs for regression analysis.
 
-- Add a `capturable: Bool` field to inventory metadata for non-capturable states.
+- Use the existing `isCapturable` field on `UIInventoryEntry` to mark non-capturable states.
 - Automate the workflow with a `just audit-ui-inventory` command.
