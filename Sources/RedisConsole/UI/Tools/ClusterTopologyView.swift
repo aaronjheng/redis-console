@@ -17,7 +17,7 @@ struct ClusterTopologyView: View {
                         path.move(to: line.from)
                         path.addLine(to: line.to)
                     }
-                    .stroke(line.color, style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+                    .stroke(line.color, style: StrokeStyle(lineWidth: 1.5, dash: [AppSpacing.xSmall, AppSpacing.xSmall]))
                 }
 
                 // Nodes
@@ -39,7 +39,7 @@ struct ClusterTopologyView: View {
     @ViewBuilder
     private func nodeView(_ item: TopologyNodeItem) -> some View {
         let isSelected = selectedEndpoint == item.node.endpoint
-        VStack(spacing: 4) {
+        VStack(spacing: AppSpacing.xSmall) {
             ZStack {
                 Circle()
                     .fill(item.color)
@@ -48,7 +48,7 @@ struct ClusterTopologyView: View {
                         Circle()
                             .stroke(isSelected ? Color.white : Color.clear, lineWidth: 3)
                     )
-                    .shadow(color: item.color.opacity(0.4), radius: isSelected ? 8 : 4)
+                    .shadow(color: item.color.opacity(0.4), radius: isSelected ? AppSpacing.small : AppSpacing.xSmall)
 
                 Image(systemName: item.node.role == .primary ? "server.rack" : "externaldrive.connected.to.line.below")
                     .font(.title3)
@@ -105,7 +105,7 @@ struct ClusterTopologyView: View {
                 x: centerX + CGFloat(cos(angle)) * primaryRadius,
                 y: centerY + CGFloat(sin(angle)) * primaryRadius
             )
-            nodeItems.append(TopologyNodeItem(node: node, position: pos, color: .blue))
+            nodeItems.append(TopologyNodeItem(node: node, position: pos, color: AppColor.info))
         }
 
         // Layout replicas in outer circle, connected to their primary
@@ -116,7 +116,7 @@ struct ClusterTopologyView: View {
                 x: centerX + CGFloat(cos(angle)) * replicaRadius,
                 y: centerY + CGFloat(sin(angle)) * replicaRadius
             )
-            nodeItems.append(TopologyNodeItem(node: node, position: pos, color: .green))
+            nodeItems.append(TopologyNodeItem(node: node, position: pos, color: AppColor.success))
 
             // Line to primary
             guard let replicaOf = node.replicaOf else { continue }
@@ -132,7 +132,7 @@ struct ClusterTopologyView: View {
                 TopologyLine(
                     from: primaryItem.position,
                     to: pos,
-                    color: Color.blue.opacity(0.4)
+                    color: AppColor.info.opacity(0.4)
                 )
             )
         }

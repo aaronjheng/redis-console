@@ -158,7 +158,7 @@ private struct ProfilerToolbarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
+            HStack(spacing: AppSpacing.medium) {
                 Text("Profiler")
                     .font(.headline)
 
@@ -169,17 +169,17 @@ private struct ProfilerToolbarView: View {
                 Button(action: onToggleCapture) {
                     Label(captureButtonTitle, systemImage: captureButtonIcon)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(PrimaryButtonStyle())
 
                 Button(action: onClear) {
                     Label("Clear", systemImage: "trash")
                 }
             }
-            .padding(16)
+            .padding(AppSpacing.large)
 
             Divider()
 
-            HStack(spacing: 10) {
+            HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
                 ZStack(alignment: .trailing) {
                     TextField("Filter command, node, source, database, or raw text", text: $filterText)
                         .textFieldStyle(.roundedBorder)
@@ -203,8 +203,8 @@ private struct ProfilerToolbarView: View {
 
                 Color.clear.frame(width: 0, height: 0)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
+            .padding(.horizontal, AppSpacing.large)
+            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
 
             Divider()
         }
@@ -235,10 +235,10 @@ private struct ProfilerStatusPill: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, AppSpacing.small)
         .padding(.vertical, 3)
         .background(.quaternary)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
     }
 
     private var statusText: String {
@@ -247,8 +247,8 @@ private struct ProfilerStatusPill: View {
     }
 
     private var indicatorColor: Color {
-        if isStarting { return .orange }
-        return isRunning ? .green : .secondary
+        if isStarting { return AppColor.warning }
+        return isRunning ? AppColor.success : .secondary
     }
 }
 
@@ -288,7 +288,7 @@ private struct ProfilerEntriesView: View {
 
 private struct ProfilerHeaderRow: View {
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
             Text("Time")
                 .frame(width: 100, alignment: .leading)
             Text("DB")
@@ -304,9 +304,9 @@ private struct ProfilerHeaderRow: View {
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppSpacing.large)
         .padding(.vertical, 7)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(AppColor.controlBackground)
     }
 }
 
@@ -317,7 +317,7 @@ private struct ProfilerEntryRow: View {
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: 10) {
+            HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
                 Text(entry.timeText)
                     .frame(width: 100, alignment: .leading)
                     .foregroundStyle(.secondary)
@@ -339,10 +339,10 @@ private struct ProfilerEntryRow: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .truncationMode(.middle)
             }
-            .font(.system(.subheadline, design: .monospaced))
+            .font(AppFont.monoSubheadline)
             .lineLimit(1)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
+            .padding(.horizontal, AppSpacing.large)
+            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
             .contentShape(Rectangle())
             .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
         }
@@ -373,19 +373,19 @@ private struct ProfilerFooterView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let selectedEntry {
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: AppSpacing.small) {
                     Text("Raw")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(width: 42, alignment: .leading)
                     Text(selectedEntry.rawLine)
-                        .font(.system(.subheadline, design: .monospaced))
+                        .font(AppFont.monoSubheadline)
                         .lineLimit(3)
                         .textSelection(.enabled)
                     Spacer()
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, AppSpacing.large)
+                .padding(.vertical, AppSpacing.small)
 
                 Divider()
             }

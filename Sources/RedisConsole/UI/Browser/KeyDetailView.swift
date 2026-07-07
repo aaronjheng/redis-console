@@ -338,9 +338,9 @@ struct KeyDetailView: View {
     }
 
     private func headerView(key: RedisKeyEntry) -> some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(spacing: AppSpacing.small) {
+            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+                HStack(alignment: .firstTextBaseline, spacing: AppSpacing.small) {
                     Badge(text: key.type, isLoading: key.type.isEmpty)
                     Text(key.key)
                         .font(.title3)
@@ -349,16 +349,16 @@ struct KeyDetailView: View {
                     Spacer(minLength: 0)
                 }
 
-                HStack(spacing: 10) {
+                HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
                     if let length = app.keyDetailLength ?? key.length {
-                        HStack(spacing: 2) {
+                        HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "number")
                             Text("Length: \(length)")
                         }
                         .foregroundStyle(.secondary)
                     }
                     if let size = app.valueSize ?? key.size {
-                        HStack(spacing: 2) {
+                        HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "memorychip")
                             Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory))
                         }
@@ -367,7 +367,7 @@ struct KeyDetailView: View {
                     Button {
                         beginEditingTTL(for: key)
                     } label: {
-                        HStack(spacing: 2) {
+                        HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "clock")
                             Text("TTL: \(key.ttlText)")
                             Image(systemName: "pencil")
@@ -375,7 +375,7 @@ struct KeyDetailView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(key.hasExpiry ? .orange : .secondary)
+                    .foregroundStyle(key.hasExpiry ? AppColor.warning : .secondary)
                     .disabled(app.isLoadingDetail)
                     .accessibilityLabel("Edit TTL, \(key.ttlText)")
                     .help("Edit TTL")
@@ -396,7 +396,7 @@ struct KeyDetailView: View {
                         }
                     }
                     if let refreshedAt = app.keyDetailLastRefreshedAt {
-                        HStack(spacing: 2) {
+                        HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "clock.arrow.circlepath")
                             Text(refreshedAt, style: .time)
                         }
@@ -408,7 +408,7 @@ struct KeyDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: AppSpacing.small) {
                 RefreshControl(
                     autoRefreshInterval: $autoRefreshInterval,
                     isLoading: app.isLoadingDetail,
@@ -440,7 +440,7 @@ struct KeyDetailView: View {
                 .help("Delete key")
             }
         }
-        .padding(8)
+        .padding(AppSpacing.small)
     }
 
     private func beginEditingTTL(for key: RedisKeyEntry) {
@@ -486,12 +486,12 @@ struct KeyDetailView: View {
                 ForEach(Array(app.keyDetailRows.enumerated()), id: \.offset) { _, row in
                     HStack(alignment: .top) {
                         Text(row.0)
-                            .font(.system(.subheadline, design: .monospaced))
+                            .font(AppFont.monoSubheadline)
                             .foregroundStyle(.secondary)
                             .frame(width: 100, alignment: .leading)
                             .copyableCell(row.0, row: "\(row.0)\t\(row.1)")
                         Text(row.1)
-                            .font(.system(.body, design: .monospaced))
+                            .font(AppFont.dataCell)
                             .textSelection(.enabled)
                             .copyableCell(row.1, row: "\(row.0)\t\(row.1)")
                     }
@@ -512,10 +512,10 @@ struct KeyDetailView: View {
     private var emptyValueView: some View {
         ScrollView {
             Text(app.keyDetail)
-                .font(.system(.body, design: .monospaced))
+                .font(AppFont.dataCell)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
+                .padding(AppSpacing.large)
         }
     }
 }
@@ -528,7 +528,7 @@ private struct KeyTTLEditorPopover: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             Text(keyName)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -536,7 +536,7 @@ private struct KeyTTLEditorPopover: View {
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 8) {
+            HStack(spacing: AppSpacing.small) {
                 Text("TTL")
                     .font(.headline)
                 TextField("No limit", text: $ttlInput)
@@ -551,7 +551,7 @@ private struct KeyTTLEditorPopover: View {
             if let error {
                 Text(error)
                     .font(.subheadline)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppColor.error)
             }
 
             HStack {
@@ -562,7 +562,7 @@ private struct KeyTTLEditorPopover: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(16)
-        .frame(width: 260)
+        .padding(AppSpacing.large)
+        .frame(width: AppSize.ttlEditorWidth)
     }
 }

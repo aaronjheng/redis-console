@@ -32,31 +32,28 @@ struct ZSetDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: AppSpacing.small) {
                 DetailSearchField(
                     searchText: $pendingSearchText,
                     placeholder: "Member filter",
                     onSearch: { onSearch(pendingSearchText) }
                 )
 
-                Picker(
-                    "",
+                BinaryTogglePicker(
                     selection: Binding(
                         get: { order },
                         set: { onOrderChange($0) }
-                    )
-                ) {
-                    ForEach(KeyDetailZSetOrder.allCases) { order in
-                        Text(order.title).tag(order)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
+                    ),
+                    first: .ascending,
+                    second: .descending,
+                    firstLabel: { Text(KeyDetailZSetOrder.ascending.title) },
+                    secondLabel: { Text(KeyDetailZSetOrder.descending.title) }
+                )
                 .frame(width: 180)
                 .disabled(!pendingSearchText.isEmpty)
                 .help("Sort order")
             }
-            .padding(8)
+            .padding(AppSpacing.small)
 
             Divider()
 
@@ -74,13 +71,13 @@ struct ZSetDetailView: View {
 
                 TableColumn("Member") { row in
                     Text(row.member)
-                        .font(.system(.body, design: .monospaced))
+                        .font(AppFont.dataCell)
                         .lineLimit(2)
                         .copyableCell(row.member, row: "\(row.score)\t\(row.member)")
                 }
 
                 TableColumn("Actions") { row in
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppSpacing.small) {
                         Button("Edit Score", systemImage: "pencil") {
                             editingMember = row.member
                             editScore = row.score
@@ -148,7 +145,7 @@ struct EditableZSetCell: View {
             )
         } else {
             Text(row.score)
-                .font(.system(.body, design: .monospaced))
+                .font(AppFont.dataCell)
                 .copyableCell(row.score, row: rowValue)
                 .onTapGesture(count: 2) {
                     editingMember = row.member

@@ -67,7 +67,15 @@ final class InventoryGenerator {
             .environment(state)
             .environment(store)
 
-        let screenshotData = ScreenshotCapture.capture(rootView: rootView, size: size)
+        let screenshotData: Data?
+        let error: String?
+        if entry.isCapturable {
+            screenshotData = ScreenshotCapture.capture(rootView: rootView, size: size)
+            error = screenshotData == nil ? "Failed to capture screenshot" : nil
+        } else {
+            screenshotData = nil
+            error = "Capture limited: presentation is driven by local @State"
+        }
 
         let screenshotPath: String?
         if let data = screenshotData {
@@ -90,7 +98,7 @@ final class InventoryGenerator {
             screenshotPath: screenshotPath,
             generatedAt: Date(),
             success: screenshotData != nil,
-            error: screenshotData == nil ? "Failed to capture screenshot" : nil
+            error: error
         )
     }
 

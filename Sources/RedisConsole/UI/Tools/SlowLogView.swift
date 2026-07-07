@@ -22,16 +22,21 @@ struct SlowLogView: View {
                 )
 
             }
-            .padding(16)
+            .padding(AppSpacing.large)
 
             // Entries list
             if app.slowLogEntries.isEmpty {
                 Spacer()
-                ContentUnavailableView(
-                    "No slow log entries",
-                    systemImage: "tortoise",
-                    description: Text("Slow queries will appear here")
-                )
+                if app.isLoadingSlowLog {
+                    ProgressView("Loading slow log...")
+                        .controlSize(.small)
+                } else {
+                    ContentUnavailableView(
+                        "No slow log entries",
+                        systemImage: "tortoise",
+                        description: Text("Slow queries will appear here")
+                    )
+                }
                 Spacer()
             } else {
                 Table(app.slowLogEntries) {
@@ -45,7 +50,7 @@ struct SlowLogView: View {
 
                     TableColumn("Duration") { entry in
                         Text(entry.durationText)
-                            .font(.system(.subheadline, design: .monospaced))
+                            .font(AppFont.monoSubheadline)
                             .foregroundStyle(durationColor(entry.duration))
                     }
                     .width(90)
@@ -59,7 +64,7 @@ struct SlowLogView: View {
 
                     TableColumn("Command") { entry in
                         Text(entry.commandText)
-                            .font(.system(.subheadline, design: .monospaced))
+                            .font(AppFont.monoSubheadline)
                             .lineLimit(1)
                             .textSelection(.enabled)
                     }
@@ -96,11 +101,11 @@ struct SlowLogView: View {
 
     private func durationColor(_ duration: Int) -> Color {
         if duration >= 1_000_000 {
-            return .red
+            return AppColor.error
         } else if duration >= 100_000 {
-            return .orange
+            return AppColor.warning
         } else if duration >= 10_000 {
-            return .orange
+            return AppColor.warning
         }
         return .primary
     }

@@ -23,16 +23,13 @@ struct BrowserView: View {
 
         VStack(spacing: 0) {
             // MARK: Header Bar
-            HStack(spacing: 8) {
-                Picker("", selection: $app.keyTypeFilter) {
-                    Text("All Types").tag("")
-                    Text("String").tag("string")
-                    Text("List").tag("list")
-                    Text("Hash").tag("hash")
-                    Text("Set").tag("set")
-                    Text("Sorted Set").tag("zset")
-                }
-                .labelsHidden()
+            HStack(spacing: AppSpacing.small) {
+                OptionsPicker(
+                    "Filter by key type",
+                    selection: $app.keyTypeFilter,
+                    options: ["", "string", "list", "hash", "set", "zset"],
+                    label: { typeFilterTitle($0) }
+                )
 
                 ZStack(alignment: .trailing) {
                     TextField("Filter by key pattern (e.g. user:*)", text: $searchText)
@@ -42,7 +39,7 @@ struct BrowserView: View {
                             app.keyScanCount = currentScanCount
                             Task { await app.scanKeys(reset: true) }
                         }
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppSpacing.xSmall) {
                         if !searchText.isEmpty {
                             Button("Clear Search", systemImage: "xmark.circle.fill") {
                                 searchText = ""
@@ -61,8 +58,8 @@ struct BrowserView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
+            .padding(.horizontal, AppSpacing.small)
+            .padding(.vertical, AppSpacing.small)
 
             Divider()
 
@@ -77,9 +74,8 @@ struct BrowserView: View {
             ) {
                 // MARK: Left Panel
                 VStack(spacing: 0) {
-                    HStack(spacing: 6) {
-                        Picker(
-                            "Key List Style",
+                    HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
+                        BinaryTogglePicker(
                             selection: Binding(
                                 get: { app.isNamespaceGroupingEnabled },
                                 set: { isEnabled in
@@ -89,18 +85,13 @@ struct BrowserView: View {
                                     expandedNamespaces = []
                                     Task { await app.scanKeys(reset: true) }
                                 }
-                            )
-                        ) {
-                            Image(systemName: "list.bullet")
-                                .help("Flat list")
-                                .tag(false)
-                            Image(systemName: "folder")
-                                .help("Group by namespace")
-                                .tag(true)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .fixedSize()
+                            ),
+                            first: false,
+                            second: true,
+                            firstLabel: { Image(systemName: "list.bullet").help("Flat list") },
+                            secondLabel: { Image(systemName: "folder").help("Group by namespace") }
+                        )
+                        .frame(width: 64)
                         .help("Toggle key list layout")
 
                         Spacer()
@@ -114,8 +105,8 @@ struct BrowserView: View {
                             Task { await app.scanKeys(reset: true) }
                         }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, AppSpacing.small)
+                    .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
 
                     Divider()
 
@@ -289,20 +280,21 @@ struct BrowserView: View {
     private var loadMoreOrScanningView: some View {
         if app.hasMoreKeys {
             if app.isLoadingKeys {
-                HStack(spacing: 6) {
+                HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
                     ProgressView()
                         .controlSize(.small)
                     Text("Scanning...")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                .padding(8)
+                .padding(AppSpacing.small)
             } else {
                 Button("Load more") {
                     app.keyScanCount = currentScanCount
                     Task { await app.scanKeys() }
                 }
-                .padding(8)
+                .buttonStyle(SecondaryButtonStyle())
+                .padding(AppSpacing.small)
             }
         }
     }
@@ -311,6 +303,18 @@ struct BrowserView: View {
 
     private var filteredKeys: [RedisKeyEntry] {
         app.keys.filter { app.keyTypeFilter.isEmpty || $0.type.isEmpty || $0.type == app.keyTypeFilter }
+    }
+
+    private func typeFilterTitle(_ filter: String) -> String {
+        switch filter {
+        case "": return "All Types"
+        case "string": return "String"
+        case "list": return "List"
+        case "hash": return "Hash"
+        case "set": return "Set"
+        case "zset": return "Sorted Set"
+        default: return filter
+        }
     }
 
     private var currentScanCount: Int {
@@ -576,7 +580,7 @@ private struct KeyNamespaceNodeView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, AppSpacing.xSmall)
             }
         } label: {
             KeyNamespaceRow(namespace: namespace)
@@ -605,7 +609,7 @@ private struct KeyNamespaceRow: View {
     let namespace: KeyNamespaceNode
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.small) {
             Image(systemName: "folder")
                 .foregroundStyle(.tint)
             Text(namespace.name)
@@ -617,7 +621,7 @@ private struct KeyNamespaceRow: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, AppSpacing.small)
         .accessibilityLabel("\(namespace.name), \(namespace.keyCount) keys")
     }
 }
@@ -740,10 +744,10 @@ struct ProductionConfirmView: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: AppSpacing.large) {
             Image(systemName: "exclamationmark.shield.fill")
                 .font(.largeTitle)
-                .foregroundStyle(.red)
+                .foregroundStyle(AppColor.error)
 
             Text(title)
                 .font(.title2)
@@ -756,13 +760,13 @@ struct ProductionConfirmView: View {
 
             HStack(spacing: 0) {
                 Image(systemName: "shield")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppColor.error)
                 Text("This is a PRODUCTION database.")
                     .font(.subheadline)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppColor.error)
             }
 
-            HStack(spacing: 4) {
+            HStack(spacing: AppSpacing.xSmall) {
                 Text("Type \"\(confirmText)\" to confirm:")
                     .font(.subheadline)
                 Spacer()
@@ -781,8 +785,8 @@ struct ProductionConfirmView: View {
                     .disabled(input != confirmText)
             }
         }
-        .padding(16)
-        .frame(width: 320)
+        .padding(AppSpacing.large)
+        .frame(width: AppSize.productionConfirmWidth)
     }
 
     private func confirmIfValid() {

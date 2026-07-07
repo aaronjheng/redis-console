@@ -4,14 +4,14 @@ struct WorkspaceFooterBar<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.small) {
             content
         }
         .font(.caption)
         .controlSize(.regular)
         .imageScale(.medium)
-        .padding(.horizontal, 8)
-        .frame(height: 34)
+        .padding(.horizontal, AppSpacing.small)
+        .frame(minHeight: AppSize.footerHeight)
         .frame(maxWidth: .infinity)
         .background(.bar)
     }
@@ -27,7 +27,7 @@ struct StatusFooterView: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppSpacing.xSmall) {
             Text(countText)
             if let sizeText {
                 Text("\u{00B7}")
@@ -36,7 +36,7 @@ struct StatusFooterView: View {
         }
         .font(.caption)
         .foregroundStyle(.secondary)
-        .lineLimit(1)
+        .lineLimit(nil)
     }
 }
 
@@ -44,18 +44,18 @@ struct Badge: View {
     let text: String
     var systemImage: String?
     var foregroundColor: Color = .secondary
-    var backgroundColor: Color = Color.secondary.opacity(0.12)
+    var backgroundColor: Color = AppColor.subtleBackground
     var isLoading: Bool = false
 
     var body: some View {
         if isLoading {
             ProgressView()
                 .controlSize(.small)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
+                .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
+                .padding(.vertical, AppSpacing.xxSmall)
                 .frame(minWidth: 42)
         } else {
-            HStack(spacing: 2) {
+            HStack(spacing: AppSpacing.xxSmall) {
                 if let systemImage {
                     Image(systemName: systemImage)
                 }
@@ -64,10 +64,10 @@ struct Badge: View {
             .font(.caption2.weight(.medium))
             .lineLimit(1)
             .foregroundStyle(foregroundColor)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
+            .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
+            .padding(.vertical, AppSpacing.xxSmall)
             .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous))
             .fixedSize(horizontal: true, vertical: false)
         }
     }
@@ -81,11 +81,11 @@ struct ErrorBanner: View {
         var icon: String { "exclamationmark.triangle.fill" }
         var color: Color {
             switch self {
-            case .error: .red
-            case .warning: .orange
+            case .error: AppColor.error
+            case .warning: AppColor.warning
             }
         }
-        var background: Color { color.opacity(0.12) }
+        var background: Color { AppColor.subtleBackground }
     }
 
     let message: String
@@ -93,12 +93,12 @@ struct ErrorBanner: View {
     var dismissAction: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.small) {
             Image(systemName: severity.icon)
                 .foregroundStyle(severity.color)
             Text(message)
                 .font(.subheadline)
-                .foregroundStyle(severity == .warning ? .primary : severity.color)
+                .foregroundStyle(.primary)
                 .lineLimit(2)
             Spacer()
             if let dismissAction {
@@ -110,10 +110,10 @@ struct ErrorBanner: View {
                 .help("Dismiss")
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, AppSpacing.small)
+        .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
         .background(severity.background)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
     }
 }
 
@@ -121,14 +121,14 @@ struct LoadingState: View {
     let message: String
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: AppSpacing.small) {
             ProgressView()
                 .controlSize(.small)
             Text(message)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(16)
+        .padding(AppSpacing.large)
         .frame(maxWidth: .infinity)
     }
 }
@@ -138,15 +138,15 @@ struct Card<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSpacing.small) {
             Text(title)
                 .font(.headline)
             content
         }
-        .padding(16)
+        .padding(AppSpacing.large)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.large))
     }
 }
 
@@ -196,13 +196,13 @@ struct RefreshControl: View {
             separator
             intervalMenu
         }
-        .frame(height: 22)
+        .frame(height: AppSize.refreshControlHeight)
         .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
                 .fill(.background.secondary)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
                 .strokeBorder(.separator, lineWidth: 0.5)
         )
         .opacity(isLoading ? 0.5 : 1)
@@ -215,7 +215,7 @@ struct RefreshControl: View {
             Label("Refresh", systemImage: "arrow.clockwise")
                 .labelStyle(.iconOnly)
                 .font(.caption)
-                .frame(width: 26, height: 22)
+                .frame(width: AppSize.refreshButtonWidth, height: AppSize.refreshControlHeight)
                 .contentShape(Rectangle())
                 .background(
                     isRefreshHovering && !isLoading
@@ -224,8 +224,8 @@ struct RefreshControl: View {
                 )
                 .clipShape(
                     UnevenRoundedRectangle(
-                        topLeadingRadius: 6,
-                        bottomLeadingRadius: 6,
+                        topLeadingRadius: AppRadius.medium,
+                        bottomLeadingRadius: AppRadius.medium,
                         bottomTrailingRadius: 0,
                         topTrailingRadius: 0,
                         style: .continuous
@@ -241,7 +241,7 @@ struct RefreshControl: View {
     private var separator: some View {
         Rectangle()
             .fill(.separator)
-            .frame(width: 0.5, height: 14)
+            .frame(width: 0.5, height: AppSize.refreshSeparatorHeight)
     }
 
     private var intervalMenu: some View {
@@ -269,12 +269,12 @@ struct RefreshControl: View {
                         .font(.caption2)
                         .monospacedDigit()
                         .foregroundStyle(.tint)
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
                 } else {
-                    Color.clear.frame(width: 18, height: 22)
+                    Color.clear.frame(width: 18, height: AppSize.refreshControlHeight)
                 }
             }
-            .frame(height: 22)
+            .frame(height: AppSize.refreshControlHeight)
             .contentShape(Rectangle())
             .background(
                 isMenuHovering && !isLoading
@@ -285,8 +285,8 @@ struct RefreshControl: View {
                 UnevenRoundedRectangle(
                     topLeadingRadius: 0,
                     bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 6,
-                    topTrailingRadius: 6,
+                    bottomTrailingRadius: AppRadius.medium,
+                    topTrailingRadius: AppRadius.medium,
                     style: .continuous
                 )
             )
@@ -301,5 +301,178 @@ struct RefreshControl: View {
 
     private func menuItemLabel(text: String, checked: Bool) -> some View {
         Text(checked ? "\(text)  \u{2713}" : text)
+    }
+}
+
+// MARK: - Stable screenshot button styles
+
+/// A primary button style that renders reliably in off-screen captures.
+/// Use this in place of `.buttonStyle(.borderedProminent)`.
+struct PrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, AppSpacing.medium)
+            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+            .font(.system(.body, design: .default))
+            .foregroundStyle(.white)
+            .background(.tint)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
+}
+
+/// A secondary button style that renders reliably in off-screen captures.
+/// Use this in place of `.buttonStyle(.bordered)`.
+struct SecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, AppSpacing.medium)
+            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+            .font(.system(.body, design: .default))
+            .foregroundStyle(.primary)
+            .background(.background.secondary)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
+}
+
+/// A toolbar icon-only button style that renders reliably in off-screen captures.
+struct ToolbarButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .labelStyle(.iconOnly)
+            .font(.body)
+            .foregroundStyle(.primary)
+            .padding(AppSpacing.small - AppSpacing.xxSmall)
+            .background(configuration.isPressed ? Color.primary.opacity(0.12) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous))
+            .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Stable screenshot pickers
+
+/// A two-option segmented picker drawn entirely in SwiftUI so it captures reliably.
+struct BinaryTogglePicker<Option: Hashable & Sendable>: View {
+    let options: (first: Option, second: Option)
+    let firstLabel: AnyView
+    let secondLabel: AnyView
+    @Binding var selection: Option
+
+    init(
+        selection: Binding<Option>,
+        first: Option,
+        second: Option,
+        @ViewBuilder firstLabel: () -> some View,
+        @ViewBuilder secondLabel: () -> some View
+    ) {
+        self._selection = selection
+        self.options = (first, second)
+        self.firstLabel = AnyView(firstLabel())
+        self.secondLabel = AnyView(secondLabel())
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ToggleButton(isSelected: selection == options.first) {
+                selection = options.first
+            } label: {
+                firstLabel
+            }
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: AppRadius.medium,
+                    bottomLeadingRadius: AppRadius.medium,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 0,
+                    style: .continuous
+                )
+            )
+
+            ToggleButton(isSelected: selection == options.second) {
+                selection = options.second
+            } label: {
+                secondLabel
+            }
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: AppRadius.medium,
+                    topTrailingRadius: AppRadius.medium,
+                    style: .continuous
+                )
+            )
+        }
+        .frame(height: AppSize.refreshControlHeight)
+        .background(.background.secondary)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+    }
+}
+
+private struct ToggleButton<Label: View>: View {
+    let isSelected: Bool
+    let action: () -> Void
+    @ViewBuilder let label: Label
+
+    var body: some View {
+        Button(action: action) {
+            label
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isSelected ? .primary : .secondary)
+        .background(isSelected ? Color.primary.opacity(0.12) : Color.clear)
+    }
+}
+
+/// A small dropdown-style picker drawn entirely in SwiftUI.
+/// Use for a small number of text options where a native pop-up button would
+/// otherwise render as a white block off-screen.
+struct OptionsPicker<Option: Hashable & Sendable>: View {
+    let title: String
+    let options: [Option]
+    @Binding var selection: Option
+    let label: (Option) -> String
+
+    init(
+        _ title: String,
+        selection: Binding<Option>,
+        options: [Option],
+        label: @escaping (Option) -> String
+    ) {
+        self.title = title
+        self._selection = selection
+        self.options = options
+        self.label = label
+    }
+
+    var body: some View {
+        Menu {
+            ForEach(options, id: \.self) { option in
+                Button {
+                    selection = option
+                } label: {
+                    Text(label(option))
+                        .foregroundStyle(selection == option ? .primary : .secondary)
+                }
+            }
+        } label: {
+            HStack(spacing: AppSpacing.xSmall) {
+                Text(label(selection))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.caption)
+            }
+            .padding(.horizontal, AppSpacing.small)
+            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+            .foregroundStyle(.primary)
+            .background(.background.secondary)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .help(title)
     }
 }

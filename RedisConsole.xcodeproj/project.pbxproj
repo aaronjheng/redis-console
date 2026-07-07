@@ -135,6 +135,9 @@
 				<string>A6015014E8B5470484133293</string>
 				<string>85B4BE09415F4F448B2457DE</string>
 				<string>1103EF7EB7CE4B40945AB508</string>
+				<string>34814B30A7A652152BAEBF3C</string>
+				<string>7F2D7DAC8A41B64E26C2B37F</string>
+				<string>352C3153A5BB305520611C59</string>
 				<string>858344EEEF6944E585D079E1</string>
 				<string>2FB879A7947B4A208A7381C5</string>
 				<string>A99D5721BCB941EFB24BC31C</string>
@@ -187,6 +190,39 @@
 			<string>sourcecode.swift</string>
 			<key>path</key>
 			<string>Theme/UIComponents.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>34814B30A7A652152BAEBF3C</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Theme/AppColor.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>7F2D7DAC8A41B64E26C2B37F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Theme/AppFont.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>352C3153A5BB305520611C59</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Theme/AppMetrics.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -759,6 +795,9 @@
 				<string>8CDBFFBBFE5D453280A45755</string>
 				<string>82F8D6C1651F430F98737411</string>
 				<string>CE35D43BD61647EA890B5A4A</string>
+				<string>632DFD3F34E11FDFE84232FA</string>
+				<string>685896C79C96436CEB41925E</string>
+				<string>2C80ED8926548AA00DA056CF</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
@@ -1795,6 +1834,27 @@
 		<dict>
 			<key>fileRef</key>
 			<string>1103EF7EB7CE4B40945AB508</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>632DFD3F34E11FDFE84232FA</key>
+		<dict>
+			<key>fileRef</key>
+			<string>34814B30A7A652152BAEBF3C</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>685896C79C96436CEB41925E</key>
+		<dict>
+			<key>fileRef</key>
+			<string>7F2D7DAC8A41B64E26C2B37F</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>2C80ED8926548AA00DA056CF</key>
+		<dict>
+			<key>fileRef</key>
+			<string>352C3153A5BB305520611C59</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>

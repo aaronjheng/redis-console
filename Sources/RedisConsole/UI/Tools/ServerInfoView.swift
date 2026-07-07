@@ -27,7 +27,7 @@ struct ServerInfoView: View {
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
             }
-            .padding(16)
+            .padding(AppSpacing.large)
 
             if isClusterMode && !app.clusterNodes.isEmpty {
                 clusterInfoView
@@ -105,9 +105,9 @@ struct ServerInfoView: View {
                 .help("Toggle topology view")
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .padding(.horizontal, AppSpacing.large)
+        .padding(.vertical, AppSpacing.small)
+        .background(AppColor.controlBackground)
     }
 
     private var clusterNodeList: some View {
@@ -115,11 +115,11 @@ struct ServerInfoView: View {
             Text("Nodes")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, AppSpacing.medium)
+                .padding(.vertical, AppSpacing.small)
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
+                LazyVStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
                     ForEach(app.clusterNodes) { node in
                         Button {
                             Task { await app.selectServerInfoNode(node.endpoint) }
@@ -129,19 +129,19 @@ struct ServerInfoView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 8)
+                .padding(.horizontal, AppSpacing.small)
+                .padding(.bottom, AppSpacing.small)
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(AppColor.controlBackground)
     }
 
     private var selectedNodeHeader: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppSpacing.medium) {
             if let node = selectedNode {
                 Image(systemName: node.role == .primary ? "server.rack" : "externaldrive.connected.to.line.below")
                     .foregroundStyle(Color.accentColor)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
                     Text(node.endpoint.address)
                         .font(.headline)
                     Text(nodeSubtitle(node))
@@ -156,8 +156,8 @@ struct ServerInfoView: View {
             }
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, AppSpacing.large)
+        .padding(.vertical, AppSpacing.medium - AppSpacing.xxSmall)
     }
 
     private var serverInfoList: some View {
@@ -213,52 +213,52 @@ struct ServerInfoView: View {
     private func infoRow(_ key: String, _ value: String) -> some View {
         HStack {
             Text(key)
-                .font(.system(.subheadline, design: .monospaced))
+                .font(AppFont.monoSubheadline)
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 160, alignment: .leading)
             Spacer()
             Text(value)
-                .font(.system(.subheadline, design: .monospaced))
+                .font(AppFont.monoSubheadline)
                 .textSelection(.enabled)
         }
     }
 
     private func capabilityRow(_ capability: RedisServerCapability) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
             HStack(alignment: .firstTextBaseline) {
                 Text(capability.name)
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(AppFont.monoSubheadline)
                     .foregroundStyle(.primary)
                     .textSelection(.enabled)
                 Spacer()
                 Text(capability.version ?? "-")
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(AppFont.monoSubheadline)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
 
             if !capability.details.isEmpty {
                 Text(capabilityDetails(capability))
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(AppFont.monoSubheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .textSelection(.enabled)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, AppSpacing.xxSmall)
     }
 
     private func clusterNodeRow(_ node: RedisClusterNodeSummary) -> some View {
         let isSelected = app.selectedServerInfoNode == node.endpoint
 
-        return HStack(alignment: .top, spacing: 8) {
+        return HStack(alignment: .top, spacing: AppSpacing.small) {
             Image(systemName: node.role == .primary ? "server.rack" : "externaldrive.connected.to.line.below")
                 .frame(width: 16)
                 .foregroundStyle(isSelected ? Color.accentColor : .secondary)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
                 Text(node.endpoint.address)
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(AppFont.monoSubheadline)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(nodeSubtitle(node))
@@ -269,19 +269,19 @@ struct ServerInfoView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, AppSpacing.small)
+        .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
         .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
     }
 
     private func summaryItem(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.system(.subheadline, design: .monospaced))
+                .font(AppFont.monoSubheadline)
                 .textSelection(.enabled)
         }
     }

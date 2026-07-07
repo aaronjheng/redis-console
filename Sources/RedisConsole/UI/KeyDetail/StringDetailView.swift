@@ -124,18 +124,18 @@ struct StringDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             if isEditing {
-                VStack(spacing: 8) {
+                VStack(spacing: AppSpacing.small) {
                     TextEditor(text: $editValue)
-                        .font(.system(.body, design: .monospaced))
-                        .padding(8)
-                        .background(Color(nsColor: .textBackgroundColor))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .font(AppFont.monoBody)
+                        .padding(AppSpacing.small)
+                        .background(AppColor.codeBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: AppRadius.medium)
                                 .stroke(Color.accentColor, lineWidth: 2)
                         )
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppSpacing.small) {
                         Spacer()
                         Button("Cancel") {
                             isEditing = false
@@ -145,10 +145,10 @@ struct StringDetailView: View {
                             onSave(editValue)
                             isEditing = false
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(PrimaryButtonStyle())
                     }
                 }
-                .padding(16)
+                .padding(AppSpacing.large)
             } else {
                 ZStack(alignment: .topTrailing) {
                     ScrollView {
@@ -159,25 +159,24 @@ struct StringDetailView: View {
                                 Text(displayedValue)
                             }
                         }
-                        .font(.system(.body, design: .monospaced))
+                        .font(AppFont.dataCell)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
+                        .padding(AppSpacing.large)
                     }
                     .onTapGesture(count: 2) {
                         editValue = value
                         isEditing = true
                     }
 
-                    HStack(spacing: 4) {
-                        Picker("", selection: $format) {
-                            ForEach(StringValueFormat.allCases) { format in
-                                Text(format.title).tag(format)
-                            }
-                        }
-                        .labelsHidden()
+                    HStack(spacing: AppSpacing.xSmall) {
+                        OptionsPicker(
+                            "Value format",
+                            selection: $format,
+                            options: StringValueFormat.allCases,
+                            label: \.title
+                        )
                         .frame(width: 110)
-                        .help("Value format")
 
                         Button("Edit Value", systemImage: "pencil") {
                             editValue = value
@@ -187,7 +186,7 @@ struct StringDetailView: View {
                         .buttonStyle(.borderless)
                         .help("Edit value")
                     }
-                    .padding(16)
+                    .padding(AppSpacing.large)
                 }
             }
 
@@ -234,10 +233,10 @@ private enum JSONSyntaxHighlighter {
                     to: &attributed,
                     source: source,
                     range: stringRange,
-                    color: isObjectKey ? .teal : .green
+                    color: isObjectKey ? AppColor.syntaxKey : AppColor.syntaxString
                 )
                 for escapeRange in escapeRanges {
-                    applyColor(to: &attributed, source: source, range: escapeRange, color: .orange)
+                    applyColor(to: &attributed, source: source, range: escapeRange, color: AppColor.syntaxBool)
                 }
                 continue
             }
@@ -248,7 +247,7 @@ private enum JSONSyntaxHighlighter {
                 while index < chars.count, isNumberBody(char: chars[index]) {
                     index += 1
                 }
-                applyColor(to: &attributed, source: source, range: numberStart..<index, color: .blue)
+                applyColor(to: &attributed, source: source, range: numberStart..<index, color: AppColor.syntaxNumber)
                 continue
             }
 
@@ -257,9 +256,9 @@ private enum JSONSyntaxHighlighter {
                 let color: Color =
                     switch keyword {
                     case "true", "false":
-                        .orange
+                        AppColor.syntaxBool
                     case "null":
-                        .red
+                        AppColor.syntaxNull
                     default:
                         .primary
                     }
@@ -269,7 +268,7 @@ private enum JSONSyntaxHighlighter {
             }
 
             if "{}[],:".contains(char) {
-                applyColor(to: &attributed, source: source, range: index..<(index + 1), color: .secondary)
+                applyColor(to: &attributed, source: source, range: index..<(index + 1), color: AppColor.syntaxPunctuation)
             }
 
             index += 1

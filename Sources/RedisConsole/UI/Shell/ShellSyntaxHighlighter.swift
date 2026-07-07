@@ -86,9 +86,9 @@ enum ShellSyntaxHighlighter {
 
         var color: Color {
             switch self {
-            case .command: return .purple
-            case .string: return .green
-            case .number: return .orange
+            case .command: return AppColor.chartSet
+            case .string: return AppColor.syntaxString
+            case .number: return AppColor.syntaxNumber
             case .comment: return .secondary
             case .default: return .primary
             }
@@ -135,7 +135,7 @@ enum ShellSyntaxHighlighter {
             if redisCommands.contains(wordUpper) {
                 guard let attrRange = Range(range, in: attributed) else { continue }
                 attributed[attrRange].foregroundColor = TokenType.command.color
-                attributed[attrRange].font = .system(.body, design: .monospaced).bold()
+                attributed[attrRange].font = AppFont.dataCell.bold()
             } else if numberPattern.firstMatch(in: word, range: NSRange(word.startIndex..., in: word)) != nil {
                 let nsWordRange = NSRange(range, in: text)
                 let isInString = isRangeInsideQuotedString(text, range: nsWordRange)

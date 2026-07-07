@@ -11,8 +11,8 @@ enum ConnectionEnvironment: String, Codable, CaseIterable {
     var color: Color {
         switch self {
         case .unspecified: return .secondary
-        case .development: return .green
-        case .production: return .red
+        case .development: return AppColor.success
+        case .production: return AppColor.error
         }
     }
 

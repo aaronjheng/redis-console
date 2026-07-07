@@ -33,7 +33,7 @@ struct DatabaseAnalysisView: View {
                 .disabled(app.analysis == nil)
                 .help("Export")
             }
-            .padding(16)
+            .padding(AppSpacing.large)
 
             if let error = app.analysisError {
                 ErrorBanner(message: error)
@@ -83,25 +83,25 @@ struct DatabaseAnalysisView: View {
                 summaryBar(analysis)
                 Divider()
 
-                VStack(spacing: 8) {
+                VStack(spacing: AppSpacing.small) {
                     // Type Distribution
                     typeDistributionSection(analysis)
                     // Top Keys
                     topKeysSection(analysis)
                 }
-                .padding([.horizontal, .top], 16)
+                .padding([.horizontal, .top], AppSpacing.large)
 
                 // Expiration Timeline
                 expirationSection(analysis)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
+                    .padding(.horizontal, AppSpacing.large)
+                    .padding(.bottom, AppSpacing.small)
             }
         }
     }
 
     private func summaryBar(_ analysis: DatabaseAnalysis) -> some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: AppSpacing.large) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
                 Text("Last analyzed:")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
@@ -126,13 +126,13 @@ struct DatabaseAnalysisView: View {
             if analysis.isEstimate {
                 Badge(
                     text: "Estimate",
-                    foregroundColor: .orange,
-                    backgroundColor: Color.orange.opacity(0.12)
+                    foregroundColor: AppColor.warning,
+                    backgroundColor: AppColor.warning.opacity(0.12)
                 )
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, AppSpacing.large)
+        .padding(.vertical, AppSpacing.small)
     }
 
     private func typeDistributionSection(_ analysis: DatabaseAnalysis) -> some View {
@@ -143,7 +143,7 @@ struct DatabaseAnalysisView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(spacing: 4) {
+                VStack(spacing: AppSpacing.xSmall) {
                     HStack {
                         Text("Type").font(.body).foregroundStyle(.secondary).frame(width: 60, alignment: .leading)
                         Text("Count").font(.body).foregroundStyle(.secondary).frame(width: 70, alignment: .trailing)
@@ -157,22 +157,22 @@ struct DatabaseAnalysisView: View {
                                     .font(.body)
                                     .frame(width: 60, alignment: .leading)
                                 Text("\(stats.count)")
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(AppFont.dataCell)
                                     .frame(width: 70, alignment: .trailing)
                                 Text(ByteCountFormatter.string(fromByteCount: Int64(stats.memory), countStyle: .file))
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(AppFont.dataCell)
                                     .frame(width: 120, alignment: .trailing)
                                 Text(ByteCountFormatter.string(fromByteCount: Int64(stats.avgSize), countStyle: .file))
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(AppFont.dataCell)
                                     .foregroundStyle(.secondary)
                                     .frame(width: 100, alignment: .trailing)
                             }
                         }
                     }
                 }
-                .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(AppSpacing.small)
+                .background(AppColor.controlBackground)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
             }
         }
     }
@@ -184,7 +184,7 @@ struct DatabaseAnalysisView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
             } else {
-                Grid(horizontalSpacing: 8, verticalSpacing: 2) {
+                Grid(horizontalSpacing: AppSpacing.small, verticalSpacing: AppSpacing.xxSmall) {
                     ForEach(analysis.topKeysByMemory.prefix(10)) { entry in
                         GridRow {
                             Text(entry.key)
@@ -192,15 +192,15 @@ struct DatabaseAnalysisView: View {
                                 .lineLimit(1)
                                 .gridColumnAlignment(.leading)
                             Text(entry.memoryText)
-                                .font(.system(.body, design: .monospaced))
+                                .font(AppFont.dataCell)
                                 .foregroundStyle(.secondary)
-                                .frame(width: 80, alignment: .trailing)
+                                .frame(width: AppSize.formFieldWidth, alignment: .trailing)
                         }
                     }
                 }
-                .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(AppSpacing.small)
+                .background(AppColor.controlBackground)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
             }
         }
     }
@@ -213,9 +213,9 @@ struct DatabaseAnalysisView: View {
                     .foregroundStyle(.secondary)
             } else {
                 let maxCount = analysis.expirationSummary.map(\.keyCount).max() ?? 1
-                VStack(spacing: 6) {
+                VStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
                     ForEach(analysis.expirationSummary) { bucket in
-                        HStack(spacing: 8) {
+                        HStack(spacing: AppSpacing.small) {
                             Text(bucket.label)
                                 .font(.body)
                                 .foregroundStyle(.secondary)
@@ -223,10 +223,10 @@ struct DatabaseAnalysisView: View {
 
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 4)
+                                    RoundedRectangle(cornerRadius: AppRadius.small)
                                         .fill(.quaternary)
                                         .frame(height: 16)
-                                    RoundedRectangle(cornerRadius: 4)
+                                    RoundedRectangle(cornerRadius: AppRadius.small)
                                         .fill(expirationColor(bucket.label))
                                         .frame(width: max(4, geo.size.width * CGFloat(bucket.keyCount) / CGFloat(maxCount)), height: 16)
                                 }
@@ -234,18 +234,18 @@ struct DatabaseAnalysisView: View {
                             .frame(height: 16)
 
                             Text("\(bucket.keyCount)")
-                                .font(.system(.body, design: .monospaced))
+                                .font(AppFont.dataCell)
                                 .frame(width: 50, alignment: .trailing)
                             Text(bucket.memoryText)
-                                .font(.system(.body, design: .monospaced))
+                                .font(AppFont.dataCell)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 70, alignment: .trailing)
                         }
                     }
                 }
-                .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(AppSpacing.small)
+                .background(AppColor.controlBackground)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
             }
         }
     }
@@ -263,11 +263,11 @@ struct DatabaseAnalysisView: View {
 
     private func typeColor(_ type: String) -> Color {
         switch type.lowercased() {
-        case "string": return .blue
-        case "list": return .green
-        case "hash": return .orange
-        case "set": return .purple
-        case "zset": return .pink
+        case "string": return AppColor.chartString
+        case "list": return AppColor.chartList
+        case "hash": return AppColor.chartHash
+        case "set": return AppColor.chartSet
+        case "zset": return AppColor.chartZSet
         case "stream": return .secondary
         default: return .secondary
         }
@@ -275,11 +275,11 @@ struct DatabaseAnalysisView: View {
 
     private func expirationColor(_ label: String) -> Color {
         switch label {
-        case "< 1h": return .red
-        case "1-6h": return .orange
-        case "6-24h": return .yellow
-        case "1-7d": return .blue
-        case "7-30d": return .green
+        case "< 1h": return AppColor.ttlExpired
+        case "1-6h": return AppColor.ttlShort
+        case "6-24h": return AppColor.ttlMedium
+        case "1-7d": return AppColor.ttlLong
+        case "7-30d": return AppColor.ttlDistant
         case "> 30d": return .secondary
         case "No expiry": return .gray
         default: return .secondary
@@ -337,7 +337,7 @@ struct StatItem: View {
                 .font(.body)
                 .foregroundStyle(.tertiary)
             Text(value)
-                .font(.system(.body, design: .monospaced))
+                .font(AppFont.dataCell)
                 .foregroundStyle(.primary)
         }
     }

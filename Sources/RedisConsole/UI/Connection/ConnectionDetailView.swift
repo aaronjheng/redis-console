@@ -57,10 +57,15 @@ struct ConnectionDetailView: View {
 
                     Section(isNew ? "New Connection" : "Connection") {
                         TextField("Name", text: $name)
-                        Picker("Mode", selection: $connectionMode) {
-                            ForEach(RedisConnectionMode.allCases, id: \.self) { mode in
-                                Text(mode.title).tag(mode)
-                            }
+                        HStack {
+                            Text("Mode")
+                            Spacer()
+                            OptionsPicker(
+                                "Connection mode",
+                                selection: $connectionMode,
+                                options: RedisConnectionMode.allCases,
+                                label: \.title
+                            )
                         }
                         TextField("Host", text: $host)
                         HStack {
@@ -77,7 +82,7 @@ struct ConnectionDetailView: View {
                                     }
                                 )
                             )
-                            .frame(width: 80)
+                            .frame(width: AppSize.formFieldWidth)
                         }
                         TextField("Username", text: $username)
                         SecureField("Password", text: $password)
@@ -114,7 +119,7 @@ struct ConnectionDetailView: View {
                                         }
                                     )
                                 )
-                                .frame(width: 80)
+                                .frame(width: AppSize.formFieldWidth)
                             }
                             TextField("User (optional)", text: $ssh.user)
                             SecureField("Password (optional)", text: $ssh.password)
@@ -126,12 +131,15 @@ struct ConnectionDetailView: View {
                     }
 
                     Section("Environment") {
-                        Picker("Environment", selection: $environment) {
-                            ForEach(ConnectionEnvironment.allCases, id: \.self) { env in
-                                Label(env.rawValue, systemImage: env.icon)
-                                    .foregroundStyle(env.color)
-                                    .tag(env)
-                            }
+                        HStack {
+                            Text("Environment")
+                            Spacer()
+                            OptionsPicker(
+                                "Environment",
+                                selection: $environment,
+                                options: ConnectionEnvironment.allCases,
+                                label: \.rawValue
+                            )
                         }
                     }
                 }
@@ -154,11 +162,13 @@ struct ConnectionDetailView: View {
                         conn.selectedConnection = config
                         conn.rightPanel = .editConnection(config)
                     }
+                    .buttonStyle(SecondaryButtonStyle())
                     .disabled(host.isEmpty)
 
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
+                    .buttonStyle(SecondaryButtonStyle())
                     .disabled(host.isEmpty || isTesting || (ssh.enabled && ssh.host.isEmpty))
 
                     testResultView
@@ -178,11 +188,13 @@ struct ConnectionDetailView: View {
                         store.updateConnection(updated)
                         conn.selectedConnection = updated
                     }
+                    .buttonStyle(SecondaryButtonStyle())
                     .disabled(host.isEmpty)
 
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
+                    .buttonStyle(SecondaryButtonStyle())
                     .disabled(host.isEmpty || isTesting || (ssh.enabled && ssh.host.isEmpty))
 
                     testResultView
@@ -201,10 +213,10 @@ struct ConnectionDetailView: View {
                         Task { await conn.connect(to: config) }
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(host.isEmpty || (ssh.enabled && ssh.host.isEmpty))
             }
-            .padding(16)
+            .padding(AppSpacing.large)
         }
     }
 
@@ -262,9 +274,9 @@ struct ConnectionDetailView: View {
     @ViewBuilder
     private var testResultView: some View {
         if let result = testResult {
-            HStack(spacing: 4) {
+            HStack(spacing: AppSpacing.xSmall) {
                 Image(systemName: result.hasPrefix("OK") ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundStyle(result.hasPrefix("OK") ? .green : .red)
+                    .foregroundStyle(result.hasPrefix("OK") ? AppColor.success : AppColor.error)
                 Text(result)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

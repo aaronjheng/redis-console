@@ -6,7 +6,6 @@ enum UIInventoryRegistry {
     static var allEntries: [any UIInventoryEntry] {
         [
             // MARK: - Connection Management
-            ConnHubWelcomeEntry(),
             ConnHubListEntry(),
             ConnHubEmptyEntry(),
             ConnHubNewEntry(),
@@ -14,9 +13,8 @@ enum UIInventoryRegistry {
             ConnHubClusterEntry(),
             ConnHubSSHEntry(),
             ConnHubTLSEntry(),
-            ConnHubProdEntry(),
-            ConnHubDevEntry(),
-            ConnConnectingEntry(),
+            ConnHubConnectingEntry(),
+            ConnHubErrorEntry(),
             // MARK: - Key Browser
             BrowserEmptyEntry(),
             BrowserLoadingEntry(),
@@ -58,6 +56,7 @@ enum UIInventoryRegistry {
             DetailZSetLoadMoreEntry(),
             DetailZSetEmptyEntry(),
             DetailUnknownTypeEntry(),
+            DetailRefreshedEntry(),
             DetailTTLEntry(),
             DetailErrorEntry(),
             DetailAddHashEntry(),
@@ -87,6 +86,8 @@ enum UIInventoryRegistry {
             AnalysisErrorEntry(),
             AnalysisEstimateEntry(),
             AnalysisNoExpirationEntry(),
+            AnalysisEmptyTypeDistributionEntry(),
+            AnalysisEmptyTopKeysEntry(),
             // MARK: - Server Info
             ServerInfoEmptyEntry(),
             ServerInfoPopulatedEntry(),
@@ -388,24 +389,21 @@ enum UIInventoryRegistry {
         analysis.isEstimate = false
         return analysis
     }
+
+    fileprivate static var sampleAnalysisEmptyTypeDistribution: DatabaseAnalysis {
+        var analysis = sampleAnalysis
+        analysis.typeDistribution = [:]
+        return analysis
+    }
+
+    fileprivate static var sampleAnalysisEmptyTopKeys: DatabaseAnalysis {
+        var analysis = sampleAnalysis
+        analysis.topKeysByMemory = []
+        return analysis
+    }
 }
 
 // MARK: - Connection Management
-
-private struct ConnHubWelcomeEntry: UIInventoryEntry {
-    let id = "conn-hub-welcome"
-    let feature = "Connection Management"
-    let module = "ConnectionHubView"
-    let state = "Welcome placeholder, no connection selected"
-    let priority: ScreenshotPriority = .medium
-    let notes = "Disconnected; rightPanel set to .welcome with populated sidebar"
-    let viewHierarchy = "TabContentView > ConnectionHubView > WelcomePlaceholder"
-
-    func configure(state: ConnectionState, store: AppStore) {
-        state.rightPanel = .welcome
-        store.connections = UIInventoryRegistry.sampleConnections
-    }
-}
 
 private struct ConnHubListEntry: UIInventoryEntry {
     let id = "conn-hub-list"
@@ -505,17 +503,17 @@ private struct ConnHubTLSEntry: UIInventoryEntry {
     let id = "conn-hub-tls"
     let feature = "Connection Management"
     let module = "ConnectionDetailView"
-    let state = "Connection form with TLS enabled"
+    let state = "Connection form with TLS enabled, development environment"
     let priority: ScreenshotPriority = .low
-    let notes = "Disconnected; editConnection with tls.enabled and CA path"
+    let notes = "Disconnected; editConnection with tls.enabled, CA path, environment .development"
     let viewHierarchy = "TabContentView > ConnectionHubView > ConnectionDetailView"
 
     func configure(state: ConnectionState, store: AppStore) {
         var config = RedisConnectionConfig(
-            name: "Production Cache",
-            host: "prod-cache-01.internal",
+            name: "Staging Cache",
+            host: "staging-cache-01.internal",
             port: 6379,
-            environment: .production
+            environment: .development
         )
         config.tls = TLSConfig(
             enabled: true,
@@ -529,35 +527,14 @@ private struct ConnHubTLSEntry: UIInventoryEntry {
     }
 }
 
-private struct ConnHubProdEntry: UIInventoryEntry {
-    let id = "conn-hub-prod"
-    let feature = "Connection Management"
-    let module = "ConnectionDetailView"
-    let state = "Connection form with production environment badge"
-    let priority: ScreenshotPriority = .medium
-    let notes = "Disconnected; editConnection with environment .production"
-    let viewHierarchy = "TabContentView > ConnectionHubView > ConnectionDetailView"
-
-    func configure(state: ConnectionState, store: AppStore) {
-        let config = RedisConnectionConfig(
-            name: "Production Cache",
-            host: "prod-cache-01.internal",
-            port: 6379,
-            environment: .production
-        )
-        state.rightPanel = .editConnection(config)
-        store.connections = UIInventoryRegistry.sampleConnections
-    }
-}
-
-private struct ConnConnectingEntry: UIInventoryEntry {
-    let id = "conn-connecting"
+private struct ConnHubConnectingEntry: UIInventoryEntry {
+    let id = "conn-hub-connecting"
     let feature = "Connection Management"
     let module = "ConnectingView"
     let state = "Connecting spinner during connect"
     let priority: ScreenshotPriority = .high
     let notes = "Disconnected; isConnecting true with pendingConnection, no activeClient"
-    let viewHierarchy = "TabContentView > ConnectingView"
+    let viewHierarchy = "TabContentView > ConnectionHubView > ConnectingView"
 
     func configure(state: ConnectionState, store: AppStore) {
         state.isConnecting = true
@@ -568,6 +545,24 @@ private struct ConnConnectingEntry: UIInventoryEntry {
             port: 6379,
             environment: .development
         )
+    }
+}
+
+private struct ConnHubErrorEntry: UIInventoryEntry {
+    let id = "conn-hub-error"
+    let feature = "Connection Management"
+    let module = "ContentView"
+    let state = "Connection hub with error banner"
+    let priority: ScreenshotPriority = .medium
+    let notes = "Disconnected; rightPanel .welcome, no activeClient, connectionError set"
+    let viewHierarchy = "TabContentView > ConnectionHubView"
+
+    func configure(state: ConnectionState, store: AppStore) {
+        store.connections = UIInventoryRegistry.sampleConnections
+        state.rightPanel = .welcome
+        state.activeClient = nil
+        state.isConnecting = false
+        state.connectionError = "Failed to connect: Connection refused"
     }
 }
 
@@ -672,6 +667,7 @@ private struct BrowserAddKeyEntry: UIInventoryEntry {
     let priority: ScreenshotPriority = .high
     let notes = "Connected; populated browser. Sheet presentation is UI-driven, not ConnectionState-backed"
     let viewHierarchy = "TabContentView > WorkspaceView > BrowserView > AddKeySheet"
+    let isCapturable = false
 
     func configure(state: ConnectionState, store: AppStore) {
         UIInventoryRegistry.connect(state, view: .browser)
@@ -858,6 +854,7 @@ private struct DetailTTLEntry: UIInventoryEntry {
     let priority: ScreenshotPriority = .medium
     let notes = "Connected; string key with TTL 1800. Popover presentation is UI-driven"
     let viewHierarchy = "TabContentView > WorkspaceView > BrowserView > KeyTTLEditorPopover"
+    let isCapturable = false
 
     func configure(state: ConnectionState, store: AppStore) {
         UIInventoryRegistry.connect(state, view: .browser)
@@ -898,6 +895,7 @@ private struct DetailAddHashEntry: UIInventoryEntry {
     let priority: ScreenshotPriority = .medium
     let notes = "Connected; hash detail populated. Sheet presentation is UI-driven"
     let viewHierarchy = "TabContentView > WorkspaceView > BrowserView > HashDetailView > AddHashFieldSheet"
+    let isCapturable = false
 
     func configure(state: ConnectionState, store: AppStore) {
         UIInventoryRegistry.connect(state, view: .browser)
@@ -922,6 +920,7 @@ private struct DetailAddListEntry: UIInventoryEntry {
     let priority: ScreenshotPriority = .medium
     let notes = "Connected; list detail populated. Sheet presentation is UI-driven"
     let viewHierarchy = "TabContentView > WorkspaceView > BrowserView > ListDetailView > AddListElementSheet"
+    let isCapturable = false
 
     func configure(state: ConnectionState, store: AppStore) {
         UIInventoryRegistry.connect(state, view: .browser)
@@ -943,6 +942,7 @@ private struct DetailAddSetEntry: UIInventoryEntry {
     let priority: ScreenshotPriority = .medium
     let notes = "Connected; set detail populated. Sheet presentation is UI-driven"
     let viewHierarchy = "TabContentView > WorkspaceView > BrowserView > SetDetailView > AddSetMemberSheet"
+    let isCapturable = false
 
     func configure(state: ConnectionState, store: AppStore) {
         UIInventoryRegistry.connect(state, view: .browser)
@@ -964,6 +964,7 @@ private struct DetailAddZSetEntry: UIInventoryEntry {
     let priority: ScreenshotPriority = .medium
     let notes = "Connected; zset detail populated. Sheet presentation is UI-driven"
     let viewHierarchy = "TabContentView > WorkspaceView > BrowserView > ZSetDetailView > AddZSetMemberSheet"
+    let isCapturable = false
 
     func configure(state: ConnectionState, store: AppStore) {
         UIInventoryRegistry.connect(state, view: .browser)
@@ -1018,6 +1019,7 @@ private struct ShellDangerEntry: UIInventoryEntry {
     let priority: ScreenshotPriority = .medium
     let notes = "Connected; shellInput FLUSHALL. Alert presentation is UI-driven"
     let viewHierarchy = "TabContentView > WorkspaceView > ShellView > alert"
+    let isCapturable = false
 
     func configure(state: ConnectionState, store: AppStore) {
         UIInventoryRegistry.connect(state, view: .shell)
@@ -1219,11 +1221,13 @@ private struct ServerInfoPopulatedEntry: UIInventoryEntry {
 private struct ServerInfoClusterEntry: UIInventoryEntry {
     let id = "serverinfo-cluster"
     let feature = "Server Info"
-    let module = "ClusterTopologyView"
-    let state = "Cluster topology view"
+    let module = "ServerInfoView"
+    let state = "Cluster server info with topology toggle enabled"
     let priority: ScreenshotPriority = .high
-    let notes = "Connected; cluster mode connection, clusterInfo and clusterNodes populated"
-    let viewHierarchy = "TabContentView > WorkspaceView > ServerInfoView > ClusterTopologyView"
+    let notes =
+        "Connected; cluster mode, clusterInfo and clusterNodes populated. "
+        + "Topology toggle is @State-driven and not capturable via ConnectionState"
+    let viewHierarchy = "TabContentView > WorkspaceView > ServerInfoView"
 
     func configure(state: ConnectionState, store: AppStore) {
         let connection = RedisConnectionConfig(
@@ -1251,6 +1255,7 @@ private struct ProdConfirmEntry: UIInventoryEntry {
     let priority: ScreenshotPriority = .medium
     let notes = "Connected; production connection, key selected. Confirm dialog is UI-driven"
     let viewHierarchy = "TabContentView > WorkspaceView > BrowserView > ProductionConfirmView"
+    let isCapturable = false
 
     func configure(state: ConnectionState, store: AppStore) {
         let connection = RedisConnectionConfig(
@@ -1279,22 +1284,6 @@ private struct ConnHubEmptyEntry: UIInventoryEntry {
     func configure(state: ConnectionState, store: AppStore) {
         store.connections = []
         state.rightPanel = .welcome
-    }
-}
-
-private struct ConnHubDevEntry: UIInventoryEntry {
-    let id = "conn-hub-dev"
-    let feature = "Connection Management"
-    let module = "ConnectionDetailView"
-    let state = "Connection form with development environment badge"
-    let priority: ScreenshotPriority = .low
-    let notes = "Disconnected; editConnection with environment .development"
-    let viewHierarchy = "TabContentView > ConnectionHubView > ConnectionDetailView"
-
-    func configure(state: ConnectionState, store: AppStore) {
-        store.connections = UIInventoryRegistry.sampleConnections
-        let config = RedisConnectionConfig(name: "Dev Server", host: "dev-redis.local", port: 6379, environment: .development)
-        state.rightPanel = .editConnection(config)
     }
 }
 
@@ -1403,9 +1392,9 @@ private struct BrowserNoMatchEntry: UIInventoryEntry {
     let id = "browser-no-match"
     let feature = "Key Browser"
     let module = "BrowserView"
-    let state = "Browser with no matching keys after type filter"
+    let state = "Browser with no matching keys for active pattern filter"
     let priority: ScreenshotPriority = .medium
-    let notes = "Connected; keyTypeFilter set to a type absent from keys, ContentUnavailableView shown"
+    let notes = "Connected; keyFilter set to zzz:*, empty keys, filter pattern visible in search field"
     let viewHierarchy = "TabContentView > WorkspaceView > BrowserView"
 
     func configure(state: ConnectionState, store: AppStore) {
@@ -1413,7 +1402,8 @@ private struct BrowserNoMatchEntry: UIInventoryEntry {
         state.keys = []
         state.keyTotalCount = UIInventoryRegistry.sampleKeys.count
         state.keyScannedCount = 0
-        state.keyTypeFilter = "stream"
+        state.keyFilter = "zzz:*"
+        state.keyTypeFilter = ""
         state.isNamespaceGroupingEnabled = false
     }
 }
@@ -1571,6 +1561,29 @@ private struct DetailStringBase64EncodeEntry: UIInventoryEntry {
         state.valueSize = 128
         state.keyDetailLength = 1
         state.stringValueFormat = .base64Encode
+    }
+}
+
+private struct DetailRefreshedEntry: UIInventoryEntry {
+    let id = "detail-refreshed"
+    let feature = "Value Editor"
+    let module = "KeyDetailView"
+    let state = "Key detail after refresh"
+    let priority: ScreenshotPriority = .low
+    let notes = "Connected; string key, keyDetailLastRefreshedAt set"
+    let viewHierarchy = "TabContentView > WorkspaceView > BrowserView > KeyDetailView"
+
+    func configure(state: ConnectionState, store: AppStore) {
+        UIInventoryRegistry.connect(state, view: .browser)
+        state.keys = UIInventoryRegistry.sampleKeys
+        let key = RedisKeyEntry(key: "config:app", type: "string", ttl: nil, size: 128, length: nil)
+        state.selectedKey = key
+        state.keyType = "string"
+        state.keyDetail = #"{"theme":"dark","pageSize":50}"#
+        state.valueSize = 128
+        state.keyDetailLength = 1
+        state.stringValueFormat = .json
+        state.keyDetailLastRefreshedAt = Date()
     }
 }
 
@@ -1989,6 +2002,38 @@ private struct AnalysisNoExpirationEntry: UIInventoryEntry {
         var analysis = UIInventoryRegistry.sampleAnalysis
         analysis.expirationSummary = []
         state.analysis = analysis
+    }
+}
+
+private struct AnalysisEmptyTypeDistributionEntry: UIInventoryEntry {
+    let id = "analysis-empty-type-distribution"
+    let feature = "Database Analysis"
+    let module = "DatabaseAnalysisView"
+    let state = "Analysis with empty type distribution"
+    let priority: ScreenshotPriority = .low
+    let notes = "Connected; analysis populated, typeDistribution empty, topKeysByMemory populated"
+    let viewHierarchy = "TabContentView > WorkspaceView > DatabaseAnalysisView"
+
+    func configure(state: ConnectionState, store: AppStore) {
+        UIInventoryRegistry.connect(state, view: .databaseAnalysis)
+        state.analysis = UIInventoryRegistry.sampleAnalysisEmptyTypeDistribution
+        state.isLoadingAnalysis = false
+    }
+}
+
+private struct AnalysisEmptyTopKeysEntry: UIInventoryEntry {
+    let id = "analysis-empty-top-keys"
+    let feature = "Database Analysis"
+    let module = "DatabaseAnalysisView"
+    let state = "Analysis with empty top keys"
+    let priority: ScreenshotPriority = .low
+    let notes = "Connected; analysis populated, topKeysByMemory empty, typeDistribution populated"
+    let viewHierarchy = "TabContentView > WorkspaceView > DatabaseAnalysisView"
+
+    func configure(state: ConnectionState, store: AppStore) {
+        UIInventoryRegistry.connect(state, view: .databaseAnalysis)
+        state.analysis = UIInventoryRegistry.sampleAnalysisEmptyTopKeys
+        state.isLoadingAnalysis = false
     }
 }
 

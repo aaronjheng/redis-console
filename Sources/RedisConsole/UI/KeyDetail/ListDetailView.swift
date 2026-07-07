@@ -24,7 +24,7 @@ struct EditableListCell: View {
             )
         } else {
             Text(row.value)
-                .font(.system(.body, design: .monospaced))
+                .font(AppFont.dataCell)
                 .lineLimit(2)
                 .copyableCell(row.value, row: rowValue)
                 .onTapGesture(count: 2) {
@@ -60,7 +60,7 @@ struct ListDetailView: View {
             Table(listRows) {
                 TableColumn("Index") { row in
                     Text("\(row.index)")
-                        .font(.system(.subheadline, design: .monospaced))
+                        .font(AppFont.monoSubheadline)
                         .foregroundStyle(.secondary)
                         .copyableCell("\(row.index)", row: "\(row.index)\t\(row.value)")
                 }
@@ -77,7 +77,7 @@ struct ListDetailView: View {
                 }
 
                 TableColumn("Actions") { row in
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppSpacing.small) {
                         Button("Edit Element", systemImage: "pencil") {
                             editingIndex = row.index
                             editValue = row.value

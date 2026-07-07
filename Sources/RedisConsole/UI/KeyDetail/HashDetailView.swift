@@ -35,14 +35,14 @@ struct HashDetailView: View {
                 placeholder: "Field filter",
                 onSearch: { onSearch(pendingSearchText) }
             )
-            .padding(8)
+            .padding(AppSpacing.small)
 
             Divider()
 
             Table(hashRows) {
                 TableColumn("Field") { row in
                     Text(row.field)
-                        .font(.system(.body, design: .monospaced))
+                        .font(AppFont.dataCell)
                         .copyableCell(row.field, row: "\(row.field)\t\(row.value)")
                 }
                 .width(min: 100, ideal: 150, max: 300)
@@ -58,7 +58,7 @@ struct HashDetailView: View {
                 }
 
                 TableColumn("Actions") { row in
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppSpacing.small) {
                         Button("Edit Field", systemImage: "pencil") {
                             editingField = row.field
                             editValue = row.value
@@ -126,7 +126,7 @@ struct EditableHashCell: View {
             )
         } else {
             Text(row.value)
-                .font(.system(.body, design: .monospaced))
+                .font(AppFont.dataCell)
                 .lineLimit(2)
                 .copyableCell(row.value, row: rowValue)
                 .onTapGesture(count: 2) {

@@ -7,7 +7,7 @@ struct ConnectingView: View {
     @State private var isPulsing = false
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: AppSpacing.xLarge) {
             ZStack {
                 Circle()
                     .stroke(Color.accentColor.opacity(0.2), lineWidth: 4)
@@ -27,11 +27,11 @@ struct ConnectingView: View {
                     .bold()
                 Text(pending.address)
                     .foregroundStyle(.secondary)
-                    .font(.system(.body, design: .monospaced))
+                    .font(AppFont.dataCell)
             }
             Button("Cancel") { conn.cancelConnection() }
-                .buttonStyle(.bordered)
-                .padding(.top, 8)
+                .buttonStyle(SecondaryButtonStyle())
+                .padding(.top, AppSpacing.small)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

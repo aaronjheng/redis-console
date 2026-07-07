@@ -21,7 +21,7 @@ struct SetDetailView: View {
     @State private var pendingSearchText = ""
 
     private var setRows: [SetRow] {
-        rows.map { SetRow(member: $0.1) }
+        rows.map { SetRow(member: $0.0) }
     }
 
     var body: some View {
@@ -31,14 +31,14 @@ struct SetDetailView: View {
                 placeholder: "Member filter",
                 onSearch: { onSearch(pendingSearchText) }
             )
-            .padding(8)
+            .padding(AppSpacing.small)
 
             Divider()
 
             Table(setRows) {
                 TableColumn("Member") { row in
                     Text(row.member)
-                        .font(.system(.body, design: .monospaced))
+                        .font(AppFont.dataCell)
                         .copyableCell(row.member, row: row.member)
                 }
 

@@ -44,14 +44,14 @@ struct ShellView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 6) {
+                        LazyVStack(alignment: .leading, spacing: AppSpacing.small - AppSpacing.xxSmall) {
                             ForEach(app.shellHistory) { entry in
                                 ShellHistoryRow(entry: entry)
                                     .id(entry.id)
-                                    .padding(.horizontal, 16)
+                                    .padding(.horizontal, AppSpacing.large)
                             }
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, AppSpacing.small)
                     }
                     .onChange(of: app.shellHistory.count) { _, _ in
                         if let last = app.shellHistory.last {
@@ -67,7 +67,7 @@ struct ShellView: View {
 
             // Completion suggestions
             if showCompletions && !filteredCompletions.isEmpty {
-                HStack(spacing: 4) {
+                HStack(spacing: AppSpacing.xSmall) {
                     ForEach(filteredCompletions.prefix(10), id: \.self) { cmd in
                         Button {
                             input = cmd + " "
@@ -75,27 +75,27 @@ struct ShellView: View {
                         } label: {
                             Text(cmd)
                                 .font(.subheadline)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
+                                .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
+                                .padding(.vertical, AppSpacing.xxSmall)
                                 .background(.quaternary)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
                         }
                         .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.vertical, AppSpacing.xSmall)
             }
 
             // Input area
-            HStack(spacing: 8) {
+            HStack(spacing: AppSpacing.small) {
                 Text(">")
-                    .font(.system(.body, design: .monospaced))
+                    .font(AppFont.dataCell)
                     .foregroundStyle(Color.accentColor)
                     .bold()
 
                 TextField("Enter command...", text: $input, axis: .vertical)
-                    .font(.system(.body, design: .monospaced))
+                    .font(AppFont.monoBody)
                     .textFieldStyle(.plain)
                     .lineLimit(1...3)
                     .focused($inputFocused)
@@ -135,7 +135,7 @@ struct ShellView: View {
                     .buttonStyle(.borderless)
                     .disabled(input.isEmpty)
             }
-            .padding(16)
+            .padding(AppSpacing.large)
             .background(.bar)
 
             Divider()
@@ -184,16 +184,16 @@ struct ShellHistoryRow: View {
     let entry: ShellHistoryEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: AppSpacing.small - AppSpacing.xxSmall) {
             // Command header
-            HStack(spacing: 6) {
+            HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
                 Image(systemName: entry.isError ? "xmark.circle.fill" : "checkmark.circle.fill")
                     .font(.caption)
-                    .foregroundStyle(entry.isError ? .red : .green)
+                    .foregroundStyle(entry.isError ? AppColor.error : AppColor.success)
                     .frame(width: 16)
 
                 Text(ShellSyntaxHighlighter.highlight(entry.command))
-                    .font(.system(.body, design: .monospaced))
+                    .font(AppFont.dataCell)
                     .bold()
                     .lineLimit(3)
 
@@ -206,26 +206,26 @@ struct ShellHistoryRow: View {
 
             // Result block
             Text(entry.result)
-                .font(.system(.subheadline, design: .monospaced))
-                .foregroundStyle(entry.isError ? .red : .primary)
+                .font(AppFont.monoSubheadline)
+                .foregroundStyle(entry.isError ? AppColor.error : .primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
+                .padding(AppSpacing.medium - AppSpacing.xxSmall)
                 .background {
                     if entry.isError {
-                        Color.red.opacity(0.08)
+                        AppColor.error.opacity(0.08)
                     } else {
-                        Color(nsColor: .textBackgroundColor)
+                        AppColor.codeBackground
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(entry.isError ? .red.opacity(0.2) : Color.secondary.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: AppRadius.medium)
+                        .stroke(entry.isError ? AppColor.error.opacity(0.2) : Color.secondary.opacity(0.2), lineWidth: 1)
                 }
         }
-        .padding(10)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(AppSpacing.medium - AppSpacing.xxSmall)
+        .background(AppColor.controlBackground)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.large))
     }
 }

@@ -32,6 +32,7 @@ protocol UIInventoryEntry {
     var notes: String { get }
     var viewHierarchy: String { get }
     var windowSize: NSSize? { get }
+    var isCapturable: Bool { get }
 
     func configure(state: ConnectionState, store: AppStore)
     func prepare(state: ConnectionState) async
@@ -39,6 +40,7 @@ protocol UIInventoryEntry {
 
 extension UIInventoryEntry {
     var windowSize: NSSize? { nil }
+    var isCapturable: Bool { true }
     func prepare(state: ConnectionState) async {}
 }
 
