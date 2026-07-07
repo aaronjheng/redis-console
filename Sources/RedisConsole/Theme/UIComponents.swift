@@ -4,14 +4,14 @@ struct WorkspaceFooterBar<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        HStack(spacing: AppTheme.spacing) {
+        HStack(spacing: 8) {
             content
         }
         .font(.caption)
         .controlSize(.regular)
         .imageScale(.medium)
-        .padding(.horizontal, AppTheme.spacing)
-        .frame(height: AppTheme.workspaceFooterHeight)
+        .padding(.horizontal, 8)
+        .frame(height: 34)
         .frame(maxWidth: .infinity)
         .background(.bar)
     }
@@ -27,7 +27,7 @@ struct StatusFooterView: View {
     }
 
     var body: some View {
-        HStack(spacing: AppTheme.spacingSmall) {
+        HStack(spacing: 4) {
             Text(countText)
             if let sizeText {
                 Text("\u{00B7}")
@@ -51,11 +51,11 @@ struct Badge: View {
         if isLoading {
             ProgressView()
                 .controlSize(.small)
-                .padding(.horizontal, AppTheme.spacingSmallMedium)
-                .padding(.vertical, AppTheme.spacingXSmall)
-                .frame(minWidth: AppTheme.badgeMinWidth)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .frame(minWidth: 42)
         } else {
-            HStack(spacing: AppTheme.spacingXSmall) {
+            HStack(spacing: 2) {
                 if let systemImage {
                     Image(systemName: systemImage)
                 }
@@ -64,10 +64,10 @@ struct Badge: View {
             .font(.caption2.weight(.medium))
             .lineLimit(1)
             .foregroundStyle(foregroundColor)
-            .padding(.horizontal, AppTheme.spacingSmallMedium)
-            .padding(.vertical, AppTheme.spacingXSmall)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
             .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
             .fixedSize(horizontal: true, vertical: false)
         }
     }
@@ -81,8 +81,8 @@ struct ErrorBanner: View {
         var icon: String { "exclamationmark.triangle.fill" }
         var color: Color {
             switch self {
-            case .error: DomainColor.statusError
-            case .warning: DomainColor.statusWarning
+            case .error: .red
+            case .warning: .orange
             }
         }
         var background: Color { color.opacity(0.12) }
@@ -93,7 +93,7 @@ struct ErrorBanner: View {
     var dismissAction: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: AppTheme.spacing) {
+        HStack(spacing: 8) {
             Image(systemName: severity.icon)
                 .foregroundStyle(severity.color)
             Text(message)
@@ -110,10 +110,10 @@ struct ErrorBanner: View {
                 .help("Dismiss")
             }
         }
-        .padding(.horizontal, AppTheme.spacing)
-        .padding(.vertical, AppTheme.spacingSmallMedium)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .background(severity.background)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 }
 
@@ -121,14 +121,14 @@ struct LoadingState: View {
     let message: String
 
     var body: some View {
-        VStack(spacing: AppTheme.spacing) {
+        VStack(spacing: 8) {
             ProgressView()
                 .controlSize(.small)
             Text(message)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(AppTheme.spacingLarge)
+        .padding(16)
         .frame(maxWidth: .infinity)
     }
 }
@@ -138,15 +138,15 @@ struct Card<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.headline)
             content
         }
-        .padding(AppTheme.spacingLarge)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -196,13 +196,13 @@ struct RefreshControl: View {
             separator
             intervalMenu
         }
-        .frame(height: AppTheme.refreshControlHeight)
+        .frame(height: 22)
         .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(.background.secondary)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .strokeBorder(.separator, lineWidth: 0.5)
         )
         .opacity(isLoading ? 0.5 : 1)
@@ -215,17 +215,17 @@ struct RefreshControl: View {
             Label("Refresh", systemImage: "arrow.clockwise")
                 .labelStyle(.iconOnly)
                 .font(.caption)
-                .frame(width: AppTheme.refreshButtonWidth, height: AppTheme.refreshButtonHeight)
+                .frame(width: 26, height: 22)
                 .contentShape(Rectangle())
                 .background(
                     isRefreshHovering && !isLoading
-                        ? AppTheme.hoverHighlight
+                        ? Color.primary.opacity(0.08)
                         : Color.clear
                 )
                 .clipShape(
                     UnevenRoundedRectangle(
-                        topLeadingRadius: AppTheme.cornerRadiusMedium,
-                        bottomLeadingRadius: AppTheme.cornerRadiusMedium,
+                        topLeadingRadius: 6,
+                        bottomLeadingRadius: 6,
                         bottomTrailingRadius: 0,
                         topTrailingRadius: 0,
                         style: .continuous
@@ -241,7 +241,7 @@ struct RefreshControl: View {
     private var separator: some View {
         Rectangle()
             .fill(.separator)
-            .frame(width: AppTheme.refreshSeparatorWidth, height: AppTheme.refreshSeparatorHeight)
+            .frame(width: 0.5, height: 14)
     }
 
     private var intervalMenu: some View {
@@ -269,24 +269,24 @@ struct RefreshControl: View {
                         .font(.caption2)
                         .monospacedDigit()
                         .foregroundStyle(.tint)
-                        .padding(.horizontal, AppTheme.spacingSmallMedium)
+                        .padding(.horizontal, 6)
                 } else {
-                    Color.clear.frame(width: AppTheme.refreshMenuPlaceholderWidth, height: AppTheme.refreshControlHeight)
+                    Color.clear.frame(width: 18, height: 22)
                 }
             }
-            .frame(height: AppTheme.refreshControlHeight)
+            .frame(height: 22)
             .contentShape(Rectangle())
             .background(
                 isMenuHovering && !isLoading
-                    ? AppTheme.hoverHighlight
+                    ? Color.primary.opacity(0.08)
                     : Color.clear
             )
             .clipShape(
                 UnevenRoundedRectangle(
                     topLeadingRadius: 0,
                     bottomLeadingRadius: 0,
-                    bottomTrailingRadius: AppTheme.cornerRadiusMedium,
-                    topTrailingRadius: AppTheme.cornerRadiusMedium,
+                    bottomTrailingRadius: 6,
+                    topTrailingRadius: 6,
                     style: .continuous
                 )
             )

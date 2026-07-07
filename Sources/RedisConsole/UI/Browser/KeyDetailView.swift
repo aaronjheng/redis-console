@@ -338,9 +338,9 @@ struct KeyDetailView: View {
     }
 
     private func headerView(key: RedisKeyEntry) -> some View {
-        HStack(spacing: AppTheme.spacing) {
-            VStack(alignment: .leading, spacing: AppTheme.spacingSmall) {
-                HStack(alignment: .firstTextBaseline, spacing: AppTheme.spacing) {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Badge(text: key.type, isLoading: key.type.isEmpty)
                     Text(key.key)
                         .font(.title3)
@@ -349,16 +349,16 @@ struct KeyDetailView: View {
                     Spacer(minLength: 0)
                 }
 
-                HStack(spacing: AppTheme.spacingMedium) {
+                HStack(spacing: 10) {
                     if let length = app.keyDetailLength ?? key.length {
-                        HStack(spacing: AppTheme.spacingXSmall) {
+                        HStack(spacing: 2) {
                             Image(systemName: "number")
                             Text("Length: \(length)")
                         }
                         .foregroundStyle(.secondary)
                     }
                     if let size = app.valueSize ?? key.size {
-                        HStack(spacing: AppTheme.spacingXSmall) {
+                        HStack(spacing: 2) {
                             Image(systemName: "memorychip")
                             Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory))
                         }
@@ -367,7 +367,7 @@ struct KeyDetailView: View {
                     Button {
                         beginEditingTTL(for: key)
                     } label: {
-                        HStack(spacing: AppTheme.spacingXSmall) {
+                        HStack(spacing: 2) {
                             Image(systemName: "clock")
                             Text("TTL: \(key.ttlText)")
                             Image(systemName: "pencil")
@@ -375,7 +375,7 @@ struct KeyDetailView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(key.hasExpiry ? DomainColor.statusWarning : .secondary)
+                    .foregroundStyle(key.hasExpiry ? .orange : .secondary)
                     .disabled(app.isLoadingDetail)
                     .accessibilityLabel("Edit TTL, \(key.ttlText)")
                     .help("Edit TTL")
@@ -396,7 +396,7 @@ struct KeyDetailView: View {
                         }
                     }
                     if let refreshedAt = app.keyDetailLastRefreshedAt {
-                        HStack(spacing: AppTheme.spacingXSmall) {
+                        HStack(spacing: 2) {
                             Image(systemName: "clock.arrow.circlepath")
                             Text(refreshedAt, style: .time)
                         }
@@ -408,7 +408,7 @@ struct KeyDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack(spacing: AppTheme.spacing) {
+            HStack(spacing: 8) {
                 RefreshControl(
                     autoRefreshInterval: $autoRefreshInterval,
                     isLoading: app.isLoadingDetail,
@@ -440,7 +440,7 @@ struct KeyDetailView: View {
                 .help("Delete key")
             }
         }
-        .padding(AppTheme.spacing)
+        .padding(8)
     }
 
     private func beginEditingTTL(for key: RedisKeyEntry) {
@@ -515,7 +515,7 @@ struct KeyDetailView: View {
                 .font(.system(.body, design: .monospaced))
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(AppTheme.spacingLarge)
+                .padding(16)
         }
     }
 }
@@ -528,7 +528,7 @@ private struct KeyTTLEditorPopover: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingLargeMedium) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(keyName)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -536,7 +536,7 @@ private struct KeyTTLEditorPopover: View {
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: AppTheme.spacing) {
+            HStack(spacing: 8) {
                 Text("TTL")
                     .font(.headline)
                 TextField("No limit", text: $ttlInput)
@@ -551,7 +551,7 @@ private struct KeyTTLEditorPopover: View {
             if let error {
                 Text(error)
                     .font(.subheadline)
-                    .foregroundStyle(DomainColor.statusError)
+                    .foregroundStyle(.red)
             }
 
             HStack {
@@ -562,7 +562,7 @@ private struct KeyTTLEditorPopover: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(AppTheme.spacingLarge)
+        .padding(16)
         .frame(width: 260)
     }
 }

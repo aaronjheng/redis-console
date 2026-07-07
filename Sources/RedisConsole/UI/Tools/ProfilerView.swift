@@ -123,7 +123,7 @@ private struct ProfilerEmptyStateView: View {
                     systemImage: "waveform.path.ecg"
                 )
                 Button("Start Profiler", action: onStart)
-                    .padding(.top, AppTheme.spacing)
+                    .padding(.top, 8)
             } else if isRunning {
                 ContentUnavailableView(
                     "Waiting for Redis commands",
@@ -137,7 +137,7 @@ private struct ProfilerEmptyStateView: View {
                 )
             }
             if !isRunning && !isStarting {
-                Spacer().frame(height: AppTheme.spacingLarge)
+                Spacer().frame(height: 16)
                 Label("MONITOR can slow busy servers", systemImage: "exclamationmark.triangle")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -158,7 +158,7 @@ private struct ProfilerToolbarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: AppTheme.spacingLargeMedium) {
+            HStack(spacing: 12) {
                 Text("Profiler")
                     .font(.headline)
 
@@ -175,11 +175,11 @@ private struct ProfilerToolbarView: View {
                     Label("Clear", systemImage: "trash")
                 }
             }
-            .padding(AppTheme.spacingLarge)
+            .padding(16)
 
             Divider()
 
-            HStack(spacing: AppTheme.spacingMedium) {
+            HStack(spacing: 10) {
                 ZStack(alignment: .trailing) {
                     TextField("Filter command, node, source, database, or raw text", text: $filterText)
                         .textFieldStyle(.roundedBorder)
@@ -191,7 +191,7 @@ private struct ProfilerToolbarView: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .foregroundStyle(.secondary)
-                        .padding(.trailing, AppTheme.spacing)
+                        .padding(.trailing, 8)
                     }
                 }
 
@@ -203,8 +203,8 @@ private struct ProfilerToolbarView: View {
 
                 Color.clear.frame(width: 0, height: 0)
             }
-            .padding(.horizontal, AppTheme.spacingLarge)
-            .padding(.vertical, AppTheme.spacingSmallMedium)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
 
             Divider()
         }
@@ -235,10 +235,10 @@ private struct ProfilerStatusPill: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, AppTheme.spacing)
+        .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(.quaternary)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
     private var statusText: String {
@@ -247,8 +247,8 @@ private struct ProfilerStatusPill: View {
     }
 
     private var indicatorColor: Color {
-        if isStarting { return DomainColor.statusWarning }
-        return isRunning ? DomainColor.statusSuccess : .secondary
+        if isStarting { return .orange }
+        return isRunning ? .green : .secondary
     }
 }
 
@@ -288,7 +288,7 @@ private struct ProfilerEntriesView: View {
 
 private struct ProfilerHeaderRow: View {
     var body: some View {
-        HStack(spacing: AppTheme.spacingMedium) {
+        HStack(spacing: 10) {
             Text("Time")
                 .frame(width: 100, alignment: .leading)
             Text("DB")
@@ -304,9 +304,9 @@ private struct ProfilerHeaderRow: View {
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)
-        .padding(.horizontal, AppTheme.spacingLarge)
+        .padding(.horizontal, 16)
         .padding(.vertical, 7)
-        .background(AppTheme.controlBackground)
+        .background(Color(nsColor: .controlBackgroundColor))
     }
 }
 
@@ -317,7 +317,7 @@ private struct ProfilerEntryRow: View {
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: AppTheme.spacingMedium) {
+            HStack(spacing: 10) {
                 Text(entry.timeText)
                     .frame(width: 100, alignment: .leading)
                     .foregroundStyle(.secondary)
@@ -341,10 +341,10 @@ private struct ProfilerEntryRow: View {
             }
             .font(.system(.subheadline, design: .monospaced))
             .lineLimit(1)
-            .padding(.horizontal, AppTheme.spacingLarge)
-            .padding(.vertical, AppTheme.spacingSmallMedium)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
             .contentShape(Rectangle())
-            .background(isSelected ? AppTheme.selectedRowBackground : Color.clear)
+            .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -373,7 +373,7 @@ private struct ProfilerFooterView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let selectedEntry {
-                HStack(alignment: .top, spacing: AppTheme.spacing) {
+                HStack(alignment: .top, spacing: 8) {
                     Text("Raw")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -384,8 +384,8 @@ private struct ProfilerFooterView: View {
                         .textSelection(.enabled)
                     Spacer()
                 }
-                .padding(.horizontal, AppTheme.spacingLarge)
-                .padding(.vertical, AppTheme.spacing)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
 
                 Divider()
             }

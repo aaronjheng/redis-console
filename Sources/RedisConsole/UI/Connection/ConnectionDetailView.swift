@@ -204,7 +204,7 @@ struct ConnectionDetailView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(host.isEmpty || (ssh.enabled && ssh.host.isEmpty))
             }
-            .padding(AppTheme.spacingLarge)
+            .padding(16)
         }
     }
 
@@ -262,9 +262,9 @@ struct ConnectionDetailView: View {
     @ViewBuilder
     private var testResultView: some View {
         if let result = testResult {
-            HStack(spacing: AppTheme.spacingSmall) {
+            HStack(spacing: 4) {
                 Image(systemName: result.hasPrefix("OK") ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundStyle(result.hasPrefix("OK") ? DomainColor.statusSuccess : DomainColor.statusError)
+                    .foregroundStyle(result.hasPrefix("OK") ? .green : .red)
                 Text(result)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

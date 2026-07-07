@@ -77,7 +77,7 @@ struct ListDetailView: View {
                 }
 
                 TableColumn("Actions") { row in
-                    HStack(spacing: AppTheme.spacing) {
+                    HStack(spacing: 8) {
                         Button("Edit Element", systemImage: "pencil") {
                             editingIndex = row.index
                             editValue = row.value

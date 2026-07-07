@@ -31,7 +31,7 @@ struct SetDetailView: View {
                 placeholder: "Member filter",
                 onSearch: { onSearch(pendingSearchText) }
             )
-            .padding(AppTheme.spacing)
+            .padding(8)
 
             Divider()
 

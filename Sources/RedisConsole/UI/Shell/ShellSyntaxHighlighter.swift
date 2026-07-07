@@ -86,10 +86,10 @@ enum ShellSyntaxHighlighter {
 
         var color: Color {
             switch self {
-            case .command: return DomainColor.shellCommand
-            case .string: return DomainColor.shellString
-            case .number: return DomainColor.shellNumber
-            case .comment: return DomainColor.shellComment
+            case .command: return .purple
+            case .string: return .green
+            case .number: return .orange
+            case .comment: return .secondary
             case .default: return .primary
             }
         }

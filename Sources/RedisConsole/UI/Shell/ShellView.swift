@@ -44,14 +44,14 @@ struct ShellView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: AppTheme.spacingSmallMedium) {
+                        LazyVStack(alignment: .leading, spacing: 6) {
                             ForEach(app.shellHistory) { entry in
                                 ShellHistoryRow(entry: entry)
                                     .id(entry.id)
-                                    .padding(.horizontal, AppTheme.spacingLarge)
+                                    .padding(.horizontal, 16)
                             }
                         }
-                        .padding(.vertical, AppTheme.spacing)
+                        .padding(.vertical, 8)
                     }
                     .onChange(of: app.shellHistory.count) { _, _ in
                         if let last = app.shellHistory.last {
@@ -67,7 +67,7 @@ struct ShellView: View {
 
             // Completion suggestions
             if showCompletions && !filteredCompletions.isEmpty {
-                HStack(spacing: AppTheme.spacingSmall) {
+                HStack(spacing: 4) {
                     ForEach(filteredCompletions.prefix(10), id: \.self) { cmd in
                         Button {
                             input = cmd + " "
@@ -75,20 +75,20 @@ struct ShellView: View {
                         } label: {
                             Text(cmd)
                                 .font(.subheadline)
-                                .padding(.horizontal, AppTheme.spacingSmallMedium)
-                                .padding(.vertical, AppTheme.spacingXSmall)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
                                 .background(.quaternary)
-                                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusSmall))
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, AppTheme.spacing)
-                .padding(.vertical, AppTheme.spacingSmall)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
             }
 
             // Input area
-            HStack(spacing: AppTheme.spacing) {
+            HStack(spacing: 8) {
                 Text(">")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(Color.accentColor)
@@ -135,7 +135,7 @@ struct ShellView: View {
                     .buttonStyle(.borderless)
                     .disabled(input.isEmpty)
             }
-            .padding(AppTheme.spacingLarge)
+            .padding(16)
             .background(.bar)
 
             Divider()
@@ -184,13 +184,13 @@ struct ShellHistoryRow: View {
     let entry: ShellHistoryEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingSmallMedium) {
+        VStack(alignment: .leading, spacing: 6) {
             // Command header
-            HStack(spacing: AppTheme.spacingSmallMedium) {
+            HStack(spacing: 6) {
                 Image(systemName: entry.isError ? "xmark.circle.fill" : "checkmark.circle.fill")
                     .font(.caption)
-                    .foregroundStyle(entry.isError ? DomainColor.statusError : DomainColor.statusSuccess)
-                    .frame(width: AppTheme.spacingLarge)
+                    .foregroundStyle(entry.isError ? .red : .green)
+                    .frame(width: 16)
 
                 Text(ShellSyntaxHighlighter.highlight(entry.command))
                     .font(.system(.body, design: .monospaced))
@@ -207,25 +207,25 @@ struct ShellHistoryRow: View {
             // Result block
             Text(entry.result)
                 .font(.system(.subheadline, design: .monospaced))
-                .foregroundStyle(entry.isError ? DomainColor.statusError : .primary)
+                .foregroundStyle(entry.isError ? .red : .primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(AppTheme.spacingMedium)
+                .padding(10)
                 .background {
                     if entry.isError {
-                        DomainColor.statusError.opacity(0.08)
+                        Color.red.opacity(0.08)
                     } else {
-                        AppTheme.textEditorBackground
+                        Color(nsColor: .textBackgroundColor)
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay {
-                    RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium)
-                        .stroke(entry.isError ? DomainColor.statusError.opacity(0.2) : Color.secondary.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(entry.isError ? .red.opacity(0.2) : Color.secondary.opacity(0.2), lineWidth: 1)
                 }
         }
-        .padding(AppTheme.spacingMedium)
-        .background(AppTheme.controlBackground)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusLarge))
+        .padding(10)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

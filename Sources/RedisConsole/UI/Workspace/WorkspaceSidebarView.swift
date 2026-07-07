@@ -12,13 +12,13 @@ struct WorkspaceSidebarView: View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 if let selectedConnection = conn.selectedConnection {
-                    VStack(alignment: .leading, spacing: AppTheme.spacingSmall) {
-                        HStack(alignment: .firstTextBaseline, spacing: AppTheme.spacingSmall) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text(selectedConnection.name)
                                 .font(.title3)
                                 .fontWeight(.bold)
                                 .lineLimit(1)
-                            Spacer(minLength: AppTheme.spacing)
+                            Spacer(minLength: 8)
                             Badge(
                                 text: selectedConnection.mode.title,
                                 foregroundColor: selectedConnection.mode.badgeForegroundColor,
@@ -33,7 +33,7 @@ struct WorkspaceSidebarView: View {
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(AppTheme.spacing)
+                    .padding(8)
                 }
             }
 

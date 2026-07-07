@@ -35,7 +35,7 @@ struct HashDetailView: View {
                 placeholder: "Field filter",
                 onSearch: { onSearch(pendingSearchText) }
             )
-            .padding(AppTheme.spacing)
+            .padding(8)
 
             Divider()
 
@@ -58,7 +58,7 @@ struct HashDetailView: View {
                 }
 
                 TableColumn("Actions") { row in
-                    HStack(spacing: AppTheme.spacing) {
+                    HStack(spacing: 8) {
                         Button("Edit Field", systemImage: "pencil") {
                             editingField = row.field
                             editValue = row.value

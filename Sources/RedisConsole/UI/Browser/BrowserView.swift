@@ -23,7 +23,7 @@ struct BrowserView: View {
 
         VStack(spacing: 0) {
             // MARK: Header Bar
-            HStack(spacing: AppTheme.spacing) {
+            HStack(spacing: 8) {
                 Picker("", selection: $app.keyTypeFilter) {
                     Text("All Types").tag("")
                     Text("String").tag("string")
@@ -42,7 +42,7 @@ struct BrowserView: View {
                             app.keyScanCount = currentScanCount
                             Task { await app.scanKeys(reset: true) }
                         }
-                    HStack(spacing: AppTheme.spacingSmall) {
+                    HStack(spacing: 4) {
                         if !searchText.isEmpty {
                             Button("Clear Search", systemImage: "xmark.circle.fill") {
                                 searchText = ""
@@ -56,13 +56,13 @@ struct BrowserView: View {
                         }
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
-                            .padding(.trailing, AppTheme.spacing)
+                            .padding(.trailing, 8)
                     }
                 }
                 .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, AppTheme.spacing)
-            .padding(.vertical, AppTheme.spacing)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
 
             Divider()
 
@@ -77,7 +77,7 @@ struct BrowserView: View {
             ) {
                 // MARK: Left Panel
                 VStack(spacing: 0) {
-                    HStack(spacing: AppTheme.spacingSmallMedium) {
+                    HStack(spacing: 6) {
                         Picker(
                             "Key List Style",
                             selection: Binding(
@@ -114,8 +114,8 @@ struct BrowserView: View {
                             Task { await app.scanKeys(reset: true) }
                         }
                     }
-                    .padding(.horizontal, AppTheme.spacing)
-                    .padding(.vertical, AppTheme.spacingSmallMedium)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
 
                     Divider()
 
@@ -289,20 +289,20 @@ struct BrowserView: View {
     private var loadMoreOrScanningView: some View {
         if app.hasMoreKeys {
             if app.isLoadingKeys {
-                HStack(spacing: AppTheme.spacingSmallMedium) {
+                HStack(spacing: 6) {
                     ProgressView()
                         .controlSize(.small)
                     Text("Scanning...")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                .padding(AppTheme.spacing)
+                .padding(8)
             } else {
                 Button("Load more") {
                     app.keyScanCount = currentScanCount
                     Task { await app.scanKeys() }
                 }
-                .padding(AppTheme.spacing)
+                .padding(8)
             }
         }
     }
@@ -576,7 +576,7 @@ private struct KeyNamespaceNodeView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
-                .padding(.vertical, AppTheme.spacingSmall)
+                .padding(.vertical, 4)
             }
         } label: {
             KeyNamespaceRow(namespace: namespace)
@@ -605,7 +605,7 @@ private struct KeyNamespaceRow: View {
     let namespace: KeyNamespaceNode
 
     var body: some View {
-        HStack(spacing: AppTheme.spacing) {
+        HStack(spacing: 8) {
             Image(systemName: "folder")
                 .foregroundStyle(.tint)
             Text(namespace.name)
@@ -617,7 +617,7 @@ private struct KeyNamespaceRow: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, AppTheme.spacing)
+        .padding(.vertical, 8)
         .accessibilityLabel("\(namespace.name), \(namespace.keyCount) keys")
     }
 }
@@ -740,10 +740,10 @@ struct ProductionConfirmView: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: AppTheme.spacingLarge) {
+        VStack(spacing: 16) {
             Image(systemName: "exclamationmark.shield.fill")
                 .font(.largeTitle)
-                .foregroundStyle(DomainColor.statusError)
+                .foregroundStyle(.red)
 
             Text(title)
                 .font(.title2)
@@ -756,13 +756,13 @@ struct ProductionConfirmView: View {
 
             HStack(spacing: 0) {
                 Image(systemName: "shield")
-                    .foregroundStyle(DomainColor.statusError)
+                    .foregroundStyle(.red)
                 Text("This is a PRODUCTION database.")
                     .font(.subheadline)
-                    .foregroundStyle(DomainColor.statusError)
+                    .foregroundStyle(.red)
             }
 
-            HStack(spacing: AppTheme.spacingSmall) {
+            HStack(spacing: 4) {
                 Text("Type \"\(confirmText)\" to confirm:")
                     .font(.subheadline)
                 Spacer()
@@ -781,7 +781,7 @@ struct ProductionConfirmView: View {
                     .disabled(input != confirmText)
             }
         }
-        .padding(AppTheme.spacingLarge)
+        .padding(16)
         .frame(width: 320)
     }
 

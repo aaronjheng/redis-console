@@ -124,18 +124,18 @@ struct StringDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             if isEditing {
-                VStack(spacing: AppTheme.spacing) {
+                VStack(spacing: 8) {
                     TextEditor(text: $editValue)
                         .font(.system(.body, design: .monospaced))
-                        .padding(AppTheme.spacing)
-                        .background(AppTheme.textEditorBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium))
+                        .padding(8)
+                        .background(Color(nsColor: .textBackgroundColor))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                         .overlay(
-                            RoundedRectangle(cornerRadius: AppTheme.cornerRadiusMedium)
+                            RoundedRectangle(cornerRadius: 6)
                                 .stroke(Color.accentColor, lineWidth: 2)
                         )
 
-                    HStack(spacing: AppTheme.spacing) {
+                    HStack(spacing: 8) {
                         Spacer()
                         Button("Cancel") {
                             isEditing = false
@@ -148,7 +148,7 @@ struct StringDetailView: View {
                         .buttonStyle(.borderedProminent)
                     }
                 }
-                .padding(AppTheme.spacingLarge)
+                .padding(16)
             } else {
                 ZStack(alignment: .topTrailing) {
                     ScrollView {
@@ -162,14 +162,14 @@ struct StringDetailView: View {
                         .font(.system(.body, design: .monospaced))
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(AppTheme.spacingLarge)
+                        .padding(16)
                     }
                     .onTapGesture(count: 2) {
                         editValue = value
                         isEditing = true
                     }
 
-                    HStack(spacing: AppTheme.spacingSmall) {
+                    HStack(spacing: 4) {
                         Picker("", selection: $format) {
                             ForEach(StringValueFormat.allCases) { format in
                                 Text(format.title).tag(format)
@@ -187,7 +187,7 @@ struct StringDetailView: View {
                         .buttonStyle(.borderless)
                         .help("Edit value")
                     }
-                    .padding(AppTheme.spacingLarge)
+                    .padding(16)
                 }
             }
 
@@ -234,10 +234,10 @@ private enum JSONSyntaxHighlighter {
                     to: &attributed,
                     source: source,
                     range: stringRange,
-                    color: isObjectKey ? DomainColor.jsonKey : DomainColor.jsonString
+                    color: isObjectKey ? .teal : .green
                 )
                 for escapeRange in escapeRanges {
-                    applyColor(to: &attributed, source: source, range: escapeRange, color: DomainColor.jsonBoolean)
+                    applyColor(to: &attributed, source: source, range: escapeRange, color: .orange)
                 }
                 continue
             }
@@ -248,7 +248,7 @@ private enum JSONSyntaxHighlighter {
                 while index < chars.count, isNumberBody(char: chars[index]) {
                     index += 1
                 }
-                applyColor(to: &attributed, source: source, range: numberStart..<index, color: DomainColor.jsonNumber)
+                applyColor(to: &attributed, source: source, range: numberStart..<index, color: .blue)
                 continue
             }
 
@@ -257,9 +257,9 @@ private enum JSONSyntaxHighlighter {
                 let color: Color =
                     switch keyword {
                     case "true", "false":
-                        DomainColor.jsonBoolean
+                        .orange
                     case "null":
-                        DomainColor.jsonNull
+                        .red
                     default:
                         .primary
                     }

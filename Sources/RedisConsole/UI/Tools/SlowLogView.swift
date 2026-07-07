@@ -22,7 +22,7 @@ struct SlowLogView: View {
                 )
 
             }
-            .padding(AppTheme.spacingLarge)
+            .padding(16)
 
             // Entries list
             if app.slowLogEntries.isEmpty {
@@ -96,11 +96,11 @@ struct SlowLogView: View {
 
     private func durationColor(_ duration: Int) -> Color {
         if duration >= 1_000_000 {
-            return DomainColor.statusError
+            return .red
         } else if duration >= 100_000 {
-            return DomainColor.statusWarning
+            return .orange
         } else if duration >= 10_000 {
-            return DomainColor.statusWarning
+            return .orange
         }
         return .primary
     }

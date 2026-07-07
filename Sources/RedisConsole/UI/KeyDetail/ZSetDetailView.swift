@@ -32,7 +32,7 @@ struct ZSetDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: AppTheme.spacing) {
+            HStack(spacing: 8) {
                 DetailSearchField(
                     searchText: $pendingSearchText,
                     placeholder: "Member filter",
@@ -56,7 +56,7 @@ struct ZSetDetailView: View {
                 .disabled(!pendingSearchText.isEmpty)
                 .help("Sort order")
             }
-            .padding(AppTheme.spacing)
+            .padding(8)
 
             Divider()
 
@@ -80,7 +80,7 @@ struct ZSetDetailView: View {
                 }
 
                 TableColumn("Actions") { row in
-                    HStack(spacing: AppTheme.spacing) {
+                    HStack(spacing: 8) {
                         Button("Edit Score", systemImage: "pencil") {
                             editingMember = row.member
                             editScore = row.score

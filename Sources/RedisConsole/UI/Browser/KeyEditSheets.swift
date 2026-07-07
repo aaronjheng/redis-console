@@ -10,7 +10,7 @@ struct AddHashFieldSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: AppTheme.spacingLarge) {
+        VStack(spacing: 16) {
             Text("Add Hash Field")
                 .font(.headline)
 
@@ -29,7 +29,7 @@ struct AddHashFieldSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(AppTheme.spacingLarge)
+        .padding(16)
     }
 }
 
@@ -41,7 +41,7 @@ struct AddListElementSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: AppTheme.spacingLarge) {
+        VStack(spacing: 16) {
             Text("Add List Element")
                 .font(.headline)
 
@@ -63,7 +63,7 @@ struct AddListElementSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(AppTheme.spacingLarge)
+        .padding(16)
     }
 }
 
@@ -74,7 +74,7 @@ struct AddSetMemberSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: AppTheme.spacingLarge) {
+        VStack(spacing: 16) {
             Text("Add Set Member")
                 .font(.headline)
 
@@ -92,7 +92,7 @@ struct AddSetMemberSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(AppTheme.spacingLarge)
+        .padding(16)
     }
 }
 
@@ -104,7 +104,7 @@ struct AddZSetMemberSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: AppTheme.spacingLarge) {
+        VStack(spacing: 16) {
             Text("Add Sorted Set Member")
                 .font(.headline)
 
@@ -122,7 +122,7 @@ struct AddZSetMemberSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(AppTheme.spacingLarge)
+        .padding(16)
     }
 }
 
@@ -164,7 +164,7 @@ struct AddKeySheet: View {
     }
 
     var body: some View {
-        VStack(spacing: AppTheme.spacingLarge) {
+        VStack(spacing: 16) {
             Text("Add New Key")
                 .font(.headline)
 
@@ -236,7 +236,7 @@ struct AddKeySheet: View {
                 .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(AppTheme.spacingLarge)
+        .padding(16)
         .onAppear {
             resetArrays(for: keyType)
         }
@@ -248,7 +248,7 @@ struct AddKeySheet: View {
         placeholder: @escaping (Int) -> String,
         addLabel: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
+        VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(values.wrappedValue.enumerated()), id: \.offset) { index, _ in
                 HStack {
                     TextField(
@@ -262,7 +262,7 @@ struct AddKeySheet: View {
                             values.wrappedValue.remove(at: index)
                         }
                         .labelStyle(.iconOnly)
-                        .foregroundStyle(DomainColor.statusError)
+                        .foregroundStyle(.red)
                         .buttonStyle(.borderless)
                     }
                 }
@@ -283,7 +283,7 @@ struct AddKeySheet: View {
         secondPlaceholder: String,
         addLabel: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
+        VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(pairs.wrappedValue.enumerated()), id: \.offset) { index, _ in
                 HStack {
                     TextField(
@@ -303,7 +303,7 @@ struct AddKeySheet: View {
                             pairs.wrappedValue.remove(at: index)
                         }
                         .labelStyle(.iconOnly)
-                        .foregroundStyle(DomainColor.statusError)
+                        .foregroundStyle(.red)
                         .buttonStyle(.borderless)
                     }
                 }
@@ -322,7 +322,7 @@ struct AddKeySheet: View {
         pairs: Binding<[(score: String, member: String)]>,
         addLabel: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
+        VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(pairs.wrappedValue.enumerated()), id: \.offset) { index, _ in
                 HStack {
                     TextField(
@@ -344,7 +344,7 @@ struct AddKeySheet: View {
                             pairs.wrappedValue.remove(at: index)
                         }
                         .labelStyle(.iconOnly)
-                        .foregroundStyle(DomainColor.statusError)
+                        .foregroundStyle(.red)
                         .buttonStyle(.borderless)
                     }
                 }

@@ -60,15 +60,9 @@ The audit produces two artifacts with different lifetimes:
    - This document is intentionally disposable: re-run the workflow and the audit changes.
    - Include: methodology, P0/P1/P2 findings, missing coverage, and proposed cleanup actions.
 
-2. **Design System specification (persistent, commit)**
-   - Output to the `Design/` directory as a set of focused markdown files.
-   - Treat this as a living document: update the relevant files when the audit reveals new tokens, components, or guidelines.
-   - Suggested structure:
-     - `Design/README.md` — principles and index
-     - `Design/TOKENS.md` — spacing, corner radii, typography, sizing
-     - `Design/COLORS.md` — semantic, NSColor, and domain color palettes
-     - `Design/COMPONENTS.md` — buttons, badges, banners, tables, empty states, loading, cards, sheets, popovers
-     - `Design/LAYOUT.md` — workspace layout and header rhythm
+2. **Design consistency findings (persistent, commit)**
+   - Document design consistency issues and recommended fixes.
+   - Treat this as a living document: update when the audit reveals new issues or resolved inconsistencies.
 
 ### Step 4 — Update the generator if needed
 
@@ -77,7 +71,7 @@ If the audit reveals capture bugs (e.g., screenshots not saved, dialogs not capt
 1. Fix the generator code.
 2. Re-run the generator.
 3. Re-sample affected screenshots to confirm.
-4. Mention the fix in the intermediate UI Audit report; update the relevant `Design/*.md` files only if the fix changes a design token or component guideline.
+4. Mention the fix in the intermediate UI Audit report.
 
 ### Step 5 — Save this workflow as a skill
 
@@ -91,7 +85,6 @@ Use this file as the template. Customize the generator command and file paths to
 
 ## Output conventions
 
-- The `Design/` directory contains the committed design system. Treat it as a living specification.
 - `UI_AUDIT.md` is an intermediate, disposable artifact. Generate it inside `ui-inventory/` (a build artifact) or a temp directory; do not commit it.
 - Keep findings specific: reference screenshot IDs, file paths, and line numbers where possible.
 - Prioritize safety-critical UI (production confirmations, destructive actions) over cosmetic polish.
@@ -112,6 +105,6 @@ cat ui-inventory/summary.md
 ## Extension ideas
 
 - Add a fourth subagent to diff two inventory runs for regression analysis.
-- Generate a Swift `AppTheme` file directly from the Design System spec.
+
 - Add a `capturable: Bool` field to inventory metadata for non-capturable states.
 - Automate the workflow with a `just audit-design-system` command.
