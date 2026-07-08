@@ -14,7 +14,6 @@ enum UIInventoryRegistry {
             ConnHubSSHEntry(),
             ConnHubTLSEntry(),
             ConnHubConnectingEntry(),
-            ConnHubErrorEntry(),
             // MARK: - Key Browser
             BrowserEmptyEntry(),
             BrowserLoadingEntry(),
@@ -545,24 +544,6 @@ private struct ConnHubConnectingEntry: UIInventoryEntry {
             port: 6379,
             environment: .development
         )
-    }
-}
-
-private struct ConnHubErrorEntry: UIInventoryEntry {
-    let id = "conn-hub-error"
-    let feature = "Connection Management"
-    let module = "ContentView"
-    let state = "Connection hub with error banner"
-    let priority: ScreenshotPriority = .medium
-    let notes = "Disconnected; rightPanel .welcome, no activeClient, connectionError set"
-    let viewHierarchy = "TabContentView > ConnectionHubView"
-
-    func configure(state: ConnectionState, store: AppStore) {
-        store.connections = UIInventoryRegistry.sampleConnections
-        state.rightPanel = .welcome
-        state.activeClient = nil
-        state.isConnecting = false
-        state.connectionError = "Failed to connect: Connection refused"
     }
 }
 

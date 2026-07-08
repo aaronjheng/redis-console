@@ -18,7 +18,7 @@ The screenshots are build artifacts — they will be deleted and regenerated. Th
 
 ### 2. Zero production code coupling
 
-The only production code change is the 3-line `--generate-ui-inventory` guard in `AppLifecycle.swift`. The generator works by:
+The only production code change is the 3-line `--generate-ui-inventory` guard in `App/AppLifecycle.swift`. The generator works by:
 - Creating fresh `ConnectionState` instances (the app's own observable model)
 - Injecting `FakeRedisSession` (conforms to the app's own `RedisSession` protocol)
 - Rendering the app's own `TabContentView` in an off-screen `NSWindow`
@@ -31,11 +31,11 @@ Same input → same output. No timestamps in filenames, no random data, no time-
 
 ### 4. ConnectionState as the single injection seam
 
-`ConnectionState` (`Application/AppState.swift`) is the per-tab observable model that every view reads via `@Environment`. The generator creates a fresh `ConnectionState` per entry, populates it directly, and the views render as if they were in a real connected tab. This is the key insight that makes the generator possible without mocking the entire app stack.
+`ConnectionState` (`State/ConnectionState.swift`) is the per-tab observable model that every view reads via `@Environment`. The generator creates a fresh `ConnectionState` per entry, populates it directly, and the views render as if they were in a real connected tab. This is the key insight that makes the generator possible without mocking the entire app stack.
 
 ### 5. FakeRedisSession as the protocol-level fake
 
-`RedisSession` (`Redis/RedisClusterClient.swift:156`) is the protocol that abstracts standalone vs cluster Redis clients. `FakeRedisSession` conforms to it and returns canned RESP data. This means all of `ConnectionState`'s async methods (`scanKeys`, `loadServerInfo`, `fetchSlowLog`, etc.) can run against the fake without a real Redis server. If the app adds a new Redis command, add a case to `FakeRedisSession.send()`.
+`RedisSession` (`Redis/Client/RedisSession.swift:155`) is the protocol that abstracts standalone vs cluster Redis clients. `FakeRedisSession` conforms to it and returns canned RESP data. This means all of `ConnectionState`'s async methods (`scanKeys`, `loadServerInfo`, `fetchSlowLog`, etc.) can run against the fake without a real Redis server. If the app adds a new Redis command, add a case to `FakeRedisSession.send()`.
 
 ### 6. Registry as single source of truth
 
@@ -93,7 +93,7 @@ The `ScreenshotCapture` approach renders the real view hierarchy in a real `NSWi
 | `InventoryExporter.swift` | Writes `inventory.json`, `summary.md`, `index.html`, per-entry metadata |
 | `InventoryGenerator.swift` | `@MainActor` runner + `InventoryGeneratorDelegate` (NSApplicationDelegate) |
 
-Entry point: `AppLifecycle.swift` checks for `--generate-ui-inventory` launch arg before starting the normal app.
+Entry point: `App/AppLifecycle.swift` checks for `--generate-ui-inventory` launch arg before starting the normal app.
 
 ---
 
@@ -165,10 +165,10 @@ This is the most common task. Steps:
 
 ### Key Integration Points
 
-- `ConnectionState` (`Application/AppState.swift`) — the per-tab observable model. Read its properties to understand what each view consumes.
-- `AppView` enum (`Application/AppNavigation.swift`) — selects workspace view: `.browser`, `.shell`, `.profiler`, `.slowLog`, `.databaseAnalysis`, `.serverInfo`.
-- `RightPanel` enum (`Application/AppNavigation.swift`) — selects hub right panel: `.welcome`, `.newConnection`, `.editConnection(config)`.
-- `TabContentView` (`UI/ContentView.swift`) — root view; branches on `activeClient?.isConnected`.
+- `ConnectionState` (`State/ConnectionState.swift`) — the per-tab observable model. Read its properties to understand what each view consumes.
+- `AppView` enum (`Models/Navigation.swift`) — selects workspace view: `.browser`, `.shell`, `.profiler`, `.slowLog`, `.databaseAnalysis`, `.serverInfo`.
+- `RightPanel` enum (`Models/Navigation.swift`) — selects hub right panel: `.welcome`, `.newConnection`, `.editConnection(config)`.
+- `TabContentView` (`UI/Root/ContentView.swift`) — root view; branches on `activeClient?.isConnected`.
 
 ---
 
@@ -202,11 +202,11 @@ When the app's UI changes (new view, new conditional branch, new state), run a c
 
 All deterministic mock data lives in `FakeRedisData.default` (in `FakeRedisSession.swift`). This is the single place to edit when you need different key values, server info, slow log entries, etc.
 
-The `FakeRedisSession.send(_:)` method dispatches based on `args[0].uppercased()`. If the app adds a new Redis command, add a case here. Read `ConnectionState+<Feature>.swift` extension files to see exactly which commands each feature calls and what RESP shapes it expects.
+The `FakeRedisSession.send(_:)` method dispatches based on `args[0].uppercased()`. If the app adds a new Redis command, add a case here. Read `State/ConnectionState+<Feature>.swift` extension files to see exactly which commands each feature calls and what RESP shapes it expects.
 
 ### What FakeRedisSession must support
 
-Read the `ConnectionState+*.swift` extension files to find every `client.send(...)`, `client.scan(...)`, `client.sendPipeline(...)`, and `client.totalKeyCount()` call. Each command and response shape must be handled in `FakeRedisSession.send()`. Missing commands return `.null`, which may cause silent failures (empty data, not crashes).
+Read the `State/ConnectionState+*.swift` extension files to find every `client.send(...)`, `client.scan(...)`, `client.sendPipeline(...)`, and `client.totalKeyCount()` call. Each command and response shape must be handled in `FakeRedisSession.send()`. Missing commands return `.null`, which may cause silent failures (empty data, not crashes).
 
 ---
 
@@ -235,7 +235,7 @@ When adding entries that need new sample data, prefer adding a `fileprivate stat
 ## Conventions
 
 - **Deterministic**: No timestamps in filenames, no random data. `FakeRedisData` is a static dataset. Same input → same output.
-- **No production changes**: The only production code modification is the 3-line `--generate-ui-inventory` guard in `AppLifecycle.swift`. All generator code lives under `Sources/RedisConsole/UIInventory/`.
+- **No production changes**: The only production code modification is the 3-line `--generate-ui-inventory` guard in `App/AppLifecycle.swift`. All generator code lives under `Sources/RedisConsole/UIInventory/`.
 - **File-scoped types**: Entry structs are `private` to `UIInventoryRegistry.swift`. Helpers are `fileprivate static`.
 - **Swift 6 strict concurrency**: `UIInventoryEntry` protocol is `@MainActor`. `ScreenshotCapture` is `@MainActor`. `FakeRedisSession` is `@unchecked Sendable`.
 - **No external dependencies**: Uses only AppKit, SwiftUI, Foundation. No SwiftSyntax or other packages.
