@@ -44,14 +44,12 @@ struct ShellView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: AppSpacing.small - AppSpacing.xxSmall) {
+                        LazyVStack(alignment: .leading, spacing: 0) {
                             ForEach(app.shellHistory) { entry in
                                 ShellHistoryRow(entry: entry)
                                     .id(entry.id)
-                                    .padding(.horizontal, AppSpacing.large)
                             }
                         }
-                        .padding(.vertical, AppSpacing.small)
                     }
                     .onChange(of: app.shellHistory.count) { _, _ in
                         if let last = app.shellHistory.last {
@@ -63,79 +61,92 @@ struct ShellView: View {
                 }
             }
 
-            Divider()
-
-            // Completion suggestions
-            if showCompletions && !filteredCompletions.isEmpty {
-                HStack(spacing: AppSpacing.xSmall) {
-                    ForEach(filteredCompletions.prefix(10), id: \.self) { cmd in
-                        Button {
-                            input = cmd + " "
-                            showCompletions = false
-                        } label: {
-                            Text(cmd)
-                                .font(.subheadline)
-                                .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
-                                .padding(.vertical, AppSpacing.xxSmall)
-                                .background(.quaternary)
-                                .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
+            // Input area — Grok-style pill composer
+            VStack(spacing: AppSpacing.xSmall) {
+                if showCompletions && !filteredCompletions.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: AppSpacing.xSmall) {
+                            ForEach(filteredCompletions.prefix(12), id: \.self) { cmd in
+                                Button {
+                                    input = cmd + " "
+                                    showCompletions = false
+                                } label: {
+                                    Text(cmd)
+                                        .font(.subheadline)
+                                        .padding(.horizontal, AppSpacing.small)
+                                        .padding(.vertical, AppSpacing.xxSmall)
+                                        .background(Color.secondary.opacity(0.12))
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .buttonStyle(.plain)
+                        .padding(.horizontal, AppSpacing.large)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, AppSpacing.xSmall)
-            }
 
-            // Input area
-            HStack(spacing: AppSpacing.small) {
-                Text(">")
-                    .font(AppFont.dataCell)
-                    .foregroundStyle(Color.accentColor)
-                    .bold()
+                HStack(spacing: AppSpacing.small) {
+                    Text("›")
+                        .font(AppFont.dataCell)
+                        .fontWeight(.bold)
+                        .foregroundStyle(AppColor.terminalPrompt)
 
-                TextField("Enter command...", text: $input, axis: .vertical)
-                    .font(AppFont.monoBody)
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...3)
-                    .focused($inputFocused)
-                    .onSubmit { executeCommand() }
-                    .onChange(of: input) { _, newValue in
-                        showCompletions = !newValue.isEmpty
-                    }
-                    .onKeyPress(.tab) {
-                        if let firstCompletion = filteredCompletions.first {
-                            input = firstCompletion + " "
-                            showCompletions = false
+                    TextField("Send a Redis command", text: $input, axis: .vertical)
+                        .font(AppFont.monoBody)
+                        .textFieldStyle(.plain)
+                        .lineLimit(1...4)
+                        .focused($inputFocused)
+                        .onSubmit { executeCommand() }
+                        .onChange(of: input) { _, newValue in
+                            showCompletions = !newValue.isEmpty
+                        }
+                        .onKeyPress(.tab) {
+                            if let firstCompletion = filteredCompletions.first {
+                                input = firstCompletion + " "
+                                showCompletions = false
+                                return .handled
+                            }
+                            return .ignored
+                        }
+                        .onKeyPress(.upArrow) {
+                            if !app.shellHistory.isEmpty {
+                                historyIndex = min(historyIndex + 1, app.shellHistory.count - 1)
+                                input = app.shellHistory[app.shellHistory.count - 1 - historyIndex].command
+                            }
                             return .handled
                         }
-                        return .ignored
-                    }
-                    .onKeyPress(.upArrow) {
-                        if !app.shellHistory.isEmpty {
-                            historyIndex = min(historyIndex + 1, app.shellHistory.count - 1)
-                            input = app.shellHistory[app.shellHistory.count - 1 - historyIndex].command
+                        .onKeyPress(.downArrow) {
+                            if historyIndex > 0 {
+                                historyIndex -= 1
+                                input = app.shellHistory[app.shellHistory.count - 1 - historyIndex].command
+                            } else if historyIndex == 0 {
+                                historyIndex = -1
+                                input = ""
+                            }
+                            return .handled
                         }
-                        return .handled
-                    }
-                    .onKeyPress(.downArrow) {
-                        if historyIndex > 0 {
-                            historyIndex -= 1
-                            input = app.shellHistory[app.shellHistory.count - 1 - historyIndex].command
-                        } else if historyIndex == 0 {
-                            historyIndex = -1
-                            input = ""
-                        }
-                        return .handled
-                    }
 
-                Button("Execute Command", systemImage: "arrow.right.circle.fill", action: executeCommand)
-                    .labelStyle(.iconOnly)
-                    .font(.title2)
-                    .buttonStyle(.borderless)
+                    Button(action: executeCommand) {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(input.isEmpty ? Color.secondary : Color(.controlBackgroundColor))
+                            .frame(width: 30, height: 30)
+                            .background(input.isEmpty ? Color.secondary.opacity(0.18) : Color.primary)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
                     .disabled(input.isEmpty)
+                }
+                .padding(.horizontal, AppSpacing.medium)
+                .padding(.vertical, AppSpacing.small)
+                .background(
+                    Capsule()
+                        .fill(.background)
+                        .overlay(Capsule().stroke(Color.secondary.opacity(0.18), lineWidth: 1))
+                )
+                .padding(.horizontal, AppSpacing.large)
+                .padding(.vertical, AppSpacing.small)
             }
-            .padding(AppSpacing.large)
             .background(.bar)
 
             Divider()
@@ -183,49 +194,45 @@ struct ShellView: View {
 struct ShellHistoryRow: View {
     let entry: ShellHistoryEntry
 
+    private var statusColor: Color {
+        entry.isError ? AppColor.terminalError : AppColor.terminalSuccess
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.small - AppSpacing.xxSmall) {
-            // Command header
-            HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
-                Image(systemName: entry.isError ? "xmark.circle.fill" : "checkmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(entry.isError ? AppColor.error : AppColor.success)
-                    .frame(width: 16)
+        VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+            // Command line: prompt + highlighted command + status + time
+            HStack(alignment: .firstTextBaseline, spacing: AppSpacing.small) {
+                Text("›")
+                    .font(AppFont.dataCell)
+                    .fontWeight(.bold)
+                    .foregroundStyle(AppColor.terminalPrompt.opacity(0.65))
 
                 Text(ShellSyntaxHighlighter.highlight(entry.command))
                     .font(AppFont.dataCell)
-                    .bold()
-                    .lineLimit(3)
+                    .lineLimit(nil)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer()
+                Image(systemName: entry.isError ? "xmark.circle.fill" : "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(statusColor)
 
                 Text(entry.timestamp, style: .time)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
 
-            // Result block
+            // Output block
             Text(entry.result)
                 .font(AppFont.monoSubheadline)
-                .foregroundStyle(entry.isError ? AppColor.error : .primary)
+                .foregroundStyle(entry.isError ? AppColor.terminalError : .primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(AppSpacing.medium - AppSpacing.xxSmall)
-                .background {
-                    if entry.isError {
-                        AppColor.error.opacity(0.08)
-                    } else {
-                        AppColor.codeBackground
-                    }
-                }
+                .padding(AppSpacing.small)
+                .background(AppColor.terminalOutputBackground)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
-                .overlay {
-                    RoundedRectangle(cornerRadius: AppRadius.medium)
-                        .stroke(entry.isError ? AppColor.error.opacity(0.2) : Color.secondary.opacity(0.2), lineWidth: 1)
-                }
         }
-        .padding(AppSpacing.medium - AppSpacing.xxSmall)
-        .background(AppColor.controlBackground)
-        .clipShape(RoundedRectangle(cornerRadius: AppRadius.large))
+        .padding(.horizontal, AppSpacing.large)
+        .padding(.vertical, AppSpacing.medium)
+        .background(.background)
     }
 }

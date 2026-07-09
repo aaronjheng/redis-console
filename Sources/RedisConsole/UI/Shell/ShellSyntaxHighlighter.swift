@@ -86,7 +86,7 @@ enum ShellSyntaxHighlighter {
 
         var color: Color {
             switch self {
-            case .command: return AppColor.chartSet
+            case .command: return AppColor.terminalCommand
             case .string: return AppColor.syntaxString
             case .number: return AppColor.syntaxNumber
             case .comment: return .secondary
