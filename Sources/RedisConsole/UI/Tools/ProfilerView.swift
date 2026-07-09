@@ -208,7 +208,6 @@ private struct ProfilerToolbarView: View {
 
             Divider()
         }
-        .background(.bar)
     }
 
     private var captureButtonTitle: String {
