@@ -35,6 +35,8 @@ struct DatabaseAnalysisView: View {
             }
             .padding(AppSpacing.large)
 
+            Divider()
+
             if let error = app.analysisError {
                 ErrorBanner(message: error)
                 Divider()
@@ -66,6 +68,15 @@ struct DatabaseAnalysisView: View {
                         countText: "\(analysis.totalKeys) keys",
                         sizeText: analysis.serverMetrics.usedMemoryHuman
                     )
+                } else if app.isLoadingAnalysis {
+                    Label("Analyzing…", systemImage: "hourglass")
+                        .foregroundStyle(.secondary)
+                } else if app.analysisError != nil {
+                    Label("Analysis failed", systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(AppColor.error)
+                } else {
+                    Text("No analysis data")
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
             }
