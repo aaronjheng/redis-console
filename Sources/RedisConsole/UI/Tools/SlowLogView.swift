@@ -24,6 +24,8 @@ struct SlowLogView: View {
             }
             .padding(AppSpacing.large)
 
+            Divider()
+
             // Entries list
             if app.slowLogEntries.isEmpty {
                 Spacer()
@@ -78,13 +80,15 @@ struct SlowLogView: View {
                 }
                 .tableStyle(.inset)
 
-                // Footer
-                WorkspaceFooterBar {
-                    StatusFooterView(
-                        countText: "\(app.slowLogEntries.count) entries total"
-                    )
-                    Spacer()
-                }
+                Divider()
+            }
+
+            // Footer
+            WorkspaceFooterBar {
+                StatusFooterView(
+                    countText: "\(app.slowLogEntries.count) entries total"
+                )
+                Spacer()
             }
         }
         .task {
