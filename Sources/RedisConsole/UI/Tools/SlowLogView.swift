@@ -40,12 +40,19 @@ struct SlowLogView: View {
 
                 Spacer()
 
-                RefreshControl(
-                    autoRefreshInterval: $app.slowLogConfig.autoRefreshInterval,
-                    isLoading: app.isLoadingSlowLog,
-                    intervals: [5, 10, 30, 60],
-                    onRefresh: { Task { await app.fetchSlowLog() } }
-                )
+                if app.isLoadingSlowLog {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .controlSize(.small)
+                }
+
+                Button("Refresh", systemImage: "arrow.clockwise") {
+                    Task { await app.fetchSlowLog() }
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .disabled(app.isLoadingSlowLog)
+                .help("Refresh")
             }
             .padding(.horizontal, AppSpacing.large)
             .padding(.vertical, AppSpacing.small)
@@ -118,14 +125,7 @@ struct SlowLogView: View {
             }
         }
         .task {
-            app.loadSlowLogConfig()
             await app.fetchSlowLog()
-        }
-        .onChange(of: app.slowLogConfig.autoRefreshInterval) { _, _ in
-            app.saveSlowLogConfig()
-        }
-        .task(id: app.slowLogConfig.autoRefreshInterval) {
-            await autoRefreshSlowLog(interval: app.slowLogConfig.autoRefreshInterval)
         }
     }
 
@@ -149,12 +149,4 @@ struct SlowLogView: View {
         return .primary
     }
 
-    private func autoRefreshSlowLog(interval: TimeInterval) async {
-        guard interval > 0 else { return }
-        while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(interval))
-            guard !Task.isCancelled else { return }
-            await app.fetchSlowLog()
-        }
-    }
 }
