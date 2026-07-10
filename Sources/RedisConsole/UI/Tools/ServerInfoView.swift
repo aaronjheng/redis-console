@@ -17,17 +17,20 @@ struct ServerInfoView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Server Info")
-                    .font(.headline)
+            // Header
+            HStack(spacing: AppSpacing.medium) {
                 Spacer()
                 Button("Refresh", systemImage: "arrow.clockwise") {
                     Task { await app.loadServerInfo() }
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
+                .help("Refresh")
             }
-            .padding(AppSpacing.large)
+            .padding(.horizontal, AppSpacing.large)
+            .padding(.vertical, AppSpacing.small)
+
+            Divider()
 
             if isClusterMode && !app.clusterNodes.isEmpty {
                 clusterInfoView
