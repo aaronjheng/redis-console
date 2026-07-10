@@ -39,6 +39,7 @@ struct ProfilerView: View {
                 hideNoiseCommands: $hideNoiseCommands,
                 isStarting: app.isProfilerStarting,
                 isRunning: app.isProfilerRunning,
+                hasEntries: !app.profilerEntries.isEmpty,
                 onToggleCapture: toggleCapture,
                 onClear: clearProfiler
             )
@@ -63,7 +64,9 @@ struct ProfilerView: View {
                 filteredCount: filteredEntries.count,
                 retainedCount: app.profilerEntries.count,
                 capturedCount: app.profilerCapturedCount,
-                selectedEntry: selectedEntry
+                selectedEntry: selectedEntry,
+                isStarting: app.isProfilerStarting,
+                isRunning: app.isProfilerRunning
             )
         }
     }
@@ -153,33 +156,13 @@ private struct ProfilerToolbarView: View {
     @Binding var hideNoiseCommands: Bool
     let isStarting: Bool
     let isRunning: Bool
+    let hasEntries: Bool
     let onToggleCapture: () -> Void
     let onClear: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: AppSpacing.medium) {
-                Text("Profiler")
-                    .font(.headline)
-
-                ProfilerStatusPill(isStarting: isStarting, isRunning: isRunning)
-
-                Spacer()
-
-                Button(action: onToggleCapture) {
-                    Label(captureButtonTitle, systemImage: captureButtonIcon)
-                }
-                .buttonStyle(PrimaryButtonStyle())
-
-                Button(action: onClear) {
-                    Label("Clear", systemImage: "trash")
-                }
-            }
-            .padding(AppSpacing.large)
-
-            Divider()
-
-            HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
                 ZStack(alignment: .trailing) {
                     TextField("Filter command, node, source, database, or raw text", text: $filterText)
                         .textFieldStyle(.roundedBorder)
@@ -201,10 +184,19 @@ private struct ProfilerToolbarView: View {
                 Toggle("Hide noise", isOn: $hideNoiseCommands)
                     .toggleStyle(.switch)
 
-                Color.clear.frame(width: 0, height: 0)
+                Button(action: onToggleCapture) {
+                    Label(captureButtonTitle, systemImage: captureButtonIcon)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+
+                Button(action: onClear) {
+                    Label("Clear", systemImage: "trash")
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .disabled(!hasEntries)
             }
             .padding(.horizontal, AppSpacing.large)
-            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+            .padding(.vertical, AppSpacing.small)
 
             Divider()
         }
@@ -221,23 +213,13 @@ private struct ProfilerToolbarView: View {
     }
 }
 
-private struct ProfilerStatusPill: View {
+private struct ProfilerStatusIndicator: View {
     let isStarting: Bool
     let isRunning: Bool
 
     var body: some View {
-        HStack(spacing: 5) {
-            Circle()
-                .fill(indicatorColor)
-                .frame(width: 7, height: 7)
-            Text(statusText)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, AppSpacing.small)
-        .padding(.vertical, 3)
-        .background(.quaternary)
-        .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
+        Label(statusText, systemImage: statusIcon)
+            .foregroundStyle(isRunning || isStarting ? AppColor.success : .secondary)
     }
 
     private var statusText: String {
@@ -245,9 +227,9 @@ private struct ProfilerStatusPill: View {
         return isRunning ? "Running" : "Stopped"
     }
 
-    private var indicatorColor: Color {
-        if isStarting { return AppColor.warning }
-        return isRunning ? AppColor.success : .secondary
+    private var statusIcon: String {
+        if isStarting { return "circle.dotted" }
+        return isRunning ? "circle.fill" : "circle"
     }
 }
 
@@ -368,6 +350,8 @@ private struct ProfilerFooterView: View {
     let retainedCount: Int
     let capturedCount: Int
     let selectedEntry: RedisProfilerEntry?
+    let isStarting: Bool
+    let isRunning: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -390,6 +374,7 @@ private struct ProfilerFooterView: View {
             }
 
             WorkspaceFooterBar {
+                ProfilerStatusIndicator(isStarting: isStarting, isRunning: isRunning)
                 StatusFooterView(
                     countText: "Showing \(filteredCount) of \(retainedCount)",
                     sizeText: "Captured \(capturedCount)"
