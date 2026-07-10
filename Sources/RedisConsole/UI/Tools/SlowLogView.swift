@@ -4,30 +4,56 @@ import SwiftUI
 
 struct SlowLogView: View {
     @Environment(ConnectionState.self) private var app
+    @State private var filterText = ""
+
+    private var filteredEntries: [SlowLogEntry] {
+        let query = filterText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return app.slowLogEntries }
+        return app.slowLogEntries.filter { entry in
+            entry.commandText.lowercased().contains(query)
+                || entry.clientIP.lowercased().contains(query)
+                || entry.clientName.lowercased().contains(query)
+        }
+    }
 
     var body: some View {
         @Bindable var app = app
 
         VStack(spacing: 0) {
             // Header
-            HStack {
-                Text("Slow Log")
-                    .font(.headline)
+            HStack(spacing: AppSpacing.medium) {
+                ZStack(alignment: .trailing) {
+                    TextField("Filter command, client, or name", text: $filterText)
+                        .textFieldStyle(.roundedBorder)
+
+                    if !filterText.isEmpty {
+                        Button("Clear Filter", systemImage: "xmark.circle.fill") {
+                            filterText = ""
+                        }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .padding(.trailing, 8)
+                    }
+                }
+                .frame(maxWidth: 360)
+
                 Spacer()
+
                 RefreshControl(
                     autoRefreshInterval: $app.slowLogConfig.autoRefreshInterval,
                     isLoading: app.isLoadingSlowLog,
                     intervals: [5, 10, 30, 60],
                     onRefresh: { Task { await app.fetchSlowLog() } }
                 )
-
             }
-            .padding(AppSpacing.large)
+            .padding(.horizontal, AppSpacing.large)
+            .padding(.vertical, AppSpacing.small)
 
             Divider()
 
             // Entries list
-            if app.slowLogEntries.isEmpty {
+            if filteredEntries.isEmpty {
                 Spacer()
                 if app.isLoadingSlowLog {
                     ProgressView("Loading slow log...")
@@ -41,7 +67,7 @@ struct SlowLogView: View {
                 }
                 Spacer()
             } else {
-                Table(app.slowLogEntries) {
+                Table(filteredEntries) {
                     TableColumn("ID") { entry in
                         Text("#\(entry.id)")
                             .font(.subheadline)
@@ -86,7 +112,7 @@ struct SlowLogView: View {
             // Footer
             WorkspaceFooterBar {
                 StatusFooterView(
-                    countText: "\(app.slowLogEntries.count) entries total"
+                    countText: footerCountText
                 )
                 Spacer()
             }
@@ -101,6 +127,15 @@ struct SlowLogView: View {
         .task(id: app.slowLogConfig.autoRefreshInterval) {
             await autoRefreshSlowLog(interval: app.slowLogConfig.autoRefreshInterval)
         }
+    }
+
+    private var footerCountText: String {
+        let total = app.slowLogEntries.count
+        let filtered = filteredEntries.count
+        if filterText.isEmpty || filtered == total {
+            return "\(total) entries total"
+        }
+        return "\(filtered) of \(total) entries"
     }
 
     private func durationColor(_ duration: Int) -> Color {
