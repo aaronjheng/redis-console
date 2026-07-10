@@ -8,15 +8,15 @@ struct DatabaseAnalysisView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            HStack {
-                Text("Database Analysis")
-                    .font(.headline)
+            HStack(spacing: AppSpacing.medium) {
                 Spacer()
+
                 if app.isLoadingAnalysis {
                     ProgressView()
                         .scaleEffect(0.7)
                         .controlSize(.small)
                 }
+
                 Button("Refresh", systemImage: "arrow.clockwise") {
                     Task { await app.runDatabaseAnalysis() }
                 }
@@ -33,7 +33,8 @@ struct DatabaseAnalysisView: View {
                 .disabled(app.analysis == nil)
                 .help("Export")
             }
-            .padding(AppSpacing.large)
+            .padding(.horizontal, AppSpacing.large)
+            .padding(.vertical, AppSpacing.small)
 
             Divider()
 
