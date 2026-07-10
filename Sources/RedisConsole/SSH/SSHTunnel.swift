@@ -235,6 +235,10 @@ class SSHTunnel: @unchecked Sendable {
             return isRetriableNWError(nwError)
         }
 
+        if let posixError = error as? POSIXError {
+            return isRetriableErrno(posixError.code.rawValue)
+        }
+
         guard let ioError = error as? IOError else { return false }
         return isRetriableErrno(ioError.errnoCode)
     }

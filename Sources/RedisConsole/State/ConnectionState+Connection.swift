@@ -156,7 +156,12 @@ extension ConnectionState {
                 if let clusterTunnelManager {
                     await clusterTunnelManager.disconnect()
                 }
-                AppLogger.error("connect failed name=\(resolvedConfig.name) error=\(error)", category: "Connection")
+                let stage = (client == nil) ? "ssh-tunnel" : "redis-connect"
+                let errorType = type(of: error)
+                AppLogger.error(
+                    "connect failed name=\(resolvedConfig.name) stage=\(stage) errorType=\(errorType) error=\(error)",
+                    category: "Connection"
+                )
             }
         }
 
