@@ -79,9 +79,9 @@ struct SlowLogView: View {
                     .width(130)
                 }
                 .tableStyle(.inset)
-
-                Divider()
             }
+
+            Divider()
 
             // Footer
             WorkspaceFooterBar {
