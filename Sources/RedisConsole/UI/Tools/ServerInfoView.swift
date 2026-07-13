@@ -66,25 +66,25 @@ struct ServerInfoView: View {
         return VStack(spacing: 0) {
             clusterSummaryBar
             Divider()
-            HStack(spacing: 0) {
-                if showTopology {
-                    ClusterTopologyView(
-                        nodes: app.clusterNodes,
-                        selectedEndpoint: $app.selectedServerInfoNode,
-                        onSelectNode: { endpoint in
-                            Task { await app.selectServerInfoNode(endpoint) }
-                        }
-                    )
-                    .frame(minWidth: 300)
-                } else {
+            if showTopology {
+                ClusterTopologyView(
+                    nodes: app.clusterNodes,
+                    selectedEndpoint: $app.selectedServerInfoNode,
+                    onSelectNode: { endpoint in
+                        Task { await app.selectServerInfoNode(endpoint) }
+                        showTopology = false
+                    }
+                )
+            } else {
+                HStack(spacing: 0) {
                     clusterNodeList
                         .frame(width: 280)
-                }
-                Divider()
-                VStack(spacing: 0) {
-                    selectedNodeHeader
                     Divider()
-                    serverInfoList
+                    VStack(spacing: 0) {
+                        selectedNodeHeader
+                        Divider()
+                        serverInfoList
+                    }
                 }
             }
         }
@@ -100,12 +100,15 @@ struct ServerInfoView: View {
             summaryItem("OK Slots", app.clusterInfo["cluster_slots_ok"] ?? "-")
             Spacer()
             if isClusterMode && !app.clusterNodes.isEmpty {
-                Toggle(isOn: $showTopology) {
-                    Label("Toggle topology view", systemImage: "point.connected.arcs")
-                }
-                .labelStyle(.iconOnly)
-                .toggleStyle(.button)
-                .help("Toggle topology view")
+                BinaryTogglePicker(
+                    selection: $showTopology,
+                    first: false,
+                    second: true,
+                    firstLabel: { Image(systemName: "list.bullet").help("List view") },
+                    secondLabel: { Image(systemName: "circle.hexagongrid").help("Topology view") }
+                )
+                .frame(width: 64)
+                .help("Toggle view mode")
             }
         }
         .padding(.horizontal, AppSpacing.large)
