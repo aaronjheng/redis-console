@@ -232,6 +232,7 @@ struct ServerInfoView: View {
                 Text(capability.name)
                     .font(AppFont.monoSubheadline)
                     .foregroundStyle(.primary)
+                    .frame(minWidth: 160, alignment: .leading)
                     .textSelection(.enabled)
                 Spacer()
                 Text(capability.version ?? "-")
