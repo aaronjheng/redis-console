@@ -95,8 +95,6 @@ struct ConnectionHubSidebarView: View {
                 }
             }
             .listStyle(.sidebar)
-            .scrollContentBackground(.hidden)
-            .background(Color(NSColor.windowBackgroundColor))
         }
     }
 

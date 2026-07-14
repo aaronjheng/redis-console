@@ -46,8 +46,6 @@ struct WorkspaceSidebarView: View {
                 }
             }
             .listStyle(.sidebar)
-            .scrollContentBackground(.hidden)
-            .background(Color(NSColor.windowBackgroundColor))
 
             Divider()
 
