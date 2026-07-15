@@ -267,6 +267,7 @@ final class RedisClient: Sendable {
         var negotiatedProtocolVersion: RESPProtocolVersion = .resp2
         var serverCapabilities: [String: RESPValue] = [:]
         var protocolFallbackReason: String?
+        var pushHandler: (@Sendable (RESPValue) -> Void)?
     }
 
     private let state = Mutex(State())
@@ -658,20 +659,40 @@ final class RedisClient: Sendable {
     }
 
     private func processBuffer() {
-        let completedCommands: [(PendingCommand, RESPValue)] = state.withLock {
+        let completedCommands: [(PendingCommand, RESPValue)]
+        let pushedMessages: [RESPValue]
+        (completedCommands, pushedMessages) = state.withLock {
             var completedCommands: [(PendingCommand, RESPValue)] = []
-            while let value = $0.parser.parse() {
-                guard !$0.pendingCompletions.isEmpty else { continue }
-                let pendingResponse = $0.pendingCompletions.removeFirst()
-                if let completion = pendingResponse.command {
-                    completedCommands.append((completion, value))
+            var pushedMessages: [RESPValue] = []
+            while let message = $0.parser.parse() {
+                switch message {
+                case .response(let value):
+                    guard !$0.pendingCompletions.isEmpty else { continue }
+                    let pendingResponse = $0.pendingCompletions.removeFirst()
+                    if let completion = pendingResponse.command {
+                        completedCommands.append((completion, value))
+                    }
+                case .push(let value):
+                    // Unsolicited RESP3 push: never matches an in-flight request.
+                    pushedMessages.append(value)
                 }
             }
-            return completedCommands
+            $0.parser.compact()
+            return (completedCommands, pushedMessages)
         }
 
         for (completion, value) in completedCommands {
             completion.complete(.success(value))
+        }
+
+        guard !pushedMessages.isEmpty else { return }
+        let handler = state.withLock { $0.pushHandler }
+        for message in pushedMessages {
+            if let handler {
+                handler(message)
+            } else {
+                AppLogger.debug("received unsolicited RESP3 push message", category: "Redis")
+            }
         }
     }
 

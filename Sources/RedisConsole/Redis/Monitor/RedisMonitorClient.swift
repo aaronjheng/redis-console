@@ -306,7 +306,12 @@ final class RedisMonitorClient: @unchecked Sendable {
     }
 
     private func processBuffer() {
-        while let value = parser.parse() {
+        while let message = parser.parse() {
+            let value: RESPValue
+            switch message {
+            case .response(let parsedValue), .push(let parsedValue):
+                value = parsedValue
+            }
             if let completion = pendingCompletions.first {
                 pendingCompletions.removeFirst()
                 completion.complete(.success(value))
@@ -316,6 +321,7 @@ final class RedisMonitorClient: @unchecked Sendable {
                 finishMonitor(with: RedisError.commandError(message))
             }
         }
+        parser.compact()
     }
 
     private func send(_ args: String...) async throws -> RESPValue {

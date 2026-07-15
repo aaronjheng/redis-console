@@ -126,26 +126,60 @@ enum RESPValue: CustomStringConvertible, Sendable {
     }
 }
 
+// MARK: - RESP Parsed Message
+
+enum RESPMessage: Sendable {
+    case response(RESPValue)
+    case push(RESPValue)
+}
+
 struct RESPParser: Sendable {
     private var buffer = Data()
+    private var readIndex: Data.Index = 0
 
     mutating func append(_ data: Data) {
         buffer.append(data)
     }
 
-    mutating func parse() -> RESPValue? {
-        guard !buffer.isEmpty else { return nil }
-        let snapshot = buffer
-        let result = parseValue()
-        if result == nil {
-            buffer = snapshot
+    /// Drop bytes that have already been consumed by `parse()`, keeping only
+    /// the trailing fragment that is not yet a complete RESP value.
+    mutating func compact() {
+        guard readIndex > buffer.startIndex else { return }
+        buffer.removeSubrange(buffer.startIndex..<readIndex)
+        readIndex = buffer.startIndex
+    }
+
+    /// Parse a single complete top-level RESP value, if one is fully buffered.
+    ///
+    /// Returns `nil` when the buffered data does not yet contain a complete
+    /// value. On failure nothing is consumed, so additional data can be appended
+    /// and parsing retried without re-scanning already-processed bytes.
+    mutating func parse() -> RESPMessage? {
+        guard readIndex < buffer.endIndex else { return nil }
+        let start = readIndex
+        let firstByte = buffer[readIndex]
+
+        // RESP3 push frames ('>') are unsolicited and must not be matched
+        // against an in-flight request, so they are surfaced separately.
+        if firstByte == 0x3E {
+            guard let value = parseValue() else {
+                readIndex = start
+                return nil
+            }
+            return .push(value)
         }
-        return result
+
+        guard let value = parseValue() else {
+            readIndex = start
+            return nil
+        }
+        return .response(value)
     }
 
     private mutating func parseValue() -> RESPValue? {
-        guard let firstByte = buffer.first else { return nil }
+        guard readIndex < buffer.endIndex else { return nil }
 
+        let firstByte = buffer[readIndex]
         switch firstByte {
         case 0x2B:  // '+'
             return parseSimpleString()
@@ -183,34 +217,41 @@ struct RESPParser: Sendable {
     }
 
     private mutating func readLine() -> String? {
-        guard let crIndex = buffer.firstIndex(of: 0x0D) else { return nil }
-        let lineData = buffer[buffer.startIndex..<crIndex]
-        guard crIndex + 1 < buffer.endIndex, buffer[crIndex + 1] == 0x0A else { return nil }
-        let line = String(data: lineData, encoding: .utf8)
-        buffer.removeSubrange(buffer.startIndex...crIndex + 1)
-        return line
+        var search = readIndex
+        while search < buffer.endIndex {
+            if buffer[search] == 0x0D {
+                let lineFeedIndex = buffer.index(after: search)
+                guard lineFeedIndex < buffer.endIndex, buffer[lineFeedIndex] == 0x0A else { return nil }
+                let lineData = buffer[readIndex..<search]
+                guard let line = String(data: lineData, encoding: .utf8) else { return nil }
+                readIndex = buffer.index(after: lineFeedIndex)
+                return line
+            }
+            search = buffer.index(after: search)
+        }
+        return nil
     }
 
     private mutating func parseSimpleString() -> RESPValue? {
-        buffer.removeFirst()  // remove '+'
+        readIndex = buffer.index(after: readIndex)  // remove '+'
         guard let line = readLine() else { return nil }
         return .simpleString(line)
     }
 
     private mutating func parseError() -> RESPValue? {
-        buffer.removeFirst()  // remove '-'
+        readIndex = buffer.index(after: readIndex)  // remove '-'
         guard let line = readLine() else { return nil }
         return .error(line)
     }
 
     private mutating func parseInteger() -> RESPValue? {
-        buffer.removeFirst()  // remove ':'
+        readIndex = buffer.index(after: readIndex)  // remove ':'
         guard let line = readLine(), let val = Int(line) else { return nil }
         return .integer(val)
     }
 
     private mutating func parseBulkString() -> RESPValue? {
-        buffer.removeFirst()  // remove '$'
+        readIndex = buffer.index(after: readIndex)  // remove '$'
         guard let line = readLine(), let len = Int(line) else { return nil }
         if len == -1 { return .bulkString(nil) }
         guard let string = readPayload(length: len) else { return nil }
@@ -223,13 +264,13 @@ struct RESPParser: Sendable {
     }
 
     private mutating func parseNull() -> RESPValue? {
-        buffer.removeFirst()  // remove '_'
+        readIndex = buffer.index(after: readIndex)  // remove '_'
         guard readLine() == "" else { return nil }
         return .null
     }
 
     private mutating func parseBoolean() -> RESPValue? {
-        buffer.removeFirst()  // remove '#'
+        readIndex = buffer.index(after: readIndex)  // remove '#'
         guard let line = readLine() else { return nil }
         switch line {
         case "t": return .boolean(true)
@@ -239,7 +280,7 @@ struct RESPParser: Sendable {
     }
 
     private mutating func parseDouble() -> RESPValue? {
-        buffer.removeFirst()  // remove ','
+        readIndex = buffer.index(after: readIndex)  // remove ','
         guard let line = readLine() else { return nil }
         switch line.lowercased() {
         case "inf": return .double(.infinity)
@@ -252,31 +293,32 @@ struct RESPParser: Sendable {
     }
 
     private mutating func parseBigNumber() -> RESPValue? {
-        buffer.removeFirst()  // remove '('
+        readIndex = buffer.index(after: readIndex)  // remove '('
         guard let line = readLine() else { return nil }
         return .bulkString(line)
     }
 
     private mutating func parseBlobError() -> RESPValue? {
-        buffer.removeFirst()  // remove '!'
+        readIndex = buffer.index(after: readIndex)  // remove '!'
         guard let line = readLine(), let len = Int(line), let message = readPayload(length: len) else { return nil }
         return .error(message)
     }
 
     private mutating func parseVerbatimString() -> RESPValue? {
-        buffer.removeFirst()  // remove '='
+        readIndex = buffer.index(after: readIndex)  // remove '='
         guard let line = readLine(), let len = Int(line), let string = readPayload(length: len) else { return nil }
         guard string.count >= 4 else { return .bulkString(string) }
         return .bulkString(String(string.dropFirst(4)))
     }
 
     private mutating func parseMap() -> RESPValue? {
-        buffer.removeFirst()  // remove '%'
+        readIndex = buffer.index(after: readIndex)  // remove '%'
         guard let line = readLine(), let count = Int(line) else { return nil }
         if count == -1 { return .null }
         if count == 0 { return .map([]) }
         guard count > 0 else { return nil }
         var entries: [RESPMapEntry] = []
+        entries.reserveCapacity(count)
         for _ in 0..<count {
             guard let key = parseValue(), let value = parseValue() else {
                 return nil
@@ -297,7 +339,7 @@ struct RESPParser: Sendable {
     }
 
     private mutating func parseAttribute() -> RESPValue? {
-        buffer.removeFirst()  // remove '|'
+        readIndex = buffer.index(after: readIndex)  // remove '|'
         guard let line = readLine(), let count = Int(line), count >= 0 else { return nil }
         for _ in 0..<count {
             guard parseValue() != nil, parseValue() != nil else {
@@ -308,11 +350,12 @@ struct RESPParser: Sendable {
     }
 
     private mutating func parseAggregateItems() -> [RESPValue?]? {
-        buffer.removeFirst()
+        readIndex = buffer.index(after: readIndex)  // remove prefix byte
         guard let line = readLine(), let count = Int(line), count >= -1 else { return nil }
         if count == -1 { return [] }
         if count == 0 { return [] }
         var items: [RESPValue?] = []
+        items.reserveCapacity(count)
         for _ in 0..<count {
             if let val = parseValue() {
                 items.append(val)
@@ -324,19 +367,18 @@ struct RESPParser: Sendable {
     }
 
     private mutating func readPayload(length: Int) -> String? {
-        guard length >= 0, buffer.count >= length + 2 else { return nil }
+        guard length >= 0 else { return nil }
+        let remaining = buffer.distance(from: readIndex, to: buffer.endIndex)
+        guard remaining >= length + 2 else { return nil }
 
-        let payloadEndIndex = buffer.index(buffer.startIndex, offsetBy: length)
+        let payloadEndIndex = buffer.index(readIndex, offsetBy: length)
         let lineFeedIndex = buffer.index(after: payloadEndIndex)
-        guard lineFeedIndex < buffer.endIndex,
-            buffer[payloadEndIndex] == 0x0D,
-            buffer[lineFeedIndex] == 0x0A
-        else {
+        guard buffer[payloadEndIndex] == 0x0D, buffer[lineFeedIndex] == 0x0A else {
             return nil
         }
 
-        let payloadData = buffer[buffer.startIndex..<payloadEndIndex]
-        buffer.removeSubrange(buffer.startIndex...lineFeedIndex)
+        let payloadData = buffer[readIndex..<payloadEndIndex]
+        readIndex = buffer.index(after: lineFeedIndex)
         return String(data: payloadData, encoding: .utf8) ?? ""
     }
 }
