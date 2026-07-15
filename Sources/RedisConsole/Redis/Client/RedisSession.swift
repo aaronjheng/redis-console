@@ -97,9 +97,12 @@ struct RedisScanResult: Sendable {
     }
 
     init(response: RESPValue, scannedCount: Int = 0) throws {
+        if case .error(let message) = response {
+            throw RedisError.commandError(message)
+        }
         let values = response.arrayValues
         guard values.count >= 2, let cursor = values[0]?.string else {
-            throw RedisError.parseError("Unexpected SCAN response")
+            throw RedisError.parseError("Unexpected SCAN response: \(response.description)")
         }
         nextCursor = cursor
         keys = values[1]?.arrayValues.compactMap { $0?.string } ?? []
