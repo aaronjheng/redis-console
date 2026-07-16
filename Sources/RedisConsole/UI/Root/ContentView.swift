@@ -32,7 +32,7 @@ struct ConnectionHubView: View {
             ConnectionHubSidebarView()
                 .frame(minWidth: 220, maxWidth: 280)
 
-            if conn.isConnecting {
+            if conn.isConnecting || conn.activeClient?.isConnected == true {
                 ConnectingView()
             } else {
                 switch cachedRightPanel {
