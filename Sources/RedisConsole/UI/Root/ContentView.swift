@@ -7,13 +7,26 @@ struct TabContentView: View {
     @Environment(ConnectionState.self) private var conn
 
     var body: some View {
-        Group {
-            if conn.activeClient?.isConnected == true {
-                WorkspaceView()
-                    .transition(.opacity)
-            } else {
-                ConnectionHubView()
-                    .transition(.opacity)
+        HSplitView {
+            Group {
+                if conn.activeClient?.isConnected == true {
+                    WorkspaceSidebarView()
+                        .transition(.opacity)
+                } else {
+                    ConnectionHubSidebarView()
+                        .transition(.opacity)
+                }
+            }
+            .frame(minWidth: 220, maxWidth: 280)
+
+            Group {
+                if conn.activeClient?.isConnected == true {
+                    WorkspaceView()
+                        .transition(.opacity)
+                } else {
+                    ConnectionHubView()
+                        .transition(.opacity)
+                }
             }
         }
         .animation(.default, value: conn.activeClient?.isConnected)
@@ -28,10 +41,7 @@ struct ConnectionHubView: View {
     @State private var cachedRightPanel: RightPanel = .welcome
 
     var body: some View {
-        HSplitView {
-            ConnectionHubSidebarView()
-                .frame(minWidth: 220, maxWidth: 280)
-
+        Group {
             if conn.isConnecting || conn.activeClient?.isConnected == true {
                 ConnectingView()
             } else {
@@ -59,10 +69,7 @@ struct WorkspaceView: View {
     @Environment(ConnectionState.self) private var conn
 
     var body: some View {
-        HSplitView {
-            WorkspaceSidebarView()
-                .frame(minWidth: 220, maxWidth: 280)
-
+        Group {
             switch conn.currentView {
             case .browser: BrowserView().transition(.opacity)
             case .shell: ShellView().transition(.opacity)
