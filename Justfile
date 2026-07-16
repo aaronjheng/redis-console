@@ -28,5 +28,4 @@ install: build-release
     @cp -R '{{ app_bundle }}' ~/Applications/Redis\ Console.app
     @echo 'Installed to ~/Applications/Redis Console.app'
 
-generate-ui-inventory output=".": build-release
-    @'{{ app_bundle }}/Contents/MacOS/RedisConsole' --generate-ui-inventory --output '{{ output }}'
+

@@ -2,8 +2,8 @@ import Foundation
 
 /// Standard spacing, corner radius, and size constants.
 ///
-/// Centralizing these values removes magic numbers and keeps the UI Inventory
-/// screenshots visually consistent.
+/// Centralizing these values removes magic numbers and keeps the UI
+/// visually consistent.
 enum AppSpacing {
     static let xxSmall: CGFloat = 2
     static let xSmall: CGFloat = 4

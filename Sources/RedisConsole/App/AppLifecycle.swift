@@ -315,9 +315,6 @@ class WindowDelegate: NSObject, NSWindowDelegate {
 @main
 struct RedisConsoleApp {
     static func main() {
-        if InventoryGenerator.runIfNeeded() {
-            return
-        }
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
