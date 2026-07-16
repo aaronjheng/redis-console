@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // MARK: - String Detail View
 
@@ -125,7 +126,7 @@ struct StringDetailView: View {
         VStack(spacing: 0) {
             if isEditing {
                 VStack(spacing: AppSpacing.small) {
-                    TextEditor(text: $editValue)
+                    PlainTextEditor(text: $editValue)
                         .font(AppFont.monoBody)
                         .padding(AppSpacing.small)
                         .background(AppColor.codeBackground)
@@ -150,7 +151,7 @@ struct StringDetailView: View {
                 }
                 .padding(AppSpacing.large)
             } else {
-                ZStack(alignment: .topTrailing) {
+                VStack(spacing: 0) {
                     ScrollView {
                         Group {
                             if format == .json && isJson {
@@ -168,16 +169,7 @@ struct StringDetailView: View {
                         editValue = value
                         isEditing = true
                     }
-
-                    HStack(spacing: AppSpacing.xSmall) {
-                        OptionsPicker(
-                            "Value format",
-                            selection: $format,
-                            options: StringValueFormat.allCases,
-                            label: \.title
-                        )
-                        .frame(width: 110)
-
+                    .overlay(alignment: .topTrailing) {
                         Button("Edit Value", systemImage: "pencil") {
                             editValue = value
                             isEditing = true
@@ -185,8 +177,40 @@ struct StringDetailView: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .help("Edit value")
+                        .padding(AppSpacing.large)
                     }
-                    .padding(AppSpacing.large)
+
+                    Divider()
+
+                    HStack {
+                        Menu {
+                            ForEach(StringValueFormat.allCases, id: \.self) { option in
+                                Button {
+                                    format = option
+                                } label: {
+                                    Text(option.title)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 2) {
+                                Text(format.title)
+                                    .font(.caption)
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 8))
+                            }
+                            .foregroundStyle(.primary)
+                        }
+                        .menuStyle(.borderlessButton)
+                        .menuIndicator(.hidden)
+                        .frame(width: 110, alignment: .leading)
+                        .help("Value format")
+
+                        Spacer()
+                    }
+                    .frame(minHeight: AppSize.footerHeight)
+                    .frame(maxWidth: .infinity)
+                    .padding(.leading, AppSpacing.small)
+                    .background(.bar)
                 }
             }
 
@@ -329,5 +353,46 @@ private enum JSONSyntaxHighlighter {
 
     private static func isIdentifierCharacter(_ char: Character) -> Bool {
         char.isLetter || char.isNumber || char == "_"
+    }
+}
+
+private struct PlainTextEditor: NSViewRepresentable {
+    @Binding var text: String
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSTextView.scrollablePlainDocumentContentTextView()
+        guard let textView = scrollView.documentView as? NSTextView else {
+            return scrollView
+        }
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isRichText = false
+        textView.allowsUndo = true
+        textView.delegate = context.coordinator
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView else { return }
+        if textView.string != text {
+            textView.string = text
+        }
+    }
+
+    class Coordinator: NSObject, NSTextViewDelegate {
+        let parent: PlainTextEditor
+
+        init(_ parent: PlainTextEditor) {
+            self.parent = parent
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            parent.text = textView.string
+        }
     }
 }
