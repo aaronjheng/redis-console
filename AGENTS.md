@@ -18,6 +18,16 @@ Redis Console is a native macOS Redis client written in Swift, with SSH tunnel s
 
 - Prefer SwiftUI; use AppKit only when necessary
 
+## Design
+
+Design system tokens live in `Sources/RedisConsole/Theme/` (AppColor, AppFont, AppMetrics, UIComponents).
+
+### UI Inventory Generator
+
+The project includes a deterministic UI Inventory Generator under `Sources/RedisConsole/UIInventory/`. It captures screenshots of every user-visible UI state without a real Redis server.
+
+**When working on UI Inventory tasks** (adding entries, modifying fake data, auditing coverage, fixing capture issues), read `Sources/RedisConsole/UIInventory/AGENTS.md` first — it contains the complete design rationale, architecture decisions, audit methodology, and step-by-step guides.
+
 ## Code Quality
 
 - Follow `.swift-format` and `.swiftlint.yml` configurations
@@ -64,9 +74,3 @@ just clean
 # Generate UI Inventory (screenshots + metadata)
 just generate-ui-inventory
 ```
-
-## UI Inventory Generator
-
-The project includes a deterministic UI Inventory Generator under `Sources/RedisConsole/UIInventory/`. It captures screenshots of every user-visible UI state without a real Redis server.
-
-**When working on UI Inventory tasks** (adding entries, modifying fake data, auditing coverage, fixing capture issues), read `Sources/RedisConsole/UIInventory/AGENTS.md` first — it contains the complete design rationale, architecture decisions, audit methodology, and step-by-step guides.
