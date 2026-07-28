@@ -20,12 +20,12 @@ struct ServerInfoView: View {
             // Header
             HStack(spacing: AppSpacing.medium) {
                 Spacer()
-                Button("Refresh", systemImage: "arrow.clockwise") {
+                Button {
                     Task { await app.loadServerInfo() }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
                 }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .help("Refresh")
+                .buttonStyle(SecondaryButtonStyle())
             }
             .padding(.horizontal, AppSpacing.large)
             .padding(.vertical, AppSpacing.small)

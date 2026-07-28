@@ -46,13 +46,13 @@ struct SlowLogView: View {
                         .controlSize(.small)
                 }
 
-                Button("Refresh", systemImage: "arrow.clockwise") {
+                Button {
                     Task { await app.fetchSlowLog() }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
                 }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
+                .buttonStyle(SecondaryButtonStyle())
                 .disabled(app.isLoadingSlowLog)
-                .help("Refresh")
             }
             .padding(.horizontal, AppSpacing.large)
             .padding(.vertical, AppSpacing.small)

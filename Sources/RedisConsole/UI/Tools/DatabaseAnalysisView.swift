@@ -17,21 +17,21 @@ struct DatabaseAnalysisView: View {
                         .controlSize(.small)
                 }
 
-                Button("Refresh", systemImage: "arrow.clockwise") {
+                Button {
                     Task { await app.runDatabaseAnalysis() }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
                 }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
+                .buttonStyle(SecondaryButtonStyle())
                 .disabled(app.isLoadingAnalysis)
-                .help("Refresh")
 
-                Button("Export", systemImage: "square.and.arrow.up") {
+                Button {
                     exportAnalysis()
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
                 }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
+                .buttonStyle(SecondaryButtonStyle())
                 .disabled(app.analysis == nil)
-                .help("Export")
             }
             .padding(.horizontal, AppSpacing.large)
             .padding(.vertical, AppSpacing.small)
