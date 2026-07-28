@@ -235,7 +235,7 @@ struct ShellHistoryRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
         }
         .padding(.horizontal, AppSpacing.large)
-        .padding(.vertical, AppSpacing.medium)
+        .padding(.vertical, AppSpacing.small)
         .background(.background)
     }
 }
