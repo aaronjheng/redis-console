@@ -69,11 +69,13 @@ enum RESPValue: CustomStringConvertible, Sendable {
         case .integer(let integer): return "\(integer)"
         case .bulkString(let string): return string ?? "(nil)"
         case .array(let values):
+            guard !values.isEmpty else { return "(empty array)" }
             return values.enumerated().map { index, value in
                 let content = value?.displayString ?? "(nil)"
                 return "\(index + 1)) \(content)"
             }.joined(separator: "\n")
         case .map(let entries):
+            guard !entries.isEmpty else { return "(empty map)" }
             return entries.map { entry in
                 "\(entry.key.displayString): \(entry.value.displayString)"
             }.joined(separator: "\n")
