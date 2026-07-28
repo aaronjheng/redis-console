@@ -16,7 +16,7 @@ enum AppView: String, CaseIterable {
         case .browser: return "key"
         case .shell: return "terminal"
         case .profiler: return "waveform.path.ecg"
-        case .slowLog: return "tortoise"
+        case .slowLog: return "hourglass"
         case .databaseAnalysis: return "chart.pie"
         case .serverInfo: return "info.circle"
         }

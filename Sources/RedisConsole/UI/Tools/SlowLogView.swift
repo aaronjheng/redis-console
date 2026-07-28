@@ -68,7 +68,7 @@ struct SlowLogView: View {
                 } else {
                     ContentUnavailableView(
                         "No slow log entries",
-                        systemImage: "tortoise",
+                        systemImage: "hourglass",
                         description: Text("Slow queries will appear here")
                     )
                 }
