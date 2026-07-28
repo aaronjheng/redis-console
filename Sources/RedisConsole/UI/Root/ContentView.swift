@@ -60,6 +60,14 @@ struct ConnectionHubView: View {
         .onAppear {
             cachedRightPanel = conn.rightPanel
         }
+        .alert("Connection Failed", isPresented: Binding(
+            get: { conn.connectionError != nil },
+            set: { if !$0 { conn.connectionError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(conn.connectionError ?? "")
+        }
     }
 }
 
