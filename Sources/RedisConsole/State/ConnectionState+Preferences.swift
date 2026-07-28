@@ -60,4 +60,16 @@ extension ConnectionState {
         guard let selectedConnection else { return }
         saveShellHistory(for: selectedConnection)
     }
+
+    func deleteShellHistoryEntry(_ entry: ShellHistoryEntry) {
+        shellHistory.removeAll { $0.id == entry.id }
+        guard let selectedConnection else { return }
+        saveShellHistory(for: selectedConnection)
+    }
+
+    func clearShellHistory() {
+        shellHistory = []
+        guard let selectedConnection else { return }
+        saveShellHistory(for: selectedConnection)
+    }
 }

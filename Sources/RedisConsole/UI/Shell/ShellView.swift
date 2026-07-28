@@ -32,6 +32,22 @@ struct ShellView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Toolbar
+            VStack(spacing: 0) {
+                HStack(spacing: AppSpacing.medium) {
+                    Spacer()
+                    Button(action: { app.clearShellHistory() }) {
+                        Label("Clear", systemImage: "trash")
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .disabled(app.shellHistory.isEmpty)
+                }
+                .padding(.horizontal, AppSpacing.large)
+                .padding(.vertical, AppSpacing.small)
+
+                Divider()
+            }
+
             // History list
             if app.shellHistory.isEmpty {
                 Spacer()
@@ -48,6 +64,11 @@ struct ShellView: View {
                             ForEach(app.shellHistory) { entry in
                                 ShellHistoryRow(entry: entry)
                                     .id(entry.id)
+                                    .contextMenu {
+                                        Button("Delete", role: .destructive) {
+                                            app.deleteShellHistoryEntry(entry)
+                                        }
+                                    }
                             }
                         }
                     }
