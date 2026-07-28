@@ -140,9 +140,12 @@ struct ShellView: View {
                 .padding(.horizontal, AppSpacing.medium)
                 .padding(.vertical, AppSpacing.small)
                 .background(
-                    Capsule()
+                    RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous)
                         .fill(.background)
-                        .overlay(Capsule().stroke(Color.secondary.opacity(0.18), lineWidth: 1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous)
+                                .stroke(Color.secondary.opacity(0.18), lineWidth: 1)
+                        )
                 )
                 .padding(.horizontal, AppSpacing.large)
                 .padding(.vertical, AppSpacing.small)
