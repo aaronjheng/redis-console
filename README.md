@@ -14,7 +14,7 @@ Native macOS Redis GUI client built with Swift and SwiftUI.
 - **Slow Log** — query slow log entries with auto-refresh and duration color-coding
 - **Database Analysis** — statistical overview of key counts, memory usage, type distribution, top keys, and namespace breakdown
 - **Server Info** — structured INFO output with cluster topology visualization
-- **Connection Management** — import/export connections, environment tagging (development/production), credential storage via macOS Keychain
+- **Connection Management** — import/export connections, environment tagging (development/production), credentials stored with connection config
 - **Multi-Tab** — tabbed window interface with keyboard shortcuts (⌘T, ⌘W, ⌘1–9)
 - **RESP2 & RESP3** — automatic protocol negotiation with RESP3 fallback
 

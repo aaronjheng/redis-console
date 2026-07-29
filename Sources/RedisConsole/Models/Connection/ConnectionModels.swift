@@ -193,6 +193,7 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
         try container.encode(port, forKey: .port)
         try container.encode(seedNodes, forKey: .seedNodes)
         try container.encode(username, forKey: .username)
+        try container.encode(password, forKey: .password)
         try container.encode(ssh, forKey: .ssh)
         try container.encode(tls, forKey: .tls)
         try container.encode(environment, forKey: .environment)

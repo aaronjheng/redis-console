@@ -24,17 +24,6 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
-		<key>05662699AFF90DD439C2E9F5</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>Infrastructure/KeychainStore.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
-		</dict>
 		<key>057B6A6C484AE6189C6553B1</key>
 		<dict>
 			<key>fileRef</key>
@@ -122,7 +111,6 @@
 				<string>F9E8D7C6B5A43210FEDCBA09</string>
 				<string>CF606A6964524077E9B2C2AC</string>
 				<string>E31A8F9B6C2D4A5F90123459</string>
-				<string>05662699AFF90DD439C2E9F5</string>
 				<string>C1A5F0E7A4B94C3D9E613001</string>
 				<string>6FC45097D404559C7802F7F8</string>
 				<string>E31A8F9B6C2D4A5F90123457</string>
@@ -504,16 +492,12 @@
 				<string>RedisConsole</string>
 				<key>ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS</key>
 				<string>YES</string>
-				<key>CODE_SIGN_ENTITLEMENTS</key>
-				<string>Resources/RedisConsole.entitlements</string>
 				<key>CODE_SIGN_IDENTITY</key>
-				<string>Apple Development</string>
+				<string>-</string>
 				<key>CODE_SIGN_STYLE</key>
-				<string>Automatic</string>
+				<string>Manual</string>
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
-				<key>DEVELOPMENT_TEAM</key>
-				<string>Q6F678BLZJ</string>
 				<key>INFOPLIST_FILE</key>
 				<string>Resources/RedisConsole-Info.plist</string>
 				<key>LD_RUNPATH_SEARCH_PATHS</key>
@@ -521,8 +505,6 @@
 					<string>$(inherited)</string>
 					<string>@executable_path/../Frameworks</string>
 				</array>
-				<key>PROVISIONING_PROFILE_SPECIFIER</key>
-				<string></string>
 				<key>SDKROOT</key>
 				<string>macosx</string>
 			</dict>
@@ -620,13 +602,6 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>491A36E51AE41F8C761D6514</key>
-		<dict>
-			<key>fileRef</key>
-			<string>05662699AFF90DD439C2E9F5</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
 		<key>4A8D6099DE77854253F3FD15</key>
 		<dict>
 			<key>isa</key>
@@ -720,7 +695,6 @@
 				<string>D88BEDDC62ACB7432ACD4694</string>
 				<string>A1B2C3D4E5F6789012345678</string>
 				<string>08CAE39503D01547D187531D</string>
-				<string>491A36E51AE41F8C761D6514</string>
 				<string>C1A5F0E7A4B94C3D9E613002</string>
 				<string>9FB4F5632F37B1E97961E43E</string>
 				<string>AB6F7C1F3AC67F0D90BD9528</string>
@@ -1058,16 +1032,12 @@
 				<string>RedisConsole</string>
 				<key>ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS</key>
 				<string>YES</string>
-				<key>CODE_SIGN_ENTITLEMENTS</key>
-				<string>Resources/RedisConsole.entitlements</string>
 				<key>CODE_SIGN_IDENTITY</key>
-				<string>Apple Development</string>
+				<string>-</string>
 				<key>CODE_SIGN_STYLE</key>
-				<string>Automatic</string>
+				<string>Manual</string>
 				<key>COMBINE_HIDPI_IMAGES</key>
 				<string>YES</string>
-				<key>DEVELOPMENT_TEAM</key>
-				<string>Q6F678BLZJ</string>
 				<key>INFOPLIST_FILE</key>
 				<string>Resources/RedisConsole-Info.plist</string>
 				<key>LD_RUNPATH_SEARCH_PATHS</key>
@@ -1075,8 +1045,6 @@
 					<string>$(inherited)</string>
 					<string>@executable_path/../Frameworks</string>
 				</array>
-				<key>PROVISIONING_PROFILE_SPECIFIER</key>
-				<string></string>
 				<key>SDKROOT</key>
 				<string>macosx</string>
 			</dict>
