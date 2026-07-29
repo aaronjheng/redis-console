@@ -34,7 +34,7 @@ struct DatabaseAnalysisView: View {
                 .disabled(app.analysis == nil)
             }
             .padding(.horizontal, AppSpacing.large)
-            .padding(.vertical, AppSpacing.small)
+            .frame(height: AppSize.toolbarHeight)
 
             Divider()
 

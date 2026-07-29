@@ -43,7 +43,7 @@ struct ShellView: View {
                     .disabled(app.shellHistory.isEmpty)
                 }
                 .padding(.horizontal, AppSpacing.large)
-                .padding(.vertical, AppSpacing.small)
+                .frame(height: AppSize.toolbarHeight)
 
                 Divider()
             }

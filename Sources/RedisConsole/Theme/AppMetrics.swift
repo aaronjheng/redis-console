@@ -25,6 +25,9 @@ enum AppSize {
     static let ttlEditorWidth: CGFloat = 260
     static let formFieldWidth: CGFloat = 80
     static let footerHeight: CGFloat = 34
+    /// Unified height for panel toolbars/headers (Shell, Profiler, Slow Log, Analysis, Server Info).
+    /// Keeps headers consistent regardless of whether they contain buttons, text fields, or toggles.
+    static let toolbarHeight: CGFloat = 44
     static let refreshControlHeight: CGFloat = 22
     static let refreshButtonWidth: CGFloat = 26
     static let refreshSeparatorHeight: CGFloat = 14

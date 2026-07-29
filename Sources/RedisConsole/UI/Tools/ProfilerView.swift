@@ -196,7 +196,7 @@ private struct ProfilerToolbarView: View {
                 .disabled(!hasEntries)
             }
             .padding(.horizontal, AppSpacing.large)
-            .padding(.vertical, AppSpacing.small)
+            .frame(height: AppSize.toolbarHeight)
 
             Divider()
         }

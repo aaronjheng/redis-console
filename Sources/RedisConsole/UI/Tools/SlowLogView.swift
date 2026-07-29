@@ -55,7 +55,7 @@ struct SlowLogView: View {
                 .disabled(app.isLoadingSlowLog)
             }
             .padding(.horizontal, AppSpacing.large)
-            .padding(.vertical, AppSpacing.small)
+            .frame(height: AppSize.toolbarHeight)
 
             Divider()
 
