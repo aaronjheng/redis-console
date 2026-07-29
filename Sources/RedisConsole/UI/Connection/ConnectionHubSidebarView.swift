@@ -14,13 +14,13 @@ struct ConnectionHubSidebarView: View {
                     .font(.headline)
                 Spacer()
                 Button("Export All Connections", systemImage: "square.and.arrow.up") {
-                    exportConnections(store.connections)
+                    ConnectionTransfer.export(store.connections, store: store)
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .help("Export All Connections")
                 Button("Import Connections", systemImage: "square.and.arrow.down") {
-                    importConnections()
+                    ConnectionTransfer.importConfigurations(store: store)
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
@@ -89,39 +89,12 @@ struct ConnectionHubSidebarView: View {
                             }
                             Divider()
                             Button("Export...") {
-                                exportConnections([config])
+                                ConnectionTransfer.export([config], store: store)
                             }
                         }
                 }
             }
             .listStyle(.sidebar)
-        }
-    }
-
-    private func exportConnections(_ configs: [RedisConnectionConfig]) {
-        guard let data = store.exportConnections(configs) else { return }
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.json]
-        panel.nameFieldStringValue =
-            configs.count == 1
-            ? "\(configs[0].name).json"
-            : "redis-connections.json"
-        panel.begin { response in
-            guard response == .OK, let url = panel.url else { return }
-            try? data.write(to: url)
-        }
-    }
-
-    private func importConnections() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.json]
-        panel.allowsMultipleSelection = false
-        panel.begin { response in
-            guard response == .OK, let url = panel.url else { return }
-            guard let data = try? Data(contentsOf: url),
-                let configs = store.importConnections(from: data)
-            else { return }
-            store.addImportedConnections(configs)
         }
     }
 }
