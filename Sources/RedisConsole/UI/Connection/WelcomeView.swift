@@ -4,15 +4,11 @@ import SwiftUI
 
 struct WelcomeView: View {
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "server.rack")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-            Text("Redis Console")
-                .font(.title)
-            Text("Select a connection or click + to add one")
-                .foregroundStyle(.secondary)
-        }
+        ContentUnavailableView(
+            "Redis Console",
+            systemImage: "server.rack",
+            description: Text("Select a connection or click + to add one")
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
