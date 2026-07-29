@@ -27,8 +27,7 @@ struct ServerInfoView: View {
                 }
                 .buttonStyle(SecondaryButtonStyle())
             }
-            .padding(.horizontal, AppSpacing.large)
-            .frame(height: AppSize.toolbarHeight)
+            .panelToolbar()
 
             Divider()
 

@@ -17,6 +17,25 @@ struct WorkspaceFooterBar<Content: View>: View {
     }
 }
 
+/// Standard layout for panel toolbars/headers (Browser, Shell, Profiler, Slow Log, Analysis, Server Info).
+/// Enforces a consistent minimum height while still letting a header grow to fit taller content.
+struct PanelToolbarModifier: ViewModifier {
+    var horizontalPadding: CGFloat = AppSpacing.large
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, horizontalPadding)
+            .frame(minHeight: AppSize.toolbarHeight)
+    }
+}
+
+extension View {
+    /// Applies the shared panel toolbar layout: standard horizontal padding plus a unified minimum height.
+    func panelToolbar(horizontalPadding: CGFloat = AppSpacing.large) -> some View {
+        modifier(PanelToolbarModifier(horizontalPadding: horizontalPadding))
+    }
+}
+
 struct StatusFooterView: View {
     let countText: String
     var sizeText: String?

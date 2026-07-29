@@ -42,8 +42,7 @@ struct ShellView: View {
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(app.shellHistory.isEmpty)
                 }
-                .padding(.horizontal, AppSpacing.large)
-                .frame(height: AppSize.toolbarHeight)
+                .panelToolbar()
 
                 Divider()
             }

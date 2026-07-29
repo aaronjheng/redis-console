@@ -54,8 +54,7 @@ struct SlowLogView: View {
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(app.isLoadingSlowLog)
             }
-            .padding(.horizontal, AppSpacing.large)
-            .frame(height: AppSize.toolbarHeight)
+            .panelToolbar()
 
             Divider()
 

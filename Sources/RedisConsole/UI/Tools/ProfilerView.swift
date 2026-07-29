@@ -195,8 +195,7 @@ private struct ProfilerToolbarView: View {
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(!hasEntries)
             }
-            .padding(.horizontal, AppSpacing.large)
-            .frame(height: AppSize.toolbarHeight)
+            .panelToolbar()
 
             Divider()
         }

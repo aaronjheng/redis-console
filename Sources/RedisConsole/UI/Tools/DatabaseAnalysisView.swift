@@ -33,8 +33,7 @@ struct DatabaseAnalysisView: View {
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(app.analysis == nil)
             }
-            .padding(.horizontal, AppSpacing.large)
-            .frame(height: AppSize.toolbarHeight)
+            .panelToolbar()
 
             Divider()
 

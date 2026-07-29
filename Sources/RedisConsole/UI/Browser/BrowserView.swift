@@ -58,8 +58,7 @@ struct BrowserView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, AppSpacing.small)
-            .padding(.vertical, AppSpacing.small)
+            .panelToolbar(horizontalPadding: AppSpacing.small)
 
             Divider()
 
