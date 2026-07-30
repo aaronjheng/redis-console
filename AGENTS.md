@@ -30,6 +30,10 @@ Design system tokens live in `Sources/RedisConsole/Theme/` (AppColor, AppFont, A
 - Run `just lint` to check code style, `just lint-fix` to auto-fix
 - Run `just format-check` to check formatting, `just format` to auto-format
 
+## Testing
+
+- Do not generate tests of any kind (unit tests, integration tests, snapshots, fixtures, test scaffolding) unless explicitly requested. Do not add a test target, test files, or test dependencies on your own initiative. When in doubt, ask first.
+
 ## Git Workflow
 
 - Never run `git commit`, `git push`, or other git mutations unless explicitly instructed
