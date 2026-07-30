@@ -10,7 +10,8 @@ Native macOS Redis GUI client built with Swift and SwiftUI.
 - **Key Browser** — scan, filter, and manage keys with flat list or namespace tree views; inline TTL editing and deletion
 - **Type-Aware Value Editor** — dedicated viewers for strings (with JSON/hex/base64/gzip formatting), hashes, lists, sets, and sorted sets; inline editing and batch operations
 - **Interactive Shell** — Redis CLI with syntax highlighting, command auto-complete, dangerous-command detection, and history navigation
-- **Command Profiler** — live MONITOR-based command capture with filtering and noise suppression
+- **Redis Functions** — manage Lua function libraries (7.0+): browse, load, edit, and delete libraries with a tree-sitter-powered Lua editor (syntax highlighting, `redis.*` API completion, DRYRUN validation); test functions via an FCALL/FCALL_RO call bench; monitor running scripts and engine stats with FUNCTION STATS
+- **Command Profiler** — live MONITOR-based command capture with filtering, noise suppression, and FCALL-to-library name mapping
 - **Slow Log** — query slow log entries with auto-refresh and duration color-coding
 - **Database Analysis** — statistical overview of key counts, memory usage, type distribution, top keys, and namespace breakdown
 - **Server Info** — structured INFO output with cluster topology visualization
