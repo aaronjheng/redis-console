@@ -79,6 +79,20 @@ class ConnectionState {
     var clusterNodes: [RedisClusterNodeSummary] = []
     var selectedServerInfoNode: RedisEndpoint?
 
+    var functionLibraries: [RedisFunctionLibrary] = []
+    var isLoadingFunctions = false
+    var functionsError: String?
+    var selectedFunctionLibrary: RedisFunctionLibrary?
+
+    var lastFunctionCallResult: RedisFunctionCallResult?
+    var isCallingFunction = false
+
+    var functionRunningScripts: [RedisFunctionRunningScriptEntry] = []
+    var functionEngineStats: [RedisEndpoint?: RedisFunctionEngineStats] = [:]
+    var isFetchingFunctionStats = false
+    var functionStatsError: String?
+    var functionStatsAutoRefresh: TimeInterval = 0
+
     var currentView: AppView = .browser
     var rightPanel: RightPanel = .welcome
 

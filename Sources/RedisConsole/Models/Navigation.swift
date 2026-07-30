@@ -10,6 +10,7 @@ enum AppView: String, CaseIterable {
     case slowLog = "Slow Log"
     case databaseAnalysis = "Analysis"
     case serverInfo = "Server Info"
+    case functions = "Functions"
 
     var icon: String {
         switch self {
@@ -19,6 +20,7 @@ enum AppView: String, CaseIterable {
         case .slowLog: return "hourglass"
         case .databaseAnalysis: return "chart.pie"
         case .serverInfo: return "info.circle"
+        case .functions: return "curlybraces"
         }
     }
 }

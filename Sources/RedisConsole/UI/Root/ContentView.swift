@@ -60,10 +60,13 @@ struct ConnectionHubView: View {
         .onAppear {
             cachedRightPanel = conn.rightPanel
         }
-        .alert("Connection Failed", isPresented: Binding(
-            get: { conn.connectionError != nil },
-            set: { if !$0 { conn.connectionError = nil } }
-        )) {
+        .alert(
+            "Connection Failed",
+            isPresented: Binding(
+                get: { conn.connectionError != nil },
+                set: { if !$0 { conn.connectionError = nil } }
+            )
+        ) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(conn.connectionError ?? "")
@@ -85,6 +88,7 @@ struct WorkspaceView: View {
             case .slowLog: SlowLogView().transition(.opacity)
             case .databaseAnalysis: DatabaseAnalysisView().transition(.opacity)
             case .serverInfo: ServerInfoView().transition(.opacity)
+            case .functions: FunctionsView().transition(.opacity)
             }
         }
         .animation(.default, value: conn.currentView)
