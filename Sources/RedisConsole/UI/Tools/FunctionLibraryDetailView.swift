@@ -9,11 +9,16 @@ struct FunctionLibraryDetailView: View {
     @State private var showingDeleteConfirm = false
     @State private var showingEditSheet = false
     @State private var showingCallSheet = false
+    @State private var isFunctionsExpanded = false
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
+            if !library.functions.isEmpty {
+                functionsSection
+                Divider()
+            }
             ScrollView {
                 SelectableText(
                     text: library.code,
@@ -114,6 +119,82 @@ struct FunctionLibraryDetailView: View {
                 Spacer(minLength: 0)
             }
             .font(.subheadline)
+        }
+        .padding(.horizontal, AppSpacing.large)
+        .padding(.vertical, AppSpacing.small)
+    }
+
+    // MARK: Functions
+
+    private var functionsSection: some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isFunctionsExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: AppSpacing.small) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isFunctionsExpanded ? 90 : 0))
+                    Image(systemName: "curlybraces")
+                        .foregroundStyle(.tint)
+                    Text("Functions")
+                        .font(.headline)
+                    Spacer(minLength: 0)
+                    Text("\(library.functionCount)")
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, AppSpacing.large)
+                .padding(.vertical, AppSpacing.small)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(isFunctionsExpanded ? "Hide functions" : "Show functions")
+
+            if isFunctionsExpanded {
+                Divider()
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(library.functions.enumerated()), id: \.element.id) { index, function in
+                        functionRow(function)
+                        if index < library.functions.count - 1 {
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func functionRow(_ function: RedisFunction) -> some View {
+        HStack(alignment: .top, spacing: AppSpacing.small) {
+            Image(systemName: "f.cursive")
+                .foregroundStyle(.tint)
+                .frame(width: 16, alignment: .center)
+            VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
+                HStack(spacing: AppSpacing.xSmall) {
+                    Text(function.name)
+                        .font(AppFont.monoSubheadline)
+                    if function.isReadOnly {
+                        Badge(
+                            text: "no-writes",
+                            foregroundColor: AppColor.success,
+                            backgroundColor: AppColor.success.opacity(0.14)
+                        )
+                    }
+                }
+                if let description = function.description, !description.isEmpty {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, AppSpacing.large)
         .padding(.vertical, AppSpacing.small)
