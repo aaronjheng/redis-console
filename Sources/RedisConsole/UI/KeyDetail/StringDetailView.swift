@@ -50,10 +50,6 @@ struct StringDetailView: View {
         }
     }
 
-    private var highlightedBeautifiedValue: AttributedString {
-        JSONSyntaxHighlighter.highlight(beautifiedValue)
-    }
-
     private var unicodeEscapedValue: String {
         value.unicodeScalars.map { scalar in
             switch scalar.value {
@@ -153,17 +149,21 @@ struct StringDetailView: View {
             } else {
                 VStack(spacing: 0) {
                     ScrollView {
-                        Group {
-                            if format == .json && isJson {
-                                Text(highlightedBeautifiedValue)
-                            } else {
-                                Text(displayedValue)
-                            }
+                        if format == .json && isJson {
+                            SelectableText(
+                                text: beautifiedValue,
+                                font: .monospacedSystemFont(ofSize: 13, weight: .regular),
+                                tokenizer: TreeSitterJsonHighlighter()
+                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(AppSpacing.large)
+                        } else {
+                            Text(displayedValue)
+                                .font(AppFont.dataCell)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(AppSpacing.large)
                         }
-                        .font(AppFont.dataCell)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(AppSpacing.large)
                     }
                     .onTapGesture(count: 2) {
                         editValue = value
@@ -215,144 +215,6 @@ struct StringDetailView: View {
             }
 
         }
-    }
-}
-
-private enum JSONSyntaxHighlighter {
-    static func highlight(_ source: String) -> AttributedString {
-        var attributed = AttributedString(source)
-        attributed.foregroundColor = .primary
-
-        let chars = Array(source)
-        var index = 0
-
-        while index < chars.count {
-            let char = chars[index]
-
-            if char == "\"" {
-                let stringStart = index
-                index += 1
-                var escapeRanges: [Range<Int>] = []
-
-                while index < chars.count {
-                    if chars[index] == "\\" {
-                        let escapeStart = index
-                        index += 1
-                        if index < chars.count {
-                            index += 1
-                        }
-                        escapeRanges.append(escapeStart..<index)
-                        continue
-                    }
-                    if chars[index] == "\"" {
-                        index += 1
-                        break
-                    }
-                    index += 1
-                }
-
-                let stringRange = stringStart..<index
-                let isObjectKey = isObjectKeyString(chars: chars, tokenRange: stringRange)
-                applyColor(
-                    to: &attributed,
-                    source: source,
-                    range: stringRange,
-                    color: isObjectKey ? AppColor.syntaxKey : AppColor.syntaxString
-                )
-                for escapeRange in escapeRanges {
-                    applyColor(to: &attributed, source: source, range: escapeRange, color: AppColor.syntaxBool)
-                }
-                continue
-            }
-
-            if isNumberStart(char: char, next: index + 1 < chars.count ? chars[index + 1] : nil) {
-                let numberStart = index
-                index += 1
-                while index < chars.count, isNumberBody(char: chars[index]) {
-                    index += 1
-                }
-                applyColor(to: &attributed, source: source, range: numberStart..<index, color: AppColor.syntaxNumber)
-                continue
-            }
-
-            if let keyword = keyword(at: index, chars: chars) {
-                let end = index + keyword.count
-                let color: Color =
-                    switch keyword {
-                    case "true", "false":
-                        AppColor.syntaxBool
-                    case "null":
-                        AppColor.syntaxNull
-                    default:
-                        .primary
-                    }
-                applyColor(to: &attributed, source: source, range: index..<end, color: color)
-                index = end
-                continue
-            }
-
-            if "{}[],:".contains(char) {
-                applyColor(to: &attributed, source: source, range: index..<(index + 1), color: AppColor.syntaxPunctuation)
-            }
-
-            index += 1
-        }
-
-        return attributed
-    }
-
-    private static func applyColor(to attributed: inout AttributedString, source: String, range: Range<Int>, color: Color) {
-        guard let lower = source.index(source.startIndex, offsetBy: range.lowerBound, limitedBy: source.endIndex),
-            let upper = source.index(source.startIndex, offsetBy: range.upperBound, limitedBy: source.endIndex),
-            let attributedRange = Range(lower..<upper, in: attributed)
-        else {
-            return
-        }
-        attributed[attributedRange].foregroundColor = color
-    }
-
-    private static func isObjectKeyString(chars: [Character], tokenRange: Range<Int>) -> Bool {
-        var lookahead = tokenRange.upperBound
-        while lookahead < chars.count, chars[lookahead].isWhitespace {
-            lookahead += 1
-        }
-        return lookahead < chars.count && chars[lookahead] == ":"
-    }
-
-    private static func isNumberStart(char: Character, next: Character?) -> Bool {
-        if char.isNumber {
-            return true
-        }
-        if char == "-", let next, next.isNumber {
-            return true
-        }
-        return false
-    }
-
-    private static func isNumberBody(char: Character) -> Bool {
-        char.isNumber || char == "." || char == "e" || char == "E" || char == "+" || char == "-"
-    }
-
-    private static func keyword(at index: Int, chars: [Character]) -> String? {
-        for keyword in ["true", "false", "null"] {
-            let end = index + keyword.count
-            guard end <= chars.count else { continue }
-            if String(chars[index..<end]) != keyword { continue }
-            let previous = index > 0 ? chars[index - 1] : nil
-            let next = end < chars.count ? chars[end] : nil
-            if let previous, isIdentifierCharacter(previous) {
-                continue
-            }
-            if let next, isIdentifierCharacter(next) {
-                continue
-            }
-            return keyword
-        }
-        return nil
-    }
-
-    private static func isIdentifierCharacter(_ char: Character) -> Bool {
-        char.isLetter || char.isNumber || char == "_"
     }
 }
 

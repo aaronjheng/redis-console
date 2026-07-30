@@ -145,6 +145,8 @@
 				<string>032CF92A41DF529497E78FA5</string>
 				<string>4E5CE0ABC18E50559B009503</string>
 				<string>30154E03B5DE5970A72B3E24</string>
+				<string>575791CCC9A84EC88B2E7DF1</string>
+				<string>BA899187A2404A41A541D011</string>
 				<string>DDAEA26E1EB44856A4E40CE9</string>
 				<string>E7DAE39125644185BA5CBBCC</string>
 			</array>
@@ -180,7 +182,11 @@
 			<key>files</key>
 			<array>
 				<string>A4E7282B6C5D4E9F80123456</string>
+				<string>01359DF2CF4F4AD59158EE15</string>
+				<string>0059138E5AC64EA499317333</string>
+				<string>2F89872A44134B4492EBA433</string>
 				<string>B9C592A7C9F4F9D39812897B</string>
+				<string>AA6247D13C0E48B4BDC866E0</string>
 			</array>
 			<key>isa</key>
 			<string>PBXFrameworksBuildPhase</string>
@@ -360,6 +366,42 @@
 			<string>UI/Tools/SelectableText.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
+		</dict>
+		<key>575791CCC9A84EC88B2E7DF1</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/Tools/TreeSitterLuaHighlighter.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>BA899187A2404A41A541D011</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/Tools/TreeSitterJsonHighlighter.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>BB90403899B2435B90545CDD</key>
+		<dict>
+			<key>fileRef</key>
+			<string>BA899187A2404A41A541D011</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>4318EBA1CEFB492BA7B69596</key>
+		<dict>
+			<key>fileRef</key>
+			<string>575791CCC9A84EC88B2E7DF1</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
 		</dict>
 		<key>DDAEA26E1EB44856A4E40CE9</key>
 		<dict>
@@ -871,6 +913,8 @@
 				<string>3E56820EDD2B42E76DAB8B95</string>
 				<string>CF81C6511F33F16694F868E5</string>
 				<string>AD56EF1A55D0566E8B0639F7</string>
+				<string>4318EBA1CEFB492BA7B69596</string>
+				<string>BB90403899B2435B90545CDD</string>
 				<string>4E304EC41AB84507A2093DF2</string>
 				<string>B5F373F3E06145DE91F62466</string>
 			</array>
@@ -918,6 +962,13 @@
 			<string>XCLocalSwiftPackageReference</string>
 			<key>relativePath</key>
 			<string>Vendor/swift-nio-ssh</string>
+		</dict>
+		<key>280FCA2E53CE44BBB28DA06E</key>
+		<dict>
+			<key>isa</key>
+			<string>XCLocalSwiftPackageReference</string>
+			<key>relativePath</key>
+			<string>Vendor/tree-sitter-lua</string>
 		</dict>
 		<key>632DFD3F34E11FDFE84232FA</key>
 		<dict>
@@ -1046,6 +1097,20 @@
 			<string>XCSwiftPackageProductDependency</string>
 			<key>productName</key>
 			<string>NIOSSH</string>
+		</dict>
+		<key>66ABCE02FFFB4C96BC884DDF</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>productName</key>
+			<string>TreeSitterLua</string>
+		</dict>
+		<key>AA6247D13C0E48B4BDC866E0</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>productRef</key>
+			<string>66ABCE02FFFB4C96BC884DDF</string>
 		</dict>
 		<key>6FC45097D404559C7802F7F8</key>
 		<dict>
@@ -1424,6 +1489,96 @@
 			<key>productRef</key>
 			<string>A4E7282D6C5D4E9F80123456</string>
 		</dict>
+		<key>2AA01E6A552B4B759968E6D3</key>
+		<dict>
+			<key>isa</key>
+			<string>XCRemoteSwiftPackageReference</string>
+			<key>repositoryURL</key>
+			<string>https://github.com/tree-sitter/tree-sitter-json.git</string>
+			<key>requirement</key>
+			<dict>
+				<key>kind</key>
+				<string>upToNextMajorVersion</string>
+				<key>minimumVersion</key>
+				<string>0.24.0</string>
+			</dict>
+		</dict>
+		<key>FCFC0D3871064B0C8DD52CA8</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>package</key>
+			<string>2AA01E6A552B4B759968E6D3</string>
+			<key>productName</key>
+			<string>TreeSitterJSON</string>
+		</dict>
+		<key>01359DF2CF4F4AD59158EE15</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>productRef</key>
+			<string>FCFC0D3871064B0C8DD52CA8</string>
+		</dict>
+		<key>217D16D1D5454047A9B4BD7E</key>
+		<dict>
+			<key>isa</key>
+			<string>XCRemoteSwiftPackageReference</string>
+			<key>repositoryURL</key>
+			<string>https://github.com/tree-sitter/tree-sitter.git</string>
+			<key>requirement</key>
+			<dict>
+				<key>kind</key>
+				<string>upToNextMajorVersion</string>
+				<key>minimumVersion</key>
+				<string>0.25.10</string>
+			</dict>
+		</dict>
+		<key>8EF1BEB908E646A1A65E9096</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>package</key>
+			<string>217D16D1D5454047A9B4BD7E</string>
+			<key>productName</key>
+			<string>TreeSitter</string>
+		</dict>
+		<key>0059138E5AC64EA499317333</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>productRef</key>
+			<string>8EF1BEB908E646A1A65E9096</string>
+		</dict>
+		<key>0995007D9541490192CC214B</key>
+		<dict>
+			<key>isa</key>
+			<string>XCRemoteSwiftPackageReference</string>
+			<key>repositoryURL</key>
+			<string>https://github.com/tree-sitter/swift-tree-sitter.git</string>
+			<key>requirement</key>
+			<dict>
+				<key>kind</key>
+				<string>upToNextMajorVersion</string>
+				<key>minimumVersion</key>
+				<string>0.10.0</string>
+			</dict>
+		</dict>
+		<key>7456B1470B5645EB9C7B4390</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>package</key>
+			<string>0995007D9541490192CC214B</string>
+			<key>productName</key>
+			<string>SwiftTreeSitter</string>
+		</dict>
+		<key>2F89872A44134B4492EBA433</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>productRef</key>
+			<string>7456B1470B5645EB9C7B4390</string>
+		</dict>
 		<key>A4E7282C6C5D4E9F80123456</key>
 		<dict>
 			<key>isa</key>
@@ -1548,7 +1703,11 @@
 			<key>packageReferences</key>
 			<array>
 				<string>6314E9EE4C496B693C196D78</string>
+				<string>280FCA2E53CE44BBB28DA06E</string>
 				<string>A4E7282C6C5D4E9F80123456</string>
+				<string>2AA01E6A552B4B759968E6D3</string>
+				<string>217D16D1D5454047A9B4BD7E</string>
+				<string>0995007D9541490192CC214B</string>
 			</array>
 			<key>preferredProjectObjectVersion</key>
 			<string>77</string>
@@ -1680,6 +1839,10 @@
 			<array>
 				<string>6FBB135E6C4D2D0FB8D15AC7</string>
 				<string>A4E7282D6C5D4E9F80123456</string>
+				<string>FCFC0D3871064B0C8DD52CA8</string>
+				<string>66ABCE02FFFB4C96BC884DDF</string>
+				<string>7456B1470B5645EB9C7B4390</string>
+				<string>8EF1BEB908E646A1A65E9096</string>
 			</array>
 			<key>productName</key>
 			<string>RedisConsole</string>
