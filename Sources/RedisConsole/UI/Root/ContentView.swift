@@ -83,12 +83,12 @@ struct WorkspaceView: View {
         Group {
             switch conn.currentView {
             case .browser: BrowserView().transition(.opacity)
+            case .functions: FunctionsView().transition(.opacity)
             case .shell: ShellView().transition(.opacity)
             case .profiler: ProfilerView().transition(.opacity)
             case .slowLog: SlowLogView().transition(.opacity)
             case .databaseAnalysis: DatabaseAnalysisView().transition(.opacity)
             case .serverInfo: ServerInfoView().transition(.opacity)
-            case .functions: FunctionsView().transition(.opacity)
             }
         }
         .animation(.default, value: conn.currentView)

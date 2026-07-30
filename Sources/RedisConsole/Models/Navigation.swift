@@ -5,16 +5,17 @@ import SwiftUI
 
 enum AppView: String, CaseIterable {
     case browser = "Browser"
+    case functions = "Functions"
     case shell = "Shell"
     case profiler = "Profiler"
     case slowLog = "Slow Log"
     case databaseAnalysis = "Analysis"
     case serverInfo = "Server Info"
-    case functions = "Functions"
 
     var icon: String {
         switch self {
         case .browser: return "key"
+        case .functions: return "curlybraces"
         case .shell: return "terminal"
         case .profiler: return "waveform.path.ecg"
         case .slowLog: return "hourglass"
