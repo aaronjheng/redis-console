@@ -92,6 +92,31 @@ struct RedisProfilerEntry: Identifiable, Hashable {
         return arguments.dropFirst().map(Self.displayArgument).joined(separator: " ")
     }
 
+    /// The invoked function name for `FCALL` / `FCALL_RO` entries, otherwise `nil`.
+    ///
+    /// Redis MONITOR quotes every argument, so `arguments[0]` is the command
+    /// and `arguments[1]` is the function name (`FCALL <function> <numkeys> ...`).
+    var fcallFunctionName: String? {
+        guard commandName == "FCALL" || commandName == "FCALL_RO" else { return nil }
+        guard arguments.count >= 2 else { return nil }
+        let name = arguments[1]
+        return name.isEmpty ? nil : name
+    }
+
+    /// Resolves the owning library for an `FCALL` / `FCALL_RO` entry by looking
+    /// up the invoked function name across the loaded function libraries.
+    ///
+    /// Function names are globally unique in Redis, so the first match wins.
+    /// Returns the qualified `library.function` form, or `nil` when the entry is
+    /// not a function call or no matching library is loaded. The libraries are
+    /// passed in to keep this model free of a `ConnectionState` dependency.
+    func fcallLibraryName(in libraries: [RedisFunctionLibrary]) -> String? {
+        guard let functionName = fcallFunctionName,
+            let library = libraries.first(where: { $0.functions.contains { $0.name == functionName } })
+        else { return nil }
+        return "\(library.name).\(functionName)"
+    }
+
     var searchText: String {
         ([databaseText, nodeText, source, commandName, commandText, rawLine] + arguments)
             .joined(separator: " ")

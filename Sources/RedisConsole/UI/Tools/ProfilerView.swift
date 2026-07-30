@@ -7,6 +7,17 @@ struct ProfilerView: View {
     @State private var autoScroll = true
     @State private var hideNoiseCommands = true
     @State private var selectedEntryID: RedisProfilerEntry.ID?
+    @State private var libraryColumnEnabled = false
+
+    private var hasFunctionLibraries: Bool {
+        !app.functionLibraries.isEmpty
+    }
+
+    /// Effective column visibility: the user opt-in must be on *and* libraries
+    /// must be loaded (so the column auto-hides after a FLUSH, for example).
+    private var showLibraryColumn: Bool {
+        libraryColumnEnabled && hasFunctionLibraries
+    }
 
     private var filteredEntries: [RedisProfilerEntry] {
         let visibleEntries =
@@ -37,6 +48,8 @@ struct ProfilerView: View {
                 filterText: $filterText,
                 autoScroll: $autoScroll,
                 hideNoiseCommands: $hideNoiseCommands,
+                libraryColumnEnabled: $libraryColumnEnabled,
+                canShowLibraryColumn: hasFunctionLibraries,
                 isStarting: app.isProfilerStarting,
                 isRunning: app.isProfilerRunning,
                 hasEntries: !app.profilerEntries.isEmpty,
@@ -55,6 +68,8 @@ struct ProfilerView: View {
                 selectedEntryID: $selectedEntryID,
                 autoScroll: autoScroll,
                 lastVisibleEntryID: lastVisibleEntryID,
+                showLibraryColumn: showLibraryColumn,
+                libraries: app.functionLibraries,
                 onStart: app.startProfiler
             )
 
@@ -68,6 +83,15 @@ struct ProfilerView: View {
                 isStarting: app.isProfilerStarting,
                 isRunning: app.isProfilerRunning
             )
+        }
+        .task {
+            // Keep function libraries loaded so FCALL entries can be resolved to
+            // their owning library without first visiting the Functions tab.
+            guard app.activeClient?.isConnected == true else { return }
+            if app.serverInfo.isEmpty { await app.loadServerInfo() }
+            if app.supportsFunctions && app.functionLibraries.isEmpty {
+                await app.fetchFunctionLibraries()
+            }
         }
     }
 
@@ -92,6 +116,8 @@ private struct ProfilerContentView: View {
     @Binding var selectedEntryID: RedisProfilerEntry.ID?
     let autoScroll: Bool
     let lastVisibleEntryID: RedisProfilerEntry.ID?
+    let showLibraryColumn: Bool
+    let libraries: [RedisFunctionLibrary]
     let onStart: () -> Void
 
     var body: some View {
@@ -106,7 +132,9 @@ private struct ProfilerContentView: View {
                 entries: entries,
                 selectedEntryID: $selectedEntryID,
                 autoScroll: autoScroll,
-                lastVisibleEntryID: lastVisibleEntryID
+                lastVisibleEntryID: lastVisibleEntryID,
+                showLibraryColumn: showLibraryColumn,
+                libraries: libraries
             )
         }
     }
@@ -154,6 +182,8 @@ private struct ProfilerToolbarView: View {
     @Binding var filterText: String
     @Binding var autoScroll: Bool
     @Binding var hideNoiseCommands: Bool
+    @Binding var libraryColumnEnabled: Bool
+    let canShowLibraryColumn: Bool
     let isStarting: Bool
     let isRunning: Bool
     let hasEntries: Bool
@@ -183,6 +213,12 @@ private struct ProfilerToolbarView: View {
 
                 Toggle("Hide noise", isOn: $hideNoiseCommands)
                     .toggleStyle(.switch)
+
+                if canShowLibraryColumn {
+                    Toggle("Library", isOn: $libraryColumnEnabled)
+                        .toggleStyle(.switch)
+                        .help("Show the owning library for FCALL commands")
+                }
 
                 Button(action: onToggleCapture) {
                     Label(captureButtonTitle, systemImage: captureButtonIcon)
@@ -237,10 +273,12 @@ private struct ProfilerEntriesView: View {
     @Binding var selectedEntryID: RedisProfilerEntry.ID?
     let autoScroll: Bool
     let lastVisibleEntryID: RedisProfilerEntry.ID?
+    let showLibraryColumn: Bool
+    let libraries: [RedisFunctionLibrary]
 
     var body: some View {
         VStack(spacing: 0) {
-            ProfilerHeaderRow()
+            ProfilerHeaderRow(showLibraryColumn: showLibraryColumn)
             Divider()
             ScrollViewReader { proxy in
                 ScrollView {
@@ -248,6 +286,8 @@ private struct ProfilerEntriesView: View {
                         ForEach(entries) { entry in
                             ProfilerEntryRow(
                                 entry: entry,
+                                libraries: libraries,
+                                showLibraryColumn: showLibraryColumn,
                                 isSelected: selectedEntryID == entry.id,
                                 onSelect: { selectedEntryID = entry.id }
                             )
@@ -267,6 +307,8 @@ private struct ProfilerEntriesView: View {
 }
 
 private struct ProfilerHeaderRow: View {
+    let showLibraryColumn: Bool
+
     var body: some View {
         HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
             Text("Time")
@@ -279,6 +321,10 @@ private struct ProfilerHeaderRow: View {
                 .frame(width: 170, alignment: .leading)
             Text("Command")
                 .frame(width: 110, alignment: .leading)
+            if showLibraryColumn {
+                Text("Library")
+                    .frame(width: 150, alignment: .leading)
+            }
             Text("Arguments")
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -292,8 +338,14 @@ private struct ProfilerHeaderRow: View {
 
 private struct ProfilerEntryRow: View {
     let entry: RedisProfilerEntry
+    let libraries: [RedisFunctionLibrary]
+    let showLibraryColumn: Bool
     let isSelected: Bool
     let onSelect: () -> Void
+
+    private var libraryText: String? {
+        entry.fcallLibraryName(in: libraries)
+    }
 
     var body: some View {
         Button(action: onSelect) {
@@ -315,6 +367,12 @@ private struct ProfilerEntryRow: View {
                     .frame(width: 110, alignment: .leading)
                     .fontWeight(.semibold)
                     .foregroundStyle(Color.accentColor)
+                if showLibraryColumn {
+                    Text(libraryText ?? "-")
+                        .frame(width: 150, alignment: .leading)
+                        .truncationMode(.middle)
+                        .foregroundStyle(libraryText == nil ? .secondary : .primary)
+                }
                 Text(entry.argumentsText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .truncationMode(.middle)
