@@ -57,6 +57,17 @@ struct BrowserView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
+
+                Button {
+                    newKeyName = ""
+                    newKeyType = "string"
+                    newKeyValue = ""
+                    showingAddKey = true
+                } label: {
+                    Label("Add Key", systemImage: "plus")
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .help("Add a new key")
             }
             .panelToolbar(horizontalPadding: AppSpacing.small)
 
@@ -165,22 +176,10 @@ struct BrowserView: View {
                     Divider()
 
                     WorkspaceFooterBar {
-                        Button("Add Key", systemImage: "plus") {
-                            newKeyName = ""
-                            newKeyType = "string"
-                            newKeyValue = ""
-                            showingAddKey = true
-                        }
-                        .labelStyle(.iconOnly)
-                        .font(.body)
-                        .buttonStyle(.borderless)
-                        .help("Add key")
-
-                        Spacer()
-
                         StatusFooterView(
                             countText: browserFooterText(displayedCount: filteredKeys.count)
                         )
+                        Spacer()
                     }
                 }
             } right: {
