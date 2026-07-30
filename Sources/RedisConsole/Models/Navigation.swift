@@ -21,7 +21,6 @@ enum AppView: String, CaseIterable {
         case .slowLog: return "hourglass"
         case .databaseAnalysis: return "chart.pie"
         case .serverInfo: return "info.circle"
-        case .functions: return "curlybraces"
         }
     }
 }
