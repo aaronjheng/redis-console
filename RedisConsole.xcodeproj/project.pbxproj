@@ -145,6 +145,8 @@
 				<string>032CF92A41DF529497E78FA5</string>
 				<string>4E5CE0ABC18E50559B009503</string>
 				<string>30154E03B5DE5970A72B3E24</string>
+				<string>DDAEA26E1EB44856A4E40CE9</string>
+				<string>E7DAE39125644185BA5CBBCC</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -358,6 +360,42 @@
 			<string>UI/Tools/SelectableText.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
+		</dict>
+		<key>DDAEA26E1EB44856A4E40CE9</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/Tools/SyntaxHighlighting.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>4E304EC41AB84507A2093DF2</key>
+		<dict>
+			<key>fileRef</key>
+			<string>DDAEA26E1EB44856A4E40CE9</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>E7DAE39125644185BA5CBBCC</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/Tools/SyntaxTextView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B5F373F3E06145DE91F62466</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E7DAE39125644185BA5CBBCC</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
 		</dict>
 		<key>21B9E85849C04FB8915DC3BE</key>
 		<dict>
@@ -833,6 +871,8 @@
 				<string>3E56820EDD2B42E76DAB8B95</string>
 				<string>CF81C6511F33F16694F868E5</string>
 				<string>AD56EF1A55D0566E8B0639F7</string>
+				<string>4E304EC41AB84507A2093DF2</string>
+				<string>B5F373F3E06145DE91F62466</string>
 			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>

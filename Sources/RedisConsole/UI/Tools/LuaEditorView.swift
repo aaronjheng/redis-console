@@ -108,11 +108,13 @@ struct LuaEditorView: View {
     // MARK: Editor
 
     private var editor: some View {
-        TextEditor(text: $code)
-            .font(AppFont.monoBody)
-            .scrollContentBackground(.hidden)
-            .background(AppColor.codeBackground)
-            .padding(AppSpacing.medium)
+        SyntaxTextEditor(
+            text: $code,
+            tokenizer: LuaTokenizer(),
+            completionProvider: LuaCompletionProvider()
+        )
+        .background(AppColor.codeBackground)
+        .padding(AppSpacing.medium)
     }
 
     // MARK: Status bar

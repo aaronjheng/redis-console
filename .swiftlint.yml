@@ -26,3 +26,9 @@ identifier_name:
   excluded:
     - id
     - ok
+    # Single-letter loop indices/chars are idiomatic in tokenizer loops.
+    - i
+    - j
+    - k
+    - c
+    - d
