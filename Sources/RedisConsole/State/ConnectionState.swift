@@ -87,12 +87,6 @@ class ConnectionState {
     var lastFunctionCallResult: RedisFunctionCallResult?
     var isCallingFunction = false
 
-    var functionRunningScripts: [RedisFunctionRunningScriptEntry] = []
-    var functionEngineStats: [RedisEndpoint?: RedisFunctionEngineStats] = [:]
-    var isFetchingFunctionStats = false
-    var functionStatsError: String?
-    var functionStatsAutoRefresh: TimeInterval = 0
-
     var currentView: AppView = .browser
     var rightPanel: RightPanel = .welcome
 

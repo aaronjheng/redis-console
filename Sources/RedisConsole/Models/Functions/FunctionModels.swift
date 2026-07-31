@@ -26,27 +26,6 @@ struct RedisFunction: Identifiable, Sendable {
     var isReadOnly: Bool { flags.contains("no-writes") }
 }
 
-/// A running script reported by FUNCTION STATS.
-struct RedisFunctionRunningScript: Sendable {
-    let name: String
-    let command: String
-    let durationMs: Int
-    let args: [String]
-}
-
-/// A running script paired with the node that reported it (for cluster display).
-struct RedisFunctionRunningScriptEntry: Identifiable, Sendable {
-    let node: RedisEndpoint?
-    let script: RedisFunctionRunningScript
-    var id: String { node?.address ?? "standalone" }
-}
-
-/// Engine-level aggregates from FUNCTION STATS, for a single node.
-struct RedisFunctionEngineStats: Sendable {
-    let librariesCount: Int
-    let functionsCount: Int
-}
-
 /// The result of an FCALL / FCALL_RO invocation.
 struct RedisFunctionCallResult: Identifiable, Sendable {
     let id = UUID()

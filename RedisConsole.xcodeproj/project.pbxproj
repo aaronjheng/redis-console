@@ -143,7 +143,6 @@
 				<string>FEAD361A497E3B97E10C7FC6</string>
 				<string>81D1445A8D6521AAEADEC9B6</string>
 				<string>032CF92A41DF529497E78FA5</string>
-				<string>4E5CE0ABC18E50559B009503</string>
 				<string>30154E03B5DE5970A72B3E24</string>
 				<string>575791CCC9A84EC88B2E7DF1</string>
 				<string>BA899187A2404A41A541D011</string>
@@ -342,17 +341,6 @@
 			<string>sourcecode.swift</string>
 			<key>path</key>
 			<string>UI/Tools/FunctionCallView.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
-		</dict>
-		<key>4E5CE0ABC18E50559B009503</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>UI/Tools/FunctionStatsView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -911,7 +899,6 @@
 				<string>761728D038190C58E941EC94</string>
 				<string>5DA405AA45A1ACAB3972F240</string>
 				<string>3E56820EDD2B42E76DAB8B95</string>
-				<string>CF81C6511F33F16694F868E5</string>
 				<string>AD56EF1A55D0566E8B0639F7</string>
 				<string>4318EBA1CEFB492BA7B69596</string>
 				<string>BB90403899B2435B90545CDD</string>
@@ -1030,13 +1017,6 @@
 		<dict>
 			<key>fileRef</key>
 			<string>032CF92A41DF529497E78FA5</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
-		<key>CF81C6511F33F16694F868E5</key>
-		<dict>
-			<key>fileRef</key>
-			<string>4E5CE0ABC18E50559B009503</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>

@@ -6,8 +6,6 @@ struct FunctionsView: View {
     @Environment(ConnectionState.self) private var app
     @State private var searchText = ""
     @State private var showingLoadSheet = false
-    @State private var showStats = false
-
     private var isClusterMode: Bool {
         app.selectedConnection?.mode == .cluster || !app.clusterNodes.isEmpty
     }
@@ -30,7 +28,7 @@ struct FunctionsView: View {
         VStack(spacing: 0) {
             header
 
-            if !showStats, let error = app.functionsError {
+            if let error = app.functionsError {
                 ErrorBanner(message: error, dismissAction: { app.functionsError = nil })
                 Divider()
             }
@@ -59,70 +57,46 @@ struct FunctionsView: View {
     private var header: some View {
         @Bindable var app = app
         return HStack(spacing: AppSpacing.medium) {
-            if app.supportsFunctions {
-                BinaryTogglePicker(
-                    selection: $showStats,
-                    first: false,
-                    second: true,
-                    firstLabel: { Text("Libraries").font(.caption) },
-                    secondLabel: { Text("Stats").font(.caption) }
-                )
-                .frame(width: 160)
-                .help("Switch between library management and runtime stats")
-            }
-
-            if !showStats {
-                ZStack(alignment: .trailing) {
-                    TextField("Filter libraries", text: $searchText)
-                        .textFieldStyle(.roundedBorder)
-                    if !searchText.isEmpty {
-                        Button("Clear", systemImage: "xmark.circle.fill") {
-                            searchText = ""
-                        }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                        .padding(.trailing, 8)
+            ZStack(alignment: .trailing) {
+                TextField("Filter libraries", text: $searchText)
+                    .textFieldStyle(.roundedBorder)
+                if !searchText.isEmpty {
+                    Button("Clear", systemImage: "xmark.circle.fill") {
+                        searchText = ""
                     }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .padding(.trailing, 8)
                 }
-                .frame(maxWidth: 260)
             }
+            .frame(maxWidth: 320)
 
             Spacer()
 
-            if showStats {
-                RefreshControl(
-                    autoRefreshInterval: $app.functionStatsAutoRefresh,
-                    isLoading: app.isFetchingFunctionStats,
-                    intervals: [5, 10, 30, 60]
-                ) {
-                    Task { await app.fetchFunctionStats() }
-                }
-            } else {
-                if app.isLoadingFunctions {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .controlSize(.small)
-                }
-
-                Button {
-                    Task { await app.fetchFunctionLibraries() }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .buttonStyle(SecondaryButtonStyle())
-                .disabled(app.isLoadingFunctions || !app.supportsFunctions)
-
-                Button {
-                    showingLoadSheet = true
-                } label: {
-                    Label("Load", systemImage: "plus")
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(!app.supportsFunctions)
+            if app.isLoadingFunctions {
+                ProgressView()
+                    .scaleEffect(0.7)
+                    .controlSize(.small)
             }
+
+            Button {
+                Task { await app.fetchFunctionLibraries() }
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(SecondaryButtonStyle())
+            .disabled(app.isLoadingFunctions || !app.supportsFunctions)
+
+            Button {
+                showingLoadSheet = true
+            } label: {
+                Label("Load", systemImage: "plus")
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .disabled(!app.supportsFunctions)
         }
-        .panelToolbar()
+        .panelToolbar(horizontalPadding: AppSpacing.small)
     }
 
     // MARK: Content
@@ -137,8 +111,6 @@ struct FunctionsView: View {
                 systemImage: "curlybraces",
                 description: Text("Redis Functions are available in Redis 7.0 and later.")
             )
-        } else if showStats {
-            FunctionStatsView()
         } else if app.isLoadingFunctions && app.functionLibraries.isEmpty {
             Spacer()
             ProgressView("Loading functions...")
@@ -223,10 +195,6 @@ struct FunctionsView: View {
     // MARK: Helpers
 
     private var footerText: String {
-        if showStats {
-            let running = app.functionRunningScripts.count
-            return running == 0 ? "No scripts running" : "\(running) script\(running == 1 ? "" : "s") running"
-        }
         let total = app.functionLibraries.count
         let filtered = filteredLibraries.count
         if isClusterMode {
