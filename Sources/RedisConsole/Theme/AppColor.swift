@@ -44,10 +44,58 @@ enum AppColor {
 
     // MARK: - Syntax highlighting
 
-    static let syntaxKey: Color = .teal
-    static let syntaxString: Color = .green
-    static let syntaxNumber: Color = .orange
-    static let syntaxBool: Color = .blue
-    static let syntaxNull: Color = .orange
+    private static func dynamicColor(light: NSColor, dark: NSColor) -> Color {
+        Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+        }))
+    }
+
+    private static func hsb(_ hue: CGFloat, _ saturation: CGFloat, _ brightness: CGFloat) -> NSColor {
+        NSColor(hue: hue, saturation: saturation, brightness: brightness, alpha: 1)
+    }
+
+    /// Keywords: `local`, `function`, `return`, `if`
+    static let syntaxKey = dynamicColor(
+        light: hsb(0.750, 0.50, 0.55),
+        dark: hsb(0.750, 0.40, 0.82)
+    )
+
+    /// Built-in functions & API members: `pairs`, `redis.call`
+    static let syntaxBuiltin = dynamicColor(
+        light: hsb(0.514, 0.65, 0.45),
+        dark: hsb(0.514, 0.50, 0.78)
+    )
+
+    /// String literals
+    static let syntaxString = dynamicColor(
+        light: hsb(0.375, 0.55, 0.42),
+        dark: hsb(0.375, 0.42, 0.75)
+    )
+
+    /// Numeric literals
+    static let syntaxNumber = dynamicColor(
+        light: hsb(0.078, 0.70, 0.65),
+        dark: hsb(0.078, 0.58, 0.88)
+    )
+
+    /// Boolean literals & named constants: `true`, `LOG_DEBUG`
+    static let syntaxBool = dynamicColor(
+        light: hsb(0.931, 0.50, 0.60),
+        dark: hsb(0.931, 0.38, 0.82)
+    )
+
+    /// Named constants — same visual group as booleans
+    static let syntaxConstant = syntaxBool
+
+    /// Type-like tokens & JSON object keys
+    static let syntaxType = dynamicColor(
+        light: hsb(0.597, 0.60, 0.55),
+        dark: hsb(0.597, 0.48, 0.82)
+    )
+
+    /// Null / nil — deliberately muted
+    static let syntaxNull = Color(nsColor: .secondaryLabelColor)
+
+    /// Punctuation — inherits system secondary
     static let syntaxPunctuation: Color = .secondary
 }

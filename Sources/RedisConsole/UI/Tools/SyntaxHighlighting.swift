@@ -27,10 +27,10 @@ enum SyntaxTokenType {
         case .string: NSColor(AppColor.syntaxString)
         case .number: NSColor(AppColor.syntaxNumber)
         case .comment: .secondaryLabelColor
-        case .builtin: NSColor(AppColor.syntaxKey)
-        case .type: NSColor(AppColor.terminalPrompt)
-        case .member: NSColor(AppColor.info)
-        case .constant: NSColor(AppColor.chartSet)
+        case .builtin: NSColor(AppColor.syntaxBuiltin)
+        case .type: NSColor(AppColor.syntaxType)
+        case .member: NSColor(AppColor.syntaxBuiltin)
+        case .constant: NSColor(AppColor.syntaxConstant)
         }
     }
 }
