@@ -26,7 +26,7 @@ struct FunctionLibraryDetailView: View {
                     tokenizer: TreeSitterLuaHighlighter()
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(AppSpacing.large)
+                .padding(AppSpacing.small)
             }
             .onTapGesture(count: 2) {
                 showingEditSheet = true
@@ -38,7 +38,7 @@ struct FunctionLibraryDetailView: View {
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .help("Edit library source")
-                .padding(AppSpacing.large)
+                .padding(AppSpacing.small)
             }
         }
         .frame(maxHeight: .infinity)
@@ -121,8 +121,7 @@ struct FunctionLibraryDetailView: View {
             }
             .font(.subheadline)
         }
-        .padding(.horizontal, AppSpacing.large)
-        .padding(.vertical, AppSpacing.small)
+        .padding(AppSpacing.small)
     }
 
     // MARK: Functions
@@ -149,8 +148,7 @@ struct FunctionLibraryDetailView: View {
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, AppSpacing.large)
-                .padding(.vertical, AppSpacing.small)
+                .padding(AppSpacing.small)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -197,7 +195,6 @@ struct FunctionLibraryDetailView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, AppSpacing.large)
-        .padding(.vertical, AppSpacing.small)
+        .padding(AppSpacing.small)
     }
 }
