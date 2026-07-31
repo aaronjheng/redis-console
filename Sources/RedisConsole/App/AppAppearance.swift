@@ -23,17 +23,19 @@ enum AppAppearance: Int, CaseIterable {
     @MainActor
     func apply() {
         UserDefaults.standard.set(rawValue, forKey: Self.userDefaultsKey)
+        NSApp.appearance = nsAppearance
+    }
+
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
     }
 
     @MainActor
     func applyToWindow(_ window: NSWindow) {
-        switch self {
-        case .system:
-            window.appearance = nil
-        case .light:
-            window.appearance = NSAppearance(named: .aqua)
-        case .dark:
-            window.appearance = NSAppearance(named: .darkAqua)
-        }
+        window.appearance = nsAppearance
     }
 }

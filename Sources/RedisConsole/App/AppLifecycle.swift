@@ -32,6 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
+        AppAppearance.current.apply()
         buildMenuBar()
         NotificationCenter.default.addObserver(
             self,
