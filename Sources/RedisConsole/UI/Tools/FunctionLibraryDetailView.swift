@@ -77,14 +77,42 @@ struct FunctionLibraryDetailView: View {
     // MARK: Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+        HStack(spacing: AppSpacing.small) {
+            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+                HStack(spacing: AppSpacing.small) {
+                    Badge(text: library.engine, isLoading: library.engine.isEmpty)
+                    Text(library.name)
+                        .font(.title3)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
+                    HStack(spacing: AppSpacing.xxSmall) {
+                        Image(systemName: "number")
+                        Text("\(library.functionCount) function\(library.functionCount == 1 ? "" : "s")")
+                    }
+                    .foregroundStyle(.secondary)
+                    if library.isReadOnly {
+                        HStack(spacing: AppSpacing.xxSmall) {
+                            Image(systemName: "lock.fill")
+                            Text("Read-only")
+                        }
+                        .foregroundStyle(AppColor.success)
+                    }
+                    if let nodes = library.nodes, !nodes.isEmpty {
+                        HStack(spacing: AppSpacing.xSmall) {
+                            Image(systemName: "server.rack")
+                            Text(nodes.map(\.address).joined(separator: ", "))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                .font(.subheadline)
+            }
+            Spacer(minLength: 0)
             HStack(spacing: AppSpacing.small) {
-                Badge(text: library.engine, isLoading: library.engine.isEmpty)
-                Text(library.name)
-                    .font(.title3)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer(minLength: 0)
                 Button {
                     showingCallSheet = true
                 } label: {
@@ -95,31 +123,6 @@ struct FunctionLibraryDetailView: View {
                 .help("Run a function (FCALL)")
                 DeleteIconButton(action: { showingDeleteConfirm = true }, helpText: "Delete library")
             }
-            HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
-                HStack(spacing: AppSpacing.xxSmall) {
-                    Image(systemName: "number")
-                    Text("\(library.functionCount) function\(library.functionCount == 1 ? "" : "s")")
-                }
-                .foregroundStyle(.secondary)
-                if library.isReadOnly {
-                    HStack(spacing: AppSpacing.xxSmall) {
-                        Image(systemName: "lock.fill")
-                        Text("Read-only")
-                    }
-                    .foregroundStyle(AppColor.success)
-                }
-                if let nodes = library.nodes, !nodes.isEmpty {
-                    HStack(spacing: AppSpacing.xSmall) {
-                        Image(systemName: "server.rack")
-                        Text(nodes.map(\.address).joined(separator: ", "))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                    .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-            }
-            .font(.subheadline)
         }
         .padding(AppSpacing.small)
     }
