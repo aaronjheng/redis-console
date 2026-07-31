@@ -20,6 +20,7 @@ struct ConnectionDetailView: View {
     @State private var tls = TLSConfig()
     @State private var environment: ConnectionEnvironment = .unspecified
     @State private var uriInput = ""
+    @State private var uriError: String?
     @State private var isCreatingNew = false
     @State private var cachedConfig: RedisConnectionConfig?
     @State private var connectionTimeout: TimeInterval = 10
@@ -39,6 +40,7 @@ struct ConnectionDetailView: View {
                     Section("Import from URI") {
                         HStack {
                             TextField("URI", text: $uriInput)
+                                .onChange(of: uriInput) { uriError = nil }
                             Button("Import") {
                                 if let config = RedisConnectionConfig.parseURI(uriInput) {
                                     name = config.name
@@ -49,9 +51,17 @@ struct ConnectionDetailView: View {
                                     password = config.password
                                     tls = config.tls
                                     uriInput = ""
+                                    uriError = nil
+                                } else {
+                                    uriError = "Invalid URI format. Expected: redis://[user:pass@]host:port"
                                 }
                             }
                             .disabled(uriInput.isEmpty)
+                        }
+                        if let uriError {
+                            Text(uriError)
+                                .font(.subheadline)
+                                .foregroundStyle(AppColor.error)
                         }
                     }
 

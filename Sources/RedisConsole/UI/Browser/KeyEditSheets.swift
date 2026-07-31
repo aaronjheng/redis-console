@@ -23,6 +23,7 @@ struct AddHashFieldSheet: View {
 
             HStack {
                 Button("Cancel") { onCancel() }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Add") { onSave(field, value) }
                     .disabled(field.isEmpty)
@@ -57,6 +58,7 @@ struct AddListElementSheet: View {
 
             HStack {
                 Button("Cancel") { onCancel() }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Add") { onSave(value, position) }
                     .disabled(value.isEmpty)
@@ -86,6 +88,7 @@ struct AddSetMemberSheet: View {
 
             HStack {
                 Button("Cancel") { onCancel() }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Add") { onSave(member) }
                     .disabled(member.isEmpty)
@@ -116,6 +119,7 @@ struct AddZSetMemberSheet: View {
 
             HStack {
                 Button("Cancel") { onCancel() }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Add") { onSave(member, score) }
                     .disabled(member.isEmpty || score.isEmpty)
@@ -215,6 +219,7 @@ struct AddKeySheet: View {
 
             HStack {
                 Button("Cancel") { onCancel() }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Add") {
                     switch keyType {

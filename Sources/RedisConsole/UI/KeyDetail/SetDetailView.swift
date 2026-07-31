@@ -19,6 +19,7 @@ struct SetDetailView: View {
     let onDeleteMember: (String) -> Void
 
     @State private var pendingSearchText = ""
+    @State private var memberPendingDeletion: String?
 
     private var setRows: [SetRow] {
         rows.map { SetRow(member: $0.0) }
@@ -44,7 +45,7 @@ struct SetDetailView: View {
 
                 TableColumn("Actions") { row in
                     DeleteIconButton(
-                        action: { onDeleteMember(row.member) },
+                        action: { memberPendingDeletion = row.member },
                         helpText: "Delete member"
                     )
                 }
@@ -81,6 +82,26 @@ struct SetDetailView: View {
         }
         .onChange(of: searchText) { _, newValue in
             pendingSearchText = newValue
+        }
+        .confirmationDialog(
+            "Delete Member?",
+            isPresented: Binding(
+                get: { memberPendingDeletion != nil },
+                set: { if !$0 { memberPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let member = memberPendingDeletion {
+                Button("Delete \"\(member)\"", role: .destructive) {
+                    onDeleteMember(member)
+                    memberPendingDeletion = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if let member = memberPendingDeletion {
+                Text("This permanently deletes member \"\(member)\" from \"\(key)\".")
+            }
         }
     }
 }

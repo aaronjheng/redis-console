@@ -47,6 +47,7 @@ struct ListDetailView: View {
 
     @State private var editingIndex: Int?
     @State private var editValue = ""
+    @State private var elementPendingDeletion: ListRow?
 
     private var listRows: [ListRow] {
         rows.compactMap { row in
@@ -87,7 +88,7 @@ struct ListDetailView: View {
                         .help("Edit element")
 
                         DeleteIconButton(
-                            action: { onDeleteElement(row.index, row.value) },
+                            action: { elementPendingDeletion = row },
                             helpText: "Delete element"
                         )
                     }
@@ -118,6 +119,26 @@ struct ListDetailView: View {
                 StatusFooterView(
                     countText: detailCountText(loaded: rows.count, total: keyLength, noun: "elements")
                 )
+            }
+        }
+        .confirmationDialog(
+            "Delete Element?",
+            isPresented: Binding(
+                get: { elementPendingDeletion != nil },
+                set: { if !$0 { elementPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let row = elementPendingDeletion {
+                Button("Delete element \(row.index)", role: .destructive) {
+                    onDeleteElement(row.index, row.value)
+                    elementPendingDeletion = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if let row = elementPendingDeletion {
+                Text("This permanently deletes element at index \(row.index) from \"\(key)\".")
             }
         }
     }

@@ -92,6 +92,8 @@ struct InlineTextField: NSViewRepresentable {
 
     class Coordinator: NSObject, NSTextFieldDelegate {
         let parent: InlineTextField
+        private var isCancelling = false
+        private var isSubmitting = false
 
         init(_ parent: InlineTextField) {
             self.parent = parent
@@ -99,10 +101,12 @@ struct InlineTextField: NSViewRepresentable {
 
         func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
             if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+                isSubmitting = true
                 parent.onSubmit()
                 return true
             }
             if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+                isCancelling = true
                 parent.onCancel()
                 return true
             }
@@ -110,6 +114,11 @@ struct InlineTextField: NSViewRepresentable {
         }
 
         func controlTextDidEndEditing(_ obj: Notification) {
+            defer {
+                isCancelling = false
+                isSubmitting = false
+            }
+            guard !isCancelling, !isSubmitting else { return }
             parent.onSubmit()
         }
 

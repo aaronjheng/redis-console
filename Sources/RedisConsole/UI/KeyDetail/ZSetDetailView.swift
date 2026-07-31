@@ -25,6 +25,7 @@ struct ZSetDetailView: View {
     @State private var editingMember: String?
     @State private var editScore = ""
     @State private var pendingSearchText = ""
+    @State private var memberPendingDeletion: String?
 
     private var zsetRows: [ZSetRow] {
         rows.map { ZSetRow(score: $0.0, member: $0.1) }
@@ -87,7 +88,7 @@ struct ZSetDetailView: View {
                         .help("Edit score")
 
                         DeleteIconButton(
-                            action: { onDeleteMember(row.member) },
+                            action: { memberPendingDeletion = row.member },
                             helpText: "Delete member"
                         )
                     }
@@ -125,6 +126,26 @@ struct ZSetDetailView: View {
         }
         .onChange(of: searchText) { _, newValue in
             pendingSearchText = newValue
+        }
+        .confirmationDialog(
+            "Delete Member?",
+            isPresented: Binding(
+                get: { memberPendingDeletion != nil },
+                set: { if !$0 { memberPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let member = memberPendingDeletion {
+                Button("Delete \"\(member)\"", role: .destructive) {
+                    onDeleteMember(member)
+                    memberPendingDeletion = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if let member = memberPendingDeletion {
+                Text("This permanently deletes member \"\(member)\" from \"\(key)\".")
+            }
         }
     }
 }

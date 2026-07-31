@@ -36,9 +36,12 @@ struct ShellView: View {
             VStack(spacing: 0) {
                 HStack(spacing: AppSpacing.medium) {
                     Spacer()
-                    Button(action: { app.clearShellHistory() }, label: {
-                        Label("Clear", systemImage: "trash")
-                    })
+                    Button(
+                        action: { app.clearShellHistory() },
+                        label: {
+                            Label("Clear", systemImage: "trash")
+                        }
+                    )
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(app.shellHistory.isEmpty)
                 }

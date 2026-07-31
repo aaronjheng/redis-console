@@ -6,6 +6,7 @@ import SwiftUI
 struct ConnectionHubSidebarView: View {
     @Environment(ConnectionState.self) private var conn
     @Environment(AppStore.self) private var store
+    @State private var connectionPendingDeletion: RedisConnectionConfig?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -58,17 +59,25 @@ struct ConnectionHubSidebarView: View {
                             }
                         )
                         .contextMenu {
+                            Button("Connect") {
+                                Task { await conn.connect(to: config) }
+                            }
                             Button("Duplicate") {
+                                var copy = config
+                                copy.id = UUID()
+                                copy.name = "\(config.name) Copy"
+                                store.addConnection(copy)
+                                conn.selectedConnection = copy
+                                conn.rightPanel = .editConnection(copy)
+                            }
+                            Divider()
+                            Button("Copy Address") {
                                 let pasteboard = NSPasteboard.general
                                 pasteboard.clearContents()
                                 pasteboard.setString(config.address, forType: .string)
                             }
-                            Button("Delete") {
-                                store.deleteConnection(config)
-                                if conn.selectedConnection?.id == config.id {
-                                    conn.selectedConnection = nil
-                                    conn.rightPanel = .welcome
-                                }
+                            Button("Delete", role: .destructive) {
+                                connectionPendingDeletion = config
                             }
                             Divider()
                             Button("Copy URI") {
@@ -95,6 +104,32 @@ struct ConnectionHubSidebarView: View {
                 }
             }
             .listStyle(.sidebar)
+        }
+        .confirmationDialog(
+            "Delete Connection?",
+            isPresented: Binding(
+                get: { connectionPendingDeletion != nil },
+                set: { if !$0 { connectionPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let config = connectionPendingDeletion {
+                Button("Delete \"\(config.name)\"", role: .destructive) {
+                    store.deleteConnection(config)
+                    if conn.selectedConnection?.id == config.id {
+                        conn.selectedConnection = nil
+                        conn.rightPanel = .welcome
+                    }
+                    connectionPendingDeletion = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                connectionPendingDeletion = nil
+            }
+        } message: {
+            if let config = connectionPendingDeletion {
+                Text("This permanently deletes \"\(config.name)\" (\(config.address)).")
+            }
         }
     }
 }

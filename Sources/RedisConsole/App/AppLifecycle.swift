@@ -52,7 +52,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func openNewTab() {
         let state = tabManager.createTab()
-        createWindow(for: state)
+        createWindow(for: state, tabbed: true)
+    }
+
+    @objc func openNewWindow() {
+        let state = tabManager.createTab()
+        createWindow(for: state, tabbed: false)
     }
 
     @objc func toggleFullScreen() {
@@ -98,7 +103,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         selectTab(at: sender.tag - 1)
     }
 
-    private func createWindow(for state: ConnectionState) {
+    private func createWindow(for state: ConnectionState, tabbed: Bool) {
         let contentView = TabContentView()
             .environment(state)
             .environment(AppStore.shared)
@@ -117,7 +122,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.tabbingMode = .preferred
         window.tabbingIdentifier = "RedisConsole"
 
-        if let existingWindow = NSApp.keyWindow {
+        if tabbed, let existingWindow = NSApp.keyWindow {
             existingWindow.addTabbedWindow(window, ordered: .above)
             window.makeKeyAndOrderFront(nil)
         } else {
@@ -159,6 +164,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let fileMenuItem = NSMenuItem()
         mainMenu.addItem(fileMenuItem)
         let fileMenu = NSMenu(title: "File")
+        let newWindowItem = NSMenuItem(title: "New Window", action: #selector(openNewWindow), keyEquivalent: "n")
+        newWindowItem.keyEquivalentModifierMask = [.command]
+        fileMenu.addItem(newWindowItem)
         let newTabItem = NSMenuItem(title: "New Tab", action: #selector(openNewTab), keyEquivalent: "t")
         newTabItem.keyEquivalentModifierMask = [.command]
         fileMenu.addItem(newTabItem)

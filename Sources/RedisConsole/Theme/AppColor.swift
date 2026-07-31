@@ -45,9 +45,12 @@ enum AppColor {
     // MARK: - Syntax highlighting
 
     private static func dynamicColor(light: NSColor, dark: NSColor) -> Color {
-        Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
-            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
-        }))
+        Color(
+            nsColor: NSColor(
+                name: nil,
+                dynamicProvider: { appearance in
+                    appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+                }))
     }
 
     private static func hsb(_ hue: CGFloat, _ saturation: CGFloat, _ brightness: CGFloat) -> NSColor {

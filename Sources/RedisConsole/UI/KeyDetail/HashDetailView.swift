@@ -23,6 +23,7 @@ struct HashDetailView: View {
     @State private var editingField: String?
     @State private var editValue = ""
     @State private var pendingSearchText = ""
+    @State private var fieldPendingDeletion: String?
 
     private var hashRows: [HashRow] {
         rows.map { HashRow(field: $0.0, value: $0.1) }
@@ -68,7 +69,7 @@ struct HashDetailView: View {
                         .help("Edit field")
 
                         DeleteIconButton(
-                            action: { onDeleteField(row.field) },
+                            action: { fieldPendingDeletion = row.field },
                             helpText: "Delete field"
                         )
                     }
@@ -106,6 +107,26 @@ struct HashDetailView: View {
         }
         .onChange(of: searchText) { _, newValue in
             pendingSearchText = newValue
+        }
+        .confirmationDialog(
+            "Delete Field?",
+            isPresented: Binding(
+                get: { fieldPendingDeletion != nil },
+                set: { if !$0 { fieldPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let field = fieldPendingDeletion {
+                Button("Delete \"\(field)\"", role: .destructive) {
+                    onDeleteField(field)
+                    fieldPendingDeletion = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if let field = fieldPendingDeletion {
+                Text("This permanently deletes field \"\(field)\" from \"\(key)\".")
+            }
         }
     }
 }
