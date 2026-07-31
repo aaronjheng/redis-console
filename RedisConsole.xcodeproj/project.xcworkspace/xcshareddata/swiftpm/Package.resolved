@@ -1,5 +1,5 @@
 {
-  "originHash" : "5c70a58d8eeb54ae0e115204f1e3b5a993167e70d78ac3aa93dbf3d62ed8b213",
+  "originHash" : "fda2667f9716fd87b223da58c6355754e7ee1526efce710150f58fc11bde1a43",
   "pins" : [
     {
       "identity" : "swift-asn1",
@@ -89,6 +89,14 @@
       "state" : {
         "revision" : "ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24",
         "version" : "0.24.8"
+      }
+    },
+    {
+      "identity" : "tree-sitter-lua",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tree-sitter-grammars/tree-sitter-lua.git",
+      "state" : {
+        "revision" : "591977fe1e8e24cdf9d94d3bfe2593e06b90c973"
       }
     }
   ],

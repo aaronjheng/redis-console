@@ -966,9 +966,16 @@
 		<key>280FCA2E53CE44BBB28DA06E</key>
 		<dict>
 			<key>isa</key>
-			<string>XCLocalSwiftPackageReference</string>
-			<key>relativePath</key>
-			<string>Vendor/tree-sitter-lua</string>
+			<string>XCRemoteSwiftPackageReference</string>
+			<key>repositoryURL</key>
+			<string>https://github.com/tree-sitter-grammars/tree-sitter-lua.git</string>
+			<key>requirement</key>
+			<dict>
+				<key>kind</key>
+				<string>revision</string>
+				<key>revision</key>
+				<string>591977fe1e8e24cdf9d94d3bfe2593e06b90c973</string>
+			</dict>
 		</dict>
 		<key>632DFD3F34E11FDFE84232FA</key>
 		<dict>
@@ -1102,6 +1109,8 @@
 		<dict>
 			<key>isa</key>
 			<string>XCSwiftPackageProductDependency</string>
+			<key>package</key>
+			<string>280FCA2E53CE44BBB28DA06E</string>
 			<key>productName</key>
 			<string>TreeSitterLua</string>
 		</dict>
