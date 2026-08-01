@@ -39,30 +39,3 @@ struct ConnectionRow: View {
         .contentShape(Rectangle())
     }
 }
-
-// MARK: - Double Click Handler
-
-struct DoubleClickHandler: NSViewRepresentable {
-    let onDoubleClick: () -> Void
-
-    func makeNSView(context: Context) -> DoubleClickView {
-        let view = DoubleClickView()
-        view.onDoubleClick = onDoubleClick
-        return view
-    }
-
-    func updateNSView(_ nsView: DoubleClickView, context: Context) {
-        nsView.onDoubleClick = onDoubleClick
-    }
-}
-
-class DoubleClickView: NSView {
-    var onDoubleClick: (() -> Void)?
-
-    override func mouseDown(with event: NSEvent) {
-        super.mouseDown(with: event)
-        if event.clickCount == 2 {
-            onDoubleClick?()
-        }
-    }
-}

@@ -31,6 +31,7 @@ struct KeyDetailView: View {
         case head, tail
     }
 
+    // MARK: - Body
     var body: some View {
         @Bindable var app = app
 
@@ -144,6 +145,7 @@ struct KeyDetailView: View {
         app.selectedConnection?.environment == .production
     }
 
+    // MARK: - Detail Content
     @ViewBuilder
     private func detailContent(key: RedisKeyEntry) -> some View {
         @Bindable var app = app
@@ -344,6 +346,7 @@ struct KeyDetailView: View {
         }
     }
 
+    // MARK: - Header
     private func headerView(key: RedisKeyEntry) -> some View {
         HStack(spacing: AppSpacing.small) {
             VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
@@ -450,6 +453,7 @@ struct KeyDetailView: View {
         .padding(AppSpacing.small)
     }
 
+    // MARK: - TTL Editing
     private func beginEditingTTL(for key: RedisKeyEntry) {
         if let ttl = key.ttl, ttl > 0 {
             ttlInput = "\(ttl)"
@@ -492,6 +496,7 @@ struct KeyDetailView: View {
         return min(ttl, maxTTL).description
     }
 
+    // MARK: - Generic Views
     private var genericRowsView: some View {
         List {
             Section {
@@ -532,6 +537,7 @@ struct KeyDetailView: View {
     }
 }
 
+// MARK: - TTL Editor Popover
 private struct KeyTTLEditorPopover: View {
     let keyName: String
     @Binding var ttlInput: String

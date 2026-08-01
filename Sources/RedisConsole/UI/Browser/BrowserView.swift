@@ -406,12 +406,6 @@ struct BrowserView: View {
             app.keyDetailError = error.localizedDescription
         }
     }
-
-    private func throwIfRedisError(_ value: RESPValue) throws {
-        if case .error(let message) = value {
-            throw RedisError.commandError(message)
-        }
-    }
 }
 
 private func scrollToKey(_ key: String?, using proxy: ScrollViewProxy) {
@@ -599,112 +593,5 @@ private struct KeyNamespaceRow: View {
         }
         .padding(.vertical, AppSpacing.small)
         .accessibilityLabel("\(namespace.name), \(namespace.keyCount) keys")
-    }
-}
-
-private struct KeyNamespaceTree {
-    let rootKeys: [RedisKeyEntry]
-    let namespaces: [KeyNamespaceNode]
-    let separator: String
-    let allKeys: [RedisKeyEntry]
-
-    init(entries: [RedisKeyEntry], separator: String) {
-        self.separator = KeyNamespaceTree.normalizedSeparator(separator)
-        self.allKeys = entries
-        var root = KeyNamespaceNode.root
-        for entry in entries {
-            root.insert(entry, separator: self.separator)
-        }
-        root.sortRecursively()
-        rootKeys = root.keys
-        namespaces = root.children
-    }
-
-    static func namespaceSegments(for key: String, separator: String) -> [String] {
-        let separatorCharacter = Character(normalizedSeparator(separator))
-        let segments = key.split(separator: separatorCharacter, omittingEmptySubsequences: false).map(String.init)
-        guard segments.count > 1 else { return [] }
-        return segments.dropLast().filter { !$0.isEmpty }
-    }
-
-    static func leafName(for key: String, separator: String) -> String {
-        let separatorCharacter = Character(normalizedSeparator(separator))
-        guard let separatorIndex = key.lastIndex(of: separatorCharacter) else { return key }
-
-        let suffixStart = key.index(after: separatorIndex)
-        let suffix = String(key[suffixStart...])
-        return suffix.isEmpty ? key : suffix
-    }
-
-    static func normalizedSeparator(_ value: String) -> String {
-        String(value.first ?? ":")
-    }
-}
-
-private struct KeyNamespaceNode: Identifiable {
-    let id: String
-    let name: String
-    var keys: [RedisKeyEntry] = []
-    var children: [KeyNamespaceNode] = []
-
-    static var root: KeyNamespaceNode {
-        KeyNamespaceNode(id: "", name: "")
-    }
-
-    var keyCount: Int {
-        keys.count + children.reduce(0) { $0 + $1.keyCount }
-    }
-
-    mutating func insert(_ entry: RedisKeyEntry, separator: String) {
-        insert(
-            entry,
-            namespaceSegments: KeyNamespaceTree.namespaceSegments(for: entry.key, separator: separator),
-            segmentIndex: 0,
-            separator: separator
-        )
-    }
-
-    mutating func sortRecursively() {
-        keys.sort { lhs, rhs in
-            lhs.key.localizedStandardCompare(rhs.key) == .orderedAscending
-        }
-        children.sort { lhs, rhs in
-            lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
-        }
-        for index in children.indices {
-            children[index].sortRecursively()
-        }
-    }
-
-    private mutating func insert(
-        _ entry: RedisKeyEntry,
-        namespaceSegments: [String],
-        segmentIndex: Int,
-        separator: String
-    ) {
-        guard segmentIndex < namespaceSegments.count else {
-            keys.append(entry)
-            return
-        }
-
-        let namespaceName = namespaceSegments[segmentIndex]
-        let namespaceID = id.isEmpty ? namespaceName : "\(id)\(separator)\(namespaceName)"
-        if let childIndex = children.firstIndex(where: { $0.id == namespaceID }) {
-            children[childIndex].insert(
-                entry,
-                namespaceSegments: namespaceSegments,
-                segmentIndex: segmentIndex + 1,
-                separator: separator
-            )
-        } else {
-            var child = KeyNamespaceNode(id: namespaceID, name: namespaceName)
-            child.insert(
-                entry,
-                namespaceSegments: namespaceSegments,
-                segmentIndex: segmentIndex + 1,
-                separator: separator
-            )
-            children.append(child)
-        }
     }
 }

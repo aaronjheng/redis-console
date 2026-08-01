@@ -962,22 +962,3 @@ final class RedisClient: Sendable {
         disconnect(publishState: false)
     }
 }
-
-enum RedisError: LocalizedError {
-    case notConnected
-    case parseError(String)
-    case commandError(String)
-
-    var errorDescription: String? {
-        switch self {
-        case .notConnected: return "Not connected to Redis server"
-        case .parseError(let msg): return "Parse error: \(msg)"
-        case .commandError(let msg): return "Command error: \(msg)"
-        }
-    }
-
-    var isUnknownCommand: Bool {
-        guard case .commandError(let message) = self else { return false }
-        return message.localizedCaseInsensitiveContains("unknown command")
-    }
-}

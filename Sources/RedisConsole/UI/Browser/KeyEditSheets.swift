@@ -132,10 +132,6 @@ struct AddZSetMemberSheet: View {
 
 // MARK: - Editable Identifiers
 
-extension String: @retroactive Identifiable {
-    public var id: String { self }
-}
-
 extension KeyDetailView.ListPosition: Identifiable {
     var id: Int {
         switch self {

@@ -513,12 +513,6 @@ extension ConnectionState {
         return rows
     }
 
-    private func throwIfRedisError(_ value: RESPValue) throws {
-        if case .error(let message) = value {
-            throw RedisError.commandError(message)
-        }
-    }
-
     private func reportKeyOperationError(_ error: Error) {
         let message = error.localizedDescription
         connectionError = message

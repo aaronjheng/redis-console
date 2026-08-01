@@ -4,6 +4,21 @@ import Observation
 
 // MARK: - Connection State (Per-tab state)
 
+enum RightPanel: Equatable {
+    case welcome
+    case editConnection(RedisConnectionConfig)
+    case newConnection
+
+    static func == (lhs: RightPanel, rhs: RightPanel) -> Bool {
+        switch (lhs, rhs) {
+        case (.welcome, .welcome): return true
+        case (.newConnection, .newConnection): return true
+        case (.editConnection(let leftConfig), .editConnection(let rightConfig)): return leftConfig.id == rightConfig.id
+        default: return false
+        }
+    }
+}
+
 @MainActor
 @Observable
 class ConnectionState {
