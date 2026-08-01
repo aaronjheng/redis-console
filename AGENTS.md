@@ -36,8 +36,6 @@ Design system tokens live in `Sources/RedisConsole/Theme/` (AppColor, AppFont, A
 
 ## Git Workflow
 
-- Never run `git commit`, `git push`, or other git mutations unless explicitly instructed
-- If explicitly instructed to commit or push, execute directly without extra confirmation
 - Commit message rules:
   - One sentence only
   - No Conventional Commit prefixes
