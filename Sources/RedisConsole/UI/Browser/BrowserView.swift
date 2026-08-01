@@ -10,7 +10,6 @@ struct BrowserView: View {
     @State private var newKeyValue = ""
     @State private var expandedNamespaces: Set<String> = []
     @State private var keyListScrollTarget: String?
-    @State private var productionDeleteKey: RedisKeyEntry?
     @State private var productionConfirmText = ""
     @State private var autoRefreshInterval: TimeInterval = 0
     @State private var deleteFeedbackTrigger = false
@@ -210,13 +209,12 @@ struct BrowserView: View {
                 set: { isPresented in
                     if !isPresented {
                         keyPendingDeletion = nil
-                        productionDeleteKey = nil
                         productionConfirmText = ""
                     }
                 }
             )
         ) {
-            if let key = productionDeleteKey ?? keyPendingDeletion {
+            if let key = keyPendingDeletion {
                 ProductionConfirmView(
                     title: "Delete Key?",
                     message: "This permanently deletes \(key.key).",
@@ -225,13 +223,11 @@ struct BrowserView: View {
                     onConfirm: {
                         Task { await app.deleteKey(key) }
                         keyPendingDeletion = nil
-                        productionDeleteKey = nil
                         productionConfirmText = ""
                         deleteFeedbackTrigger.toggle()
                     },
                     onCancel: {
                         keyPendingDeletion = nil
-                        productionDeleteKey = nil
                         productionConfirmText = ""
                     }
                 )
@@ -322,7 +318,7 @@ struct BrowserView: View {
     }
 
     private func browserFooterText(displayedCount: Int) -> String {
-        let totalText = app.keyTotalCount.map(String.init) ?? "-"
+        let totalText = app.keyTotalCount.map(String.init) ?? "unknown"
         let limitText = app.keyScanLimitReached ? " · Threshold Reached" : ""
         let countText = "\(app.keys.count) Loaded · \(displayedCount) Shown\(limitText)"
         let showsScanProgress = app.keyFilter != "*" || !app.keyTypeFilter.isEmpty || app.isNamespaceGroupingEnabled
@@ -437,12 +433,12 @@ private struct KeyFlatList: View {
                     KeyRow(entry: entry)
                         .id(entry.key)
                         .contextMenu {
-                            Button("Delete", role: .destructive) {
-                                onDeleteKey(entry)
-                            }
-                            Divider()
                             Button("Copy Key") {
                                 onCopyKey(entry)
+                            }
+                            Divider()
+                            Button("Delete", role: .destructive) {
+                                onDeleteKey(entry)
                             }
                         }
                         .tag(entry)
@@ -474,12 +470,12 @@ private struct KeyNamespaceList: View {
                     KeyRow(entry: entry)
                         .id(entry.key)
                         .contextMenu {
-                            Button("Delete", role: .destructive) {
-                                onDeleteKey(entry)
-                            }
-                            Divider()
                             Button("Copy Key") {
                                 onCopyKey(entry)
+                            }
+                            Divider()
+                            Button("Delete", role: .destructive) {
+                                onDeleteKey(entry)
                             }
                         }
                         .tag(entry)
@@ -541,12 +537,12 @@ private struct KeyNamespaceNodeView: View {
                 KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
                     .id(entry.key)
                     .contextMenu {
-                        Button("Delete", role: .destructive) {
-                            onDeleteKey(entry)
-                        }
-                        Divider()
                         Button("Copy Key") {
                             onCopyKey(entry)
+                        }
+                        Divider()
+                        Button("Delete", role: .destructive) {
+                            onDeleteKey(entry)
                         }
                     }
                     .tag(entry)

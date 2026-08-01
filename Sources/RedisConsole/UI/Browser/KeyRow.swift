@@ -10,7 +10,7 @@ struct KeyRow: View {
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .frame(width: 48, alignment: .center)
+                .frame(width: AppSize.typeBadgeWidth, alignment: .center)
                 .padding(.vertical, AppSpacing.xxSmall)
                 .background(AppColor.subtleBackground)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous))

@@ -91,7 +91,7 @@ struct ServerInfoView: View {
     }
 
     private var clusterSummaryBar: some View {
-        HStack(spacing: 24) {
+        HStack(spacing: AppSpacing.xLarge) {
             summaryItem("State", app.clusterInfo["cluster_state"] ?? "-")
             summaryItem("Nodes", app.clusterInfo["cluster_known_nodes"] ?? "\(app.clusterNodes.count)")
             summaryItem("Primaries", "\(app.clusterNodes.filter { $0.role == .primary }.count)")

@@ -66,7 +66,7 @@ struct ProfilerView: View {
                 isStarting: app.isProfilerStarting,
                 isRunning: app.isProfilerRunning,
                 selectedEntryID: $selectedEntryID,
-                autoScroll: autoScroll,
+                autoScroll: $autoScroll,
                 lastVisibleEntryID: lastVisibleEntryID,
                 showLibraryColumn: showLibraryColumn,
                 libraries: app.functionLibraries,
@@ -114,7 +114,7 @@ private struct ProfilerContentView: View {
     let isStarting: Bool
     let isRunning: Bool
     @Binding var selectedEntryID: RedisProfilerEntry.ID?
-    let autoScroll: Bool
+    @Binding var autoScroll: Bool
     let lastVisibleEntryID: RedisProfilerEntry.ID?
     let showLibraryColumn: Bool
     let libraries: [RedisFunctionLibrary]
@@ -131,7 +131,7 @@ private struct ProfilerContentView: View {
             ProfilerEntriesView(
                 entries: entries,
                 selectedEntryID: $selectedEntryID,
-                autoScroll: autoScroll,
+                autoScroll: $autoScroll,
                 lastVisibleEntryID: lastVisibleEntryID,
                 showLibraryColumn: showLibraryColumn,
                 libraries: libraries
@@ -148,13 +148,11 @@ private struct ProfilerEmptyStateView: View {
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
-            if !isRunning && !isStarting {
+            if isStarting {
                 ContentUnavailableView(
-                    "Profiler is stopped",
-                    systemImage: "waveform.path.ecg"
+                    "Starting profiler\u{2026}",
+                    systemImage: "circle.dotted"
                 )
-                Button("Start Profiler", action: onStart)
-                    .padding(.top, 8)
             } else if isRunning {
                 ContentUnavailableView(
                     "Waiting for Redis commands",
@@ -166,9 +164,11 @@ private struct ProfilerEmptyStateView: View {
                     "Profiler is stopped",
                     systemImage: "waveform.path.ecg"
                 )
+                Button("Start Profiler", action: onStart)
+                    .padding(.top, AppSpacing.small)
             }
             if !isRunning && !isStarting {
-                Spacer().frame(height: 16)
+                Spacer().frame(height: AppSpacing.large)
                 Label("MONITOR can slow busy servers", systemImage: "exclamationmark.triangle")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -211,6 +211,7 @@ private struct ProfilerToolbarView: View {
                     Label(captureButtonTitle, systemImage: captureButtonIcon)
                 }
                 .buttonStyle(PrimaryButtonStyle())
+                .disabled(isStarting)
 
                 Button(action: onClear) {
                     Label("Clear", systemImage: "trash")
@@ -225,12 +226,12 @@ private struct ProfilerToolbarView: View {
     }
 
     private var captureButtonTitle: String {
-        if isStarting { return "Stop" }
+        if isStarting { return "Starting\u{2026}" }
         return isRunning ? "Stop" : "Start"
     }
 
     private var captureButtonIcon: String {
-        if isStarting { return "stop.fill" }
+        if isStarting { return "circle.dotted" }
         return isRunning ? "stop.fill" : "play.fill"
     }
 }
@@ -258,7 +259,7 @@ private struct ProfilerStatusIndicator: View {
 private struct ProfilerEntriesView: View {
     let entries: [RedisProfilerEntry]
     @Binding var selectedEntryID: RedisProfilerEntry.ID?
-    let autoScroll: Bool
+    @Binding var autoScroll: Bool
     let lastVisibleEntryID: RedisProfilerEntry.ID?
     let showLibraryColumn: Bool
     let libraries: [RedisFunctionLibrary]
@@ -279,6 +280,15 @@ private struct ProfilerEntriesView: View {
                                 onSelect: { selectedEntryID = entry.id }
                             )
                             .id(entry.id)
+                        }
+                    }
+                    .onScrollGeometryChange(for: CGFloat.self) { geo in
+                        let distanceFromBottom = geo.contentSize.height - geo.contentOffset.y - geo.containerSize.height
+                        return distanceFromBottom
+                    } action: { _, distanceFromBottom in
+                        // Auto-disable auto-scroll when the user scrolls away from the bottom.
+                        if autoScroll && distanceFromBottom > 60 {
+                            autoScroll = false
                         }
                     }
                 }

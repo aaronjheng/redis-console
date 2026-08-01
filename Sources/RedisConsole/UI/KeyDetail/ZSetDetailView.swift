@@ -52,7 +52,7 @@ struct ZSetDetailView: View {
                 )
                 .frame(width: 180)
                 .disabled(!pendingSearchText.isEmpty)
-                .help("Sort order")
+                .help(pendingSearchText.isEmpty ? "Sort order" : "Sort order unavailable while filtering")
             }
             .padding(AppSpacing.small)
 

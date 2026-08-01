@@ -157,6 +157,21 @@ struct AddKeySheet: View {
     @State private var setMembers: [String] = [""]
     @State private var zsetPairs: [(score: String, member: String)] = [("", "")]
 
+    private var hasValidMembers: Bool {
+        switch keyType {
+        case "list":
+            return listValues.contains { !$0.isEmpty }
+        case "hash":
+            return hashPairs.contains { !$0.field.isEmpty && !$0.value.isEmpty }
+        case "set":
+            return setMembers.contains { !$0.isEmpty }
+        case "zset":
+            return zsetPairs.contains { !$0.score.isEmpty && !$0.member.isEmpty }
+        default:
+            return true
+        }
+    }
+
     private func resetArrays(for type: String) {
         switch type {
         case "list": listValues = [""]
@@ -237,7 +252,7 @@ struct AddKeySheet: View {
                         onSave(keyName, keyType, keyValue)
                     }
                 }
-                .disabled(keyName.isEmpty)
+                .disabled(keyName.isEmpty || !hasValidMembers)
                 .keyboardShortcut(.defaultAction)
             }
         }

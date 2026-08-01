@@ -9,16 +9,16 @@ struct ShellView: View {
     @State private var pendingCommand = ""
     @FocusState private var inputFocused: Bool
 
-    private let dangerousCommands: Set<String> = [
-        "FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "KEYS", "KEYS *", "DEBUG", "SHUTDOWN", "SLAVEOF", "REPLICAOF",
-        "CONFIG RESETSTAT", "BGREWRITEAOF", "BGSAVE", "SAVE", "LASTSAVE", "MONITOR", "SYNC", "PSYNC", "CLIENT PAUSE",
-        "DEBUG SET-ACTIVE-EXPIRE", "MIGRATE", "RESTORE", "SORT", "EVAL", "EVALSHA", "SCRIPT", "ACL", "AUTH", "ROLE", "SWAPDB", "MOVE",
-        "RENAME", "RENAMENX", "DEL", "UNLINK", "WAIT", "REPLCONF", "PING", "ECHO", "QUIT", "SELECT",
-    ]
-
-    private let criticalDangerousCommands: Set<String> = [
+    /// Commands that require confirmation only in production environments.
+    private let productionConfirmCommands: Set<String> = [
         "FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "SHUTDOWN", "DEBUG", "SLAVEOF", "REPLICAOF", "CONFIG RESETSTAT", "SWAPDB",
         "MOVE",
+    ]
+
+    /// Commands that require confirmation in ALL environments, including non-production.
+    /// This is a subset of `productionConfirmCommands`.
+    private let alwaysConfirmCommands: Set<String> = [
+        "FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "SHUTDOWN", "SWAPDB",
     ]
 
     var filteredCompletions: [String] {
@@ -193,7 +193,11 @@ struct ShellView: View {
                 Task { await app.executeCommand(cmd) }
             }
         } message: {
-            Text("This is a PRODUCTION database. Are you sure you want to execute:\n\n\(pendingCommand)")
+            if app.selectedConnection?.environment == .production {
+                Text("This is a PRODUCTION database. Are you sure you want to execute:\n\n\(pendingCommand)")
+            } else {
+                Text("This command is potentially destructive. Are you sure you want to execute:\n\n\(pendingCommand)")
+            }
         }
     }
 
@@ -204,9 +208,11 @@ struct ShellView: View {
         showCompletions = false
 
         let cmdUpper = cmd.uppercased().trimmingCharacters(in: .whitespaces)
-        let isDangerous = criticalDangerousCommands.contains { cmdUpper.hasPrefix($0) }
+        let isProduction = app.selectedConnection?.environment == .production
+        let isAlwaysConfirm = alwaysConfirmCommands.contains { cmdUpper.hasPrefix($0) }
+        let isProductionOnly = productionConfirmCommands.contains { cmdUpper.hasPrefix($0) }
 
-        if isDangerous && app.selectedConnection?.environment == .production {
+        if isAlwaysConfirm || (isProductionOnly && isProduction) {
             pendingCommand = cmd
             showDangerousCommandAlert = true
             return

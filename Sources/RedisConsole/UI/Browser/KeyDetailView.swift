@@ -23,6 +23,7 @@ struct KeyDetailView: View {
     @State private var autoRefreshInterval: TimeInterval = 0
     @State private var productionConfirmText = ""
     @State private var deleteFeedbackTrigger = false
+    @State private var ttlFeedbackTrigger = false
 
     private let maxTTL = 2_147_483_647
 
@@ -124,6 +125,7 @@ struct KeyDetailView: View {
             ttlEditorError = nil
         }
         .sensoryFeedback(.success, trigger: deleteFeedbackTrigger)
+        .sensoryFeedback(.success, trigger: ttlFeedbackTrigger)
         .task(id: autoRefreshTaskID) {
             guard autoRefreshInterval > 0 else { return }
             while !Task.isCancelled {
@@ -422,16 +424,16 @@ struct KeyDetailView: View {
                     Task { await app.refreshSelectedKey() }
                 }
 
-                Button("Copy Key", systemImage: "doc.on.doc") {
+                Button("Copy Key", systemImage: didCopyKey ? "checkmark" : "doc.on.doc") {
                     copyToPasteboard(key.key)
                     didCopyKey = true
                     Task {
-                        try? await Task.sleep(for: .milliseconds(200))
+                        try? await Task.sleep(for: .milliseconds(1500))
                         didCopyKey = false
                     }
                 }
                 .labelStyle(.iconOnly)
-                .foregroundStyle(didCopyKey ? .secondary : .primary)
+                .foregroundStyle(didCopyKey ? AppColor.success : .primary)
                 .buttonStyle(.borderless)
                 .disabled(app.isLoadingDetail)
                 .help("Copy key")
@@ -473,7 +475,12 @@ struct KeyDetailView: View {
         showingTTLEditor = false
         ttlEditorError = nil
         Task {
+            let previousError = app.keyDetailError
             await app.updateKeyTTL(key, ttl: ttl)
+            // Only fire success feedback when the operation didn't set a new error.
+            if app.keyDetailError == previousError {
+                ttlFeedbackTrigger.toggle()
+            }
         }
     }
 

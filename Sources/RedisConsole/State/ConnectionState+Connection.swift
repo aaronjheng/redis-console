@@ -23,11 +23,7 @@ extension ConnectionState {
         isConnecting = true
         connectionError = nil
         pendingConnection = resolvedConfig
-        serverInfo = [:]
-        serverCapabilities = []
-        clusterInfo = [:]
-        clusterNodes = []
-        selectedServerInfoNode = nil
+        clearConnectionState()
 
         let task = Task { @MainActor in
             var connectHost = resolvedConfig.host
@@ -181,6 +177,7 @@ extension ConnectionState {
         connectTask?.cancel()
         connectTask = nil
         activeClient?.disconnect()
+        activeClient = nil
         sshTunnel?.stop()
         sshTunnel = nil
         let clusterTunnelManager = sshClusterTunnelManager
@@ -189,12 +186,7 @@ extension ConnectionState {
         isConnecting = false
         pendingConnection = nil
         connectionError = nil
-        scanCursor = "0"
-        hasMoreKeys = true
-        keyTotalCount = nil
-        keyScannedCount = 0
-        keyScanIterationCount = 0
-        keyScanLimitReached = false
+        clearConnectionState()
     }
 
     func disconnect() {
@@ -209,6 +201,14 @@ extension ConnectionState {
         sshClusterTunnelManager = nil
         Task { await clusterTunnelManager?.disconnect() }
         selectedConnection = nil
+        clearConnectionState()
+    }
+
+    /// Clears all per-connection UI state so a new connection starts fresh
+    /// without stale data from the previous one. Shared by `disconnect()` and
+    /// `cancelConnection()` to keep both paths consistent.
+    private func clearConnectionState() {
+        // Key browser
         keys = []
         selectedKey = nil
         scanCursor = "0"
@@ -217,12 +217,52 @@ extension ConnectionState {
         keyScannedCount = 0
         keyScanIterationCount = 0
         keyScanLimitReached = false
+        keyFilter = "*"
+
+        // Key detail
         keyDetail = ""
+        keyDetailRows = []
+        keyType = ""
+        valueSize = nil
+        keyDetailLength = nil
+        keyDetailError = nil
+        keyDetailOffset = 0
+        keyDetailCursor = "0"
+        keyDetailHasMoreRows = false
+        keyDetailSearchText = ""
+        keyDetailLastRefreshedAt = nil
+        isLoadingDetail = false
+        isLoadingKeys = false
+
+        // Shell
+        shellInput = ""
+        shellHistory = []
+
+        // Server info
         serverInfo = [:]
         serverCapabilities = []
         clusterInfo = [:]
         clusterNodes = []
         selectedServerInfoNode = nil
-        shellHistory = []
+
+        // Slow log
+        slowLogEntries = []
+        slowLogError = nil
+        isLoadingSlowLog = false
+
+        // Database analysis
+        analysis = nil
+        analysisError = nil
+        isLoadingAnalysis = false
+        analysisTaskHandle?.cancel()
+        analysisTaskHandle = nil
+
+        // Functions
+        functionLibraries = []
+        functionsError = nil
+        isLoadingFunctions = false
+        selectedFunctionLibrary = nil
+        lastFunctionCallResult = nil
+        isCallingFunction = false
     }
 }

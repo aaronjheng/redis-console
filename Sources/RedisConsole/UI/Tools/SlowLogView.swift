@@ -125,8 +125,6 @@ struct SlowLogView: View {
     private func durationColor(_ duration: Int) -> Color {
         if duration >= 1_000_000 {
             return AppColor.error
-        } else if duration >= 100_000 {
-            return AppColor.warning
         } else if duration >= 10_000 {
             return AppColor.warning
         }

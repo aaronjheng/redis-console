@@ -19,6 +19,15 @@ struct WorkspaceSidebarView: View {
                                 .fontWeight(.bold)
                                 .lineLimit(1)
                             Spacer(minLength: AppSpacing.small)
+                            if selectedConnection.environment != .unspecified {
+                                Badge(
+                                    text: selectedConnection.environment.rawValue,
+                                    systemImage: selectedConnection.environment.icon,
+                                    foregroundColor: selectedConnection.environment.badgeForegroundColor,
+                                    backgroundColor: selectedConnection.environment.badgeBackgroundColor
+                                )
+                                .help("Environment: \(selectedConnection.environment.rawValue)")
+                            }
                             Badge(
                                 text: selectedConnection.mode.title,
                                 foregroundColor: selectedConnection.mode.badgeForegroundColor,
