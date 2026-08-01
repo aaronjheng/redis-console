@@ -7,9 +7,14 @@ struct FunctionLibraryDetailView: View {
     let library: RedisFunctionLibrary
 
     @State private var showingDeleteConfirm = false
+    @State private var productionConfirmText = ""
     @State private var showingEditSheet = false
     @State private var showingCallSheet = false
     @State private var isFunctionsExpanded = false
+
+    private var isProduction: Bool {
+        app.selectedConnection?.environment == .production
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -50,7 +55,10 @@ struct FunctionLibraryDetailView: View {
         }
         .confirmationDialog(
             "Delete library \"\(library.name)\"?",
-            isPresented: $showingDeleteConfirm,
+            isPresented: Binding(
+                get: { showingDeleteConfirm && !isProduction },
+                set: { showingDeleteConfirm = $0 }
+            ),
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
@@ -71,6 +79,40 @@ struct FunctionLibraryDetailView: View {
             } else {
                 Text("This action cannot be undone.")
             }
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { showingDeleteConfirm && isProduction },
+                set: {
+                    if !$0 {
+                        showingDeleteConfirm = false
+                        productionConfirmText = ""
+                    }
+                }
+            )
+        ) {
+            ProductionConfirmView(
+                title: "Delete library \"\(library.name)\"?",
+                message: "This will permanently delete the library. This action cannot be undone.",
+                confirmText: "DELETE",
+                input: $productionConfirmText,
+                onConfirm: {
+                    Task {
+                        do {
+                            try await app.deleteFunctionLibrary(name: library.name)
+                        } catch {
+                            app.functionsError = error.localizedDescription
+                        }
+                    }
+                    showingDeleteConfirm = false
+                    productionConfirmText = ""
+                },
+                onCancel: {
+                    showingDeleteConfirm = false
+                    productionConfirmText = ""
+                }
+            )
+            .presentationSizing(.form)
         }
     }
 
@@ -184,7 +226,7 @@ struct FunctionLibraryDetailView: View {
                         Badge(
                             text: "no-writes",
                             foregroundColor: AppColor.success,
-                            backgroundColor: AppColor.success.opacity(0.14)
+                            backgroundColor: AppColor.badgeBackground(AppColor.success)
                         )
                     }
                 }

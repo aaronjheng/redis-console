@@ -31,30 +31,10 @@ struct BrowserView: View {
                     label: { typeFilterTitle($0) }
                 )
 
-                ZStack(alignment: .trailing) {
-                    TextField("Filter by key pattern (e.g. user:*)", text: $searchText)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit {
-                            app.keyFilter = searchText.isEmpty ? "*" : searchText
-                            app.keyScanCount = currentScanCount
-                            Task { await app.scanKeys(reset: true) }
-                        }
-                    HStack(spacing: AppSpacing.xSmall) {
-                        if !searchText.isEmpty {
-                            Button("Clear Search", systemImage: "xmark.circle.fill") {
-                                searchText = ""
-                                app.keyFilter = "*"
-                                app.keyScanCount = currentScanCount
-                                Task { await app.scanKeys(reset: true) }
-                            }
-                            .labelStyle(.iconOnly)
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(.secondary)
-                        }
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
-                            .padding(.trailing, 8)
-                    }
+                FilterField("Filter by key pattern (e.g. user:*)", text: $searchText) {
+                    app.keyFilter = searchText.isEmpty ? "*" : searchText
+                    app.keyScanCount = currentScanCount
+                    Task { await app.scanKeys(reset: true) }
                 }
                 .frame(maxWidth: .infinity)
 
@@ -124,13 +104,14 @@ struct BrowserView: View {
 
                     if app.isLoadingKeys && app.keys.isEmpty {
                         Spacer()
-                        ProgressView("Scanning keys...")
+                        LoadingState(message: "Scanning keys...")
                         Spacer()
                     } else if app.keys.isEmpty {
                         Spacer()
                         ContentUnavailableView(
                             searchText.isEmpty ? "No keys found" : "No matching keys",
-                            systemImage: "key.slash"
+                            systemImage: "key.slash",
+                            description: Text(searchText.isEmpty ? "This database has no keys" : "Try a different filter pattern")
                         )
                         loadMoreOrScanningView
                         Spacer()
@@ -138,7 +119,8 @@ struct BrowserView: View {
                         Spacer()
                         ContentUnavailableView(
                             "No matching keys",
-                            systemImage: "key.slash"
+                            systemImage: "key.slash",
+                            description: Text("Try a different filter pattern")
                         )
                         loadMoreOrScanningView
                         Spacer()
@@ -727,69 +709,6 @@ private struct KeyNamespaceNode: Identifiable {
                 separator: separator
             )
             children.append(child)
-        }
-    }
-}
-
-// MARK: - Production Confirmation View
-
-struct ProductionConfirmView: View {
-    let title: String
-    let message: String
-    let confirmText: String
-    @Binding var input: String
-    let onConfirm: () -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        VStack(spacing: AppSpacing.large) {
-            Image(systemName: "exclamationmark.shield.fill")
-                .font(.largeTitle)
-                .foregroundStyle(AppColor.error)
-
-            Text(title)
-                .font(.title2)
-                .bold()
-
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            HStack(spacing: 0) {
-                Image(systemName: "shield")
-                    .foregroundStyle(AppColor.error)
-                Text("This is a PRODUCTION database.")
-                    .font(.subheadline)
-                    .foregroundStyle(AppColor.error)
-            }
-
-            HStack(spacing: AppSpacing.xSmall) {
-                Text("Type \"\(confirmText)\" to confirm:")
-                    .font(.subheadline)
-                Spacer()
-            }
-
-            TextField("", text: $input)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit(confirmIfValid)
-
-            HStack {
-                Button("Cancel", role: .cancel, action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-                Spacer()
-                Button("Delete", role: .destructive, action: onConfirm)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(input != confirmText)
-            }
-        }
-        .padding(AppSpacing.large)
-        .frame(width: AppSize.productionConfirmWidth)
-    }
-
-    private func confirmIfValid() {
-        if input == confirmText {
-            onConfirm()
         }
     }
 }

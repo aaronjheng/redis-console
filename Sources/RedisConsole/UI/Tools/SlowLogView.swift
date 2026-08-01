@@ -22,27 +22,13 @@ struct SlowLogView: View {
         VStack(spacing: 0) {
             // Header
             HStack(spacing: AppSpacing.medium) {
-                ZStack(alignment: .trailing) {
-                    TextField("Filter command, client, or name", text: $filterText)
-                        .textFieldStyle(.roundedBorder)
-
-                    if !filterText.isEmpty {
-                        Button("Clear Filter", systemImage: "xmark.circle.fill") {
-                            filterText = ""
-                        }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                        .padding(.trailing, 8)
-                    }
-                }
-                .frame(maxWidth: 360)
+                FilterField("Filter command, client, or name", text: $filterText)
+                    .frame(maxWidth: 360)
 
                 Spacer()
 
                 if app.isLoadingSlowLog {
                     ProgressView()
-                        .scaleEffect(0.7)
                         .controlSize(.small)
                 }
 
@@ -62,8 +48,7 @@ struct SlowLogView: View {
             if filteredEntries.isEmpty {
                 Spacer()
                 if app.isLoadingSlowLog {
-                    ProgressView("Loading slow log...")
-                        .controlSize(.small)
+                    LoadingState(message: "Loading slow log...")
                 } else {
                     ContentUnavailableView(
                         "No slow log entries",

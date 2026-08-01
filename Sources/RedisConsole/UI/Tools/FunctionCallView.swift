@@ -42,7 +42,7 @@ struct FunctionCallView: View {
     private var header: some View {
         HStack(spacing: AppSpacing.small) {
             Image(systemName: "play.circle")
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(.tint)
             Text("Call Function")
                 .font(.headline)
             Text(library.name)
@@ -84,7 +84,7 @@ struct FunctionCallView: View {
                     Badge(
                         text: "no-writes",
                         foregroundColor: AppColor.success,
-                        backgroundColor: AppColor.success.opacity(0.14)
+                        backgroundColor: AppColor.badgeBackground(AppColor.success)
                     )
                 }
             }

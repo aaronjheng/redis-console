@@ -37,12 +37,13 @@ struct ServerInfoView: View {
                 Spacer()
                 ContentUnavailableView(
                     "No server info loaded",
-                    systemImage: "info.circle"
+                    systemImage: "info.circle",
+                    description: Text("Click Refresh to load server information")
                 )
                 Button("Load Info") {
                     Task { await app.loadServerInfo() }
                 }
-                .padding(.top, 8)
+                .padding(.top, AppSpacing.small)
                 Spacer()
             } else {
                 serverInfoList
@@ -145,7 +146,7 @@ struct ServerInfoView: View {
         HStack(spacing: AppSpacing.medium) {
             if let node = selectedNode {
                 Image(systemName: node.role == .primary ? "server.rack" : "externaldrive.connected.to.line.below")
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(.tint)
                 VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
                     Text(node.endpoint.address)
                         .font(.headline)
@@ -260,7 +261,7 @@ struct ServerInfoView: View {
         return HStack(alignment: .top, spacing: AppSpacing.small) {
             Image(systemName: node.role == .primary ? "server.rack" : "externaldrive.connected.to.line.below")
                 .frame(width: 16)
-                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
 
             VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
                 Text(node.endpoint.address)
@@ -277,7 +278,7 @@ struct ServerInfoView: View {
         }
         .padding(.horizontal, AppSpacing.small)
         .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
-        .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
+        .background(isSelected ? AppColor.selectionBackground : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
     }
 

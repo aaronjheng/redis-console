@@ -14,6 +14,7 @@ struct HashDetailView: View {
     let keyLength: Int?
     let searchText: String
     let hasMoreRows: Bool
+    var isProduction: Bool = false
     let onSearch: (String) -> Void
     let onLoadMore: () -> Void
     let onAddField: () -> Void
@@ -24,6 +25,7 @@ struct HashDetailView: View {
     @State private var editValue = ""
     @State private var pendingSearchText = ""
     @State private var fieldPendingDeletion: String?
+    @State private var productionConfirmText = ""
 
     private var hashRows: [HashRow] {
         rows.map { HashRow(field: $0.0, value: $0.1) }
@@ -31,11 +33,9 @@ struct HashDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            DetailSearchField(
-                searchText: $pendingSearchText,
-                placeholder: "Field filter",
-                onSearch: { onSearch(pendingSearchText) }
-            )
+            FilterField("Field filter", text: $pendingSearchText) {
+                onSearch(pendingSearchText)
+            }
             .padding(AppSpacing.small)
 
             Divider()
@@ -44,6 +44,7 @@ struct HashDetailView: View {
                 TableColumn("Field") { row in
                     Text(row.field)
                         .font(AppFont.dataCell)
+                        .lineLimit(2)
                         .copyableCell(row.field, row: "\(row.field)\t\(row.value)")
                 }
                 .width(min: 100, ideal: 150, max: 300)
@@ -111,7 +112,7 @@ struct HashDetailView: View {
         .confirmationDialog(
             "Delete Field?",
             isPresented: Binding(
-                get: { fieldPendingDeletion != nil },
+                get: { fieldPendingDeletion != nil && !isProduction },
                 set: { if !$0 { fieldPendingDeletion = nil } }
             ),
             titleVisibility: .visible
@@ -126,6 +127,36 @@ struct HashDetailView: View {
         } message: {
             if let field = fieldPendingDeletion {
                 Text("This permanently deletes field \"\(field)\" from \"\(key)\".")
+            }
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { fieldPendingDeletion != nil && isProduction },
+                set: {
+                    if !$0 {
+                        fieldPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                }
+            )
+        ) {
+            if let field = fieldPendingDeletion {
+                ProductionConfirmView(
+                    title: "Delete Field?",
+                    message: "This permanently deletes field \"\(field)\" from \"\(key)\".",
+                    confirmText: "DELETE",
+                    input: $productionConfirmText,
+                    onConfirm: {
+                        onDeleteField(field)
+                        fieldPendingDeletion = nil
+                        productionConfirmText = ""
+                    },
+                    onCancel: {
+                        fieldPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                )
+                .presentationSizing(.form)
             }
         }
     }

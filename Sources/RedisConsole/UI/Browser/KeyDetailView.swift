@@ -40,7 +40,7 @@ struct KeyDetailView: View {
                 Divider()
 
                 if let error = app.keyDetailError {
-                    ErrorBanner(message: error)
+                    ErrorBanner(message: error, dismissAction: { app.keyDetailError = nil })
                     Divider()
                 }
 
@@ -55,7 +55,8 @@ struct KeyDetailView: View {
                 Spacer()
                 ContentUnavailableView(
                     "Select a key to view its value",
-                    systemImage: "sidebar.left"
+                    systemImage: "sidebar.left",
+                    description: Text("Choose a key from the list on the left")
                 )
                 Spacer()
             }
@@ -166,6 +167,7 @@ struct KeyDetailView: View {
                 keyLength: app.keyDetailLength ?? key.length,
                 searchText: app.keyDetailSearchText,
                 hasMoreRows: app.keyDetailHasMoreRows,
+                isProduction: isProduction,
                 onSearch: { text in
                     Task { await app.searchSelectedKeyDetail(text) }
                 },
@@ -209,6 +211,7 @@ struct KeyDetailView: View {
                 rows: app.keyDetailRows,
                 keyLength: app.keyDetailLength ?? key.length,
                 hasMoreRows: app.keyDetailHasMoreRows,
+                isProduction: isProduction,
                 onLoadMore: {
                     Task { await app.loadMoreSelectedKeyDetailRows() }
                 },
@@ -250,6 +253,7 @@ struct KeyDetailView: View {
                 keyLength: app.keyDetailLength ?? key.length,
                 searchText: app.keyDetailSearchText,
                 hasMoreRows: app.keyDetailHasMoreRows,
+                isProduction: isProduction,
                 onSearch: { text in
                     Task { await app.searchSelectedKeyDetail(text) }
                 },
@@ -288,6 +292,7 @@ struct KeyDetailView: View {
                 searchText: app.keyDetailSearchText,
                 order: app.keyDetailZSetOrder,
                 hasMoreRows: app.keyDetailHasMoreRows,
+                isProduction: isProduction,
                 onSearch: { text in
                     Task { await app.searchSelectedKeyDetail(text) }
                 },

@@ -30,7 +30,6 @@ struct FunctionsView: View {
 
             if let error = app.functionsError {
                 ErrorBanner(message: error, dismissAction: { app.functionsError = nil })
-                Divider()
             }
 
             Divider()
@@ -57,26 +56,13 @@ struct FunctionsView: View {
     private var header: some View {
         @Bindable var app = app
         return HStack(spacing: AppSpacing.medium) {
-            ZStack(alignment: .trailing) {
-                TextField("Filter libraries", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                if !searchText.isEmpty {
-                    Button("Clear", systemImage: "xmark.circle.fill") {
-                        searchText = ""
-                    }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .padding(.trailing, 8)
-                }
-            }
-            .frame(maxWidth: 320)
+            FilterField("Filter libraries", text: $searchText)
+                .frame(maxWidth: 320)
 
             Spacer()
 
             if app.isLoadingFunctions {
                 ProgressView()
-                    .scaleEffect(0.7)
                     .controlSize(.small)
             }
 
@@ -113,8 +99,7 @@ struct FunctionsView: View {
             )
         } else if app.isLoadingFunctions && app.functionLibraries.isEmpty {
             Spacer()
-            ProgressView("Loading functions...")
-                .controlSize(.small)
+            LoadingState(message: "Loading functions...")
             Spacer()
         } else {
             PersistentSplitView(
@@ -180,7 +165,7 @@ struct FunctionsView: View {
                 .lineLimit(1)
                 .frame(width: 48, alignment: .center)
                 .padding(.vertical, AppSpacing.xxSmall)
-                .background(Color.secondary.opacity(0.12))
+                .background(AppColor.subtleBackground)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous))
             Text(library.name)
                 .font(.body)

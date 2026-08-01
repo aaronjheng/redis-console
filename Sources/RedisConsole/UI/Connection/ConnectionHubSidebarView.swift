@@ -32,8 +32,9 @@ struct ConnectionHubSidebarView: View {
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
+                .help("New Connection")
             }
-            .padding(16)
+            .padding(AppSpacing.large)
 
             Divider()
 
@@ -72,9 +73,7 @@ struct ConnectionHubSidebarView: View {
                             }
                             Divider()
                             Button("Copy Address") {
-                                let pasteboard = NSPasteboard.general
-                                pasteboard.clearContents()
-                                pasteboard.setString(config.address, forType: .string)
+                                copyToPasteboard(config.address)
                             }
                             Button("Delete", role: .destructive) {
                                 connectionPendingDeletion = config
@@ -92,9 +91,7 @@ struct ConnectionHubSidebarView: View {
                                     uri += "@"
                                 }
                                 uri += "\(config.host):\(config.port)"
-                                let pasteboard = NSPasteboard.general
-                                pasteboard.clearContents()
-                                pasteboard.setString(uri, forType: .string)
+                                copyToPasteboard(uri)
                             }
                             Divider()
                             Button("Export...") {

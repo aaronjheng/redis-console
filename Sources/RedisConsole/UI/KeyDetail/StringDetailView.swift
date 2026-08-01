@@ -182,7 +182,7 @@ struct StringDetailView: View {
 
                     Divider()
 
-                    HStack {
+                    WorkspaceFooterBar {
                         Menu {
                             ForEach(StringValueFormat.allCases, id: \.self) { option in
                                 Button {
@@ -192,7 +192,7 @@ struct StringDetailView: View {
                                 }
                             }
                         } label: {
-                            HStack(spacing: 2) {
+                            HStack(spacing: AppSpacing.xxSmall) {
                                 Text(format.title)
                                     .font(.caption)
                                 Image(systemName: "chevron.down")
@@ -207,10 +207,6 @@ struct StringDetailView: View {
 
                         Spacer()
                     }
-                    .frame(minHeight: AppSize.footerHeight)
-                    .frame(maxWidth: .infinity)
-                    .padding(.leading, AppSpacing.small)
-                    .background(.bar)
                 }
             }
 

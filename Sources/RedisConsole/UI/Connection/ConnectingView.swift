@@ -10,11 +10,11 @@ struct ConnectingView: View {
         VStack(spacing: AppSpacing.xLarge) {
             ZStack {
                 Circle()
-                    .stroke(Color.accentColor.opacity(0.2), lineWidth: 4)
+                    .stroke(.tint.opacity(0.2), lineWidth: 4)
                     .frame(width: 60, height: 60)
                 Circle()
                     .trim(from: 0, to: 0.3)
-                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .stroke(.tint, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .frame(width: 60, height: 60)
                     .rotationEffect(.degrees(isPulsing ? 360 : 0))
                     .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: isPulsing)

@@ -15,6 +15,7 @@ struct ZSetDetailView: View {
     let searchText: String
     let order: KeyDetailZSetOrder
     let hasMoreRows: Bool
+    var isProduction: Bool = false
     let onSearch: (String) -> Void
     let onOrderChange: (KeyDetailZSetOrder) -> Void
     let onLoadMore: () -> Void
@@ -26,6 +27,7 @@ struct ZSetDetailView: View {
     @State private var editScore = ""
     @State private var pendingSearchText = ""
     @State private var memberPendingDeletion: String?
+    @State private var productionConfirmText = ""
 
     private var zsetRows: [ZSetRow] {
         rows.map { ZSetRow(score: $0.0, member: $0.1) }
@@ -34,11 +36,9 @@ struct ZSetDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: AppSpacing.small) {
-                DetailSearchField(
-                    searchText: $pendingSearchText,
-                    placeholder: "Member filter",
-                    onSearch: { onSearch(pendingSearchText) }
-                )
+                FilterField("Member filter", text: $pendingSearchText) {
+                    onSearch(pendingSearchText)
+                }
 
                 BinaryTogglePicker(
                     selection: Binding(
@@ -130,7 +130,7 @@ struct ZSetDetailView: View {
         .confirmationDialog(
             "Delete Member?",
             isPresented: Binding(
-                get: { memberPendingDeletion != nil },
+                get: { memberPendingDeletion != nil && !isProduction },
                 set: { if !$0 { memberPendingDeletion = nil } }
             ),
             titleVisibility: .visible
@@ -145,6 +145,36 @@ struct ZSetDetailView: View {
         } message: {
             if let member = memberPendingDeletion {
                 Text("This permanently deletes member \"\(member)\" from \"\(key)\".")
+            }
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { memberPendingDeletion != nil && isProduction },
+                set: {
+                    if !$0 {
+                        memberPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                }
+            )
+        ) {
+            if let member = memberPendingDeletion {
+                ProductionConfirmView(
+                    title: "Delete Member?",
+                    message: "This permanently deletes member \"\(member)\" from \"\(key)\".",
+                    confirmText: "DELETE",
+                    input: $productionConfirmText,
+                    onConfirm: {
+                        onDeleteMember(member)
+                        memberPendingDeletion = nil
+                        productionConfirmText = ""
+                    },
+                    onCancel: {
+                        memberPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                )
+                .presentationSizing(.form)
             }
         }
     }
@@ -167,6 +197,7 @@ struct EditableZSetCell: View {
         } else {
             Text(row.score)
                 .font(AppFont.dataCell)
+                .lineLimit(1)
                 .copyableCell(row.score, row: rowValue)
                 .onTapGesture(count: 2) {
                     editingMember = row.member

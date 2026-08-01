@@ -10,38 +10,6 @@ func detailCountText(loaded: Int, total: Int?, noun: String) -> String {
     return "\(loaded) \(noun)"
 }
 
-struct DetailSearchField: View {
-    @Binding var searchText: String
-    let placeholder: String
-    let onSearch: () -> Void
-
-    var body: some View {
-        HStack(spacing: 6) {
-            TextField(placeholder, text: $searchText)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit(onSearch)
-
-            if !searchText.isEmpty {
-                Button("Clear Filter", systemImage: "xmark.circle.fill") {
-                    searchText = ""
-                    onSearch()
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-                .help("Clear filter")
-            }
-
-            Button("Search", systemImage: "magnifyingglass") {
-                onSearch()
-            }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.borderless)
-            .help("Search")
-        }
-    }
-}
-
 private struct CopyableCellModifier: ViewModifier {
     let cellValue: String
     let rowValue: String

@@ -58,7 +58,7 @@ struct ProfilerView: View {
             )
 
             if let error = app.profilerError {
-                ErrorBanner(message: error, severity: .warning)
+                ErrorBanner(message: error, severity: .warning, dismissAction: { app.profilerError = nil })
             }
 
             ProfilerContentView(
@@ -193,20 +193,7 @@ private struct ProfilerToolbarView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: AppSpacing.medium) {
-                ZStack(alignment: .trailing) {
-                    TextField("Filter command, node, source, database, or raw text", text: $filterText)
-                        .textFieldStyle(.roundedBorder)
-
-                    if !filterText.isEmpty {
-                        Button("Clear Filter", systemImage: "xmark.circle.fill") {
-                            filterText = ""
-                        }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                        .padding(.trailing, 8)
-                    }
-                }
+                FilterField("Filter command, node, source, database, or raw text", text: $filterText)
 
                 Toggle("Auto-scroll", isOn: $autoScroll)
                     .toggleStyle(.switch)
@@ -366,7 +353,7 @@ private struct ProfilerEntryRow: View {
                 Text(entry.commandName)
                     .frame(width: 110, alignment: .leading)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(.tint)
                 if showLibraryColumn {
                     Text(libraryText ?? "-")
                         .frame(width: 150, alignment: .leading)
@@ -382,7 +369,7 @@ private struct ProfilerEntryRow: View {
             .padding(.horizontal, AppSpacing.large)
             .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
             .contentShape(Rectangle())
-            .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
+            .background(isSelected ? AppColor.selectionBackground : Color.clear)
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -393,12 +380,6 @@ private struct ProfilerEntryRow: View {
                 copyToPasteboard(entry.commandText)
             }
         }
-    }
-
-    private func copyToPasteboard(_ value: String) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(value, forType: .string)
     }
 }
 

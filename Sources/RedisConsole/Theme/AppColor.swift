@@ -18,6 +18,14 @@ enum AppColor {
     static let controlBackground: Color = Color(nsColor: .controlBackgroundColor)
     static let subtleBackground: Color = Color.secondary.opacity(0.12)
 
+    /// Standard semi-transparent badge background for a given accent color.
+    static func badgeBackground(_ color: Color) -> Color {
+        color.opacity(0.12)
+    }
+
+    /// Highlight background for selected rows/items in lists and tables.
+    static let selectionBackground: Color = Color.accentColor.opacity(0.14)
+
     // MARK: - Redis type chart colors
 
     static let chartString: Color = .blue

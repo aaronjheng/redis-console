@@ -40,6 +40,7 @@ struct ListDetailView: View {
     let rows: [(String, String)]
     let keyLength: Int?
     let hasMoreRows: Bool
+    var isProduction: Bool = false
     let onLoadMore: () -> Void
     let onAddElement: () -> Void
     let onSaveElement: (Int, String) -> Void
@@ -48,6 +49,7 @@ struct ListDetailView: View {
     @State private var editingIndex: Int?
     @State private var editValue = ""
     @State private var elementPendingDeletion: ListRow?
+    @State private var productionConfirmText = ""
 
     private var listRows: [ListRow] {
         rows.compactMap { row in
@@ -124,7 +126,7 @@ struct ListDetailView: View {
         .confirmationDialog(
             "Delete Element?",
             isPresented: Binding(
-                get: { elementPendingDeletion != nil },
+                get: { elementPendingDeletion != nil && !isProduction },
                 set: { if !$0 { elementPendingDeletion = nil } }
             ),
             titleVisibility: .visible
@@ -139,6 +141,36 @@ struct ListDetailView: View {
         } message: {
             if let row = elementPendingDeletion {
                 Text("This permanently deletes element at index \(row.index) from \"\(key)\".")
+            }
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { elementPendingDeletion != nil && isProduction },
+                set: {
+                    if !$0 {
+                        elementPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                }
+            )
+        ) {
+            if let row = elementPendingDeletion {
+                ProductionConfirmView(
+                    title: "Delete Element?",
+                    message: "This permanently deletes element at index \(row.index) from \"\(key)\".",
+                    confirmText: "DELETE",
+                    input: $productionConfirmText,
+                    onConfirm: {
+                        onDeleteElement(row.index, row.value)
+                        elementPendingDeletion = nil
+                        productionConfirmText = ""
+                    },
+                    onCancel: {
+                        elementPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                )
+                .presentationSizing(.form)
             }
         }
     }

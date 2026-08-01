@@ -79,8 +79,8 @@ enum RedisConnectionMode: String, Codable, CaseIterable, Hashable, Sendable {
 
     var badgeBackgroundColor: Color {
         switch self {
-        case .standalone: return Color.secondary.opacity(0.12)
-        case .cluster: return Color.accentColor.opacity(0.14)
+        case .standalone: return AppColor.subtleBackground
+        case .cluster: return AppColor.badgeBackground(.accentColor)
         }
     }
 }

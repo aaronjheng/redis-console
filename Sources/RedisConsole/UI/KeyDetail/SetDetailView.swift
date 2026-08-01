@@ -13,6 +13,7 @@ struct SetDetailView: View {
     let keyLength: Int?
     let searchText: String
     let hasMoreRows: Bool
+    var isProduction: Bool = false
     let onSearch: (String) -> Void
     let onLoadMore: () -> Void
     let onAddMember: () -> Void
@@ -20,6 +21,7 @@ struct SetDetailView: View {
 
     @State private var pendingSearchText = ""
     @State private var memberPendingDeletion: String?
+    @State private var productionConfirmText = ""
 
     private var setRows: [SetRow] {
         rows.map { SetRow(member: $0.0) }
@@ -27,11 +29,9 @@ struct SetDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            DetailSearchField(
-                searchText: $pendingSearchText,
-                placeholder: "Member filter",
-                onSearch: { onSearch(pendingSearchText) }
-            )
+            FilterField("Member filter", text: $pendingSearchText) {
+                onSearch(pendingSearchText)
+            }
             .padding(AppSpacing.small)
 
             Divider()
@@ -40,6 +40,7 @@ struct SetDetailView: View {
                 TableColumn("Member") { row in
                     Text(row.member)
                         .font(AppFont.dataCell)
+                        .lineLimit(2)
                         .copyableCell(row.member, row: row.member)
                 }
 
@@ -86,7 +87,7 @@ struct SetDetailView: View {
         .confirmationDialog(
             "Delete Member?",
             isPresented: Binding(
-                get: { memberPendingDeletion != nil },
+                get: { memberPendingDeletion != nil && !isProduction },
                 set: { if !$0 { memberPendingDeletion = nil } }
             ),
             titleVisibility: .visible
@@ -101,6 +102,36 @@ struct SetDetailView: View {
         } message: {
             if let member = memberPendingDeletion {
                 Text("This permanently deletes member \"\(member)\" from \"\(key)\".")
+            }
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { memberPendingDeletion != nil && isProduction },
+                set: {
+                    if !$0 {
+                        memberPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                }
+            )
+        ) {
+            if let member = memberPendingDeletion {
+                ProductionConfirmView(
+                    title: "Delete Member?",
+                    message: "This permanently deletes member \"\(member)\" from \"\(key)\".",
+                    confirmText: "DELETE",
+                    input: $productionConfirmText,
+                    onConfirm: {
+                        onDeleteMember(member)
+                        memberPendingDeletion = nil
+                        productionConfirmText = ""
+                    },
+                    onCancel: {
+                        memberPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                )
+                .presentationSizing(.form)
             }
         }
     }

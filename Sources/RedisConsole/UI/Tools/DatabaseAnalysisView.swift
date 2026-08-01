@@ -13,7 +13,6 @@ struct DatabaseAnalysisView: View {
 
                 if app.isLoadingAnalysis {
                     ProgressView()
-                        .scaleEffect(0.7)
                         .controlSize(.small)
                 }
 
@@ -38,7 +37,7 @@ struct DatabaseAnalysisView: View {
             Divider()
 
             if let error = app.analysisError {
-                ErrorBanner(message: error)
+                ErrorBanner(message: error, dismissAction: { app.analysisError = nil })
                 Divider()
             }
 
@@ -58,7 +57,7 @@ struct DatabaseAnalysisView: View {
                 Button("Run Analysis") {
                     Task { await app.runDatabaseAnalysis() }
                 }
-                .padding(.top, 8)
+                .padding(.top, AppSpacing.small)
                 Spacer()
             }
             Divider()
@@ -138,7 +137,7 @@ struct DatabaseAnalysisView: View {
                 Badge(
                     text: "Estimate",
                     foregroundColor: AppColor.warning,
-                    backgroundColor: AppColor.warning.opacity(0.12)
+                    backgroundColor: AppColor.badgeBackground(AppColor.warning)
                 )
             }
         }
@@ -343,7 +342,7 @@ struct StatItem: View {
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
             Text(label)
                 .font(.body)
                 .foregroundStyle(.tertiary)

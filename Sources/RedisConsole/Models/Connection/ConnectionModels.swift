@@ -26,7 +26,7 @@ enum ConnectionEnvironment: String, Codable, CaseIterable {
 
     var badgeForegroundColor: Color { color }
 
-    var badgeBackgroundColor: Color { color.opacity(0.12) }
+    var badgeBackgroundColor: Color { AppColor.badgeBackground(color) }
 }
 
 // MARK: - Connection Config

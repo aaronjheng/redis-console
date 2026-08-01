@@ -72,7 +72,7 @@ struct LuaEditorView: View {
     private var header: some View {
         HStack(spacing: AppSpacing.small) {
             Image(systemName: "curlybraces")
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(.tint)
             Text(mode.title)
                 .font(.headline)
             Spacer()

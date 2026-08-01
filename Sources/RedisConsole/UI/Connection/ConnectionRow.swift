@@ -8,12 +8,12 @@ struct ConnectionRow: View {
     let isConnected: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
+            HStack(spacing: AppSpacing.xSmall) {
                 Text(config.name)
                     .font(.headline)
                     .lineLimit(1)
-                Spacer(minLength: 8)
+                Spacer(minLength: AppSpacing.small)
                 if config.environment != .unspecified {
                     Badge(
                         text: config.environment.rawValue,
@@ -35,7 +35,7 @@ struct ConnectionRow: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, AppSpacing.xSmall)
         .contentShape(Rectangle())
     }
 }

@@ -471,6 +471,67 @@ private struct ToggleButton<Label: View>: View {
     }
 }
 
+/// A unified search/filter text field used across all panels.
+///
+/// When `onSearch` is provided the magnifying-glass icon becomes a tappable
+/// search button and Return triggers the callback — suitable for server-side
+/// filtering. When `onSearch` is `nil` the field acts as a local filter;
+/// the parent simply observes `text` changes.
+struct FilterField: View {
+    @Binding var text: String
+    let placeholder: String
+    var onSearch: (() -> Void)?
+
+    init(_ placeholder: String, text: Binding<String>, onSearch: (() -> Void)? = nil) {
+        self.placeholder = placeholder
+        self._text = text
+        self.onSearch = onSearch
+    }
+
+    /// Right-side inset so typed text never slides underneath the overlay icons.
+    /// One icon visible when empty (magnifying glass ≈ 16 pt + 8 pt trailing = 24),
+    /// two icons when text is present (clear + glass ≈ 16 + 4 + 16 + 8 = 44).
+    private var trailingInset: CGFloat {
+        text.isEmpty ? 24 : 44
+    }
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            TextField(placeholder, text: $text)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { onSearch?() }
+                .padding(.trailing, trailingInset)
+
+            HStack(spacing: AppSpacing.xSmall) {
+                if !text.isEmpty {
+                    Button("Clear Filter", systemImage: "xmark.circle.fill") {
+                        text = ""
+                        onSearch?()
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
+                    .help("Clear filter")
+                }
+                if let onSearch {
+                    Button("Search", systemImage: "magnifyingglass") {
+                        onSearch()
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                    .contentShape(Rectangle())
+                    .help("Search")
+                } else {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.trailing, AppSpacing.small)
+        }
+    }
+}
+
 /// A small dropdown-style picker drawn entirely in SwiftUI.
 /// Use for a small number of text options where a native pop-up button would
 /// otherwise render as a white block off-screen.
@@ -518,5 +579,74 @@ struct OptionsPicker<Option: Hashable & Sendable>: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .help(title)
+    }
+}
+
+// MARK: - Production Confirmation
+
+/// A typed-confirmation sheet for destructive actions on production databases.
+/// Shared by Browser, Key Detail views, and Function Library views.
+struct ProductionConfirmView: View {
+    let title: String
+    let message: String
+    let confirmText: String
+    @Binding var input: String
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    @FocusState private var isInputFocused: Bool
+
+    var body: some View {
+        VStack(spacing: AppSpacing.large) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .font(.largeTitle)
+                .foregroundStyle(AppColor.error)
+
+            Text(title)
+                .font(.title2)
+                .bold()
+
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: 0) {
+                Image(systemName: "shield")
+                    .foregroundStyle(AppColor.error)
+                Text("This is a PRODUCTION database.")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.error)
+            }
+
+            HStack(spacing: AppSpacing.xSmall) {
+                Text("Type \"\(confirmText)\" to confirm:")
+                    .font(.subheadline)
+                Spacer()
+            }
+
+            TextField("", text: $input)
+                .textFieldStyle(.roundedBorder)
+                .focused($isInputFocused)
+                .onSubmit(confirmIfValid)
+
+            HStack {
+                Button("Cancel", role: .cancel, action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
+                Button("Delete", role: .destructive, action: onConfirm)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(input != confirmText)
+            }
+        }
+        .padding(AppSpacing.large)
+        .frame(width: AppSize.productionConfirmWidth)
+        .onAppear { isInputFocused = true }
+    }
+
+    private func confirmIfValid() {
+        if input == confirmText {
+            onConfirm()
+        }
     }
 }

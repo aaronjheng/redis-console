@@ -98,7 +98,7 @@ struct ShellView: View {
                                         .font(.subheadline)
                                         .padding(.horizontal, AppSpacing.small)
                                         .padding(.vertical, AppSpacing.xxSmall)
-                                        .background(Color.secondary.opacity(0.12))
+                                        .background(AppColor.subtleBackground)
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
@@ -152,7 +152,7 @@ struct ShellView: View {
                     Button(action: executeCommand) {
                         Image(systemName: "arrow.up")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(input.isEmpty ? Color.secondary : Color(.controlBackgroundColor))
+                            .foregroundStyle(input.isEmpty ? .secondary : Color(.controlBackgroundColor))
                             .frame(width: 30, height: 30)
                             .background(input.isEmpty ? Color.secondary.opacity(0.18) : Color.primary)
                             .clipShape(Circle())
