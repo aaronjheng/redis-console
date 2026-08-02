@@ -8,6 +8,11 @@ struct ProfilerView: View {
     @State private var hideNoiseCommands = true
     @State private var selectedEntryID: RedisProfilerEntry.ID?
     @State private var libraryColumnEnabled = false
+    @State private var showingProductionWarning = false
+
+    private var isProduction: Bool {
+        app.selectedConnection?.environment == .production
+    }
 
     private var hasFunctionLibraries: Bool {
         !app.functionLibraries.isEmpty
@@ -70,7 +75,7 @@ struct ProfilerView: View {
                 lastVisibleEntryID: lastVisibleEntryID,
                 showLibraryColumn: showLibraryColumn,
                 libraries: app.functionLibraries,
-                onStart: app.startProfiler
+                onStart: startProfilerGated
             )
 
             Divider()
@@ -93,11 +98,30 @@ struct ProfilerView: View {
                 await app.fetchFunctionLibraries()
             }
         }
+        .alert("Start Profiler on Production?", isPresented: $showingProductionWarning) {
+            Button("Cancel", role: .cancel) {}
+            Button("Start Profiler") {
+                app.startProfiler()
+            }
+        } message: {
+            Text(
+                "MONITOR streams every command executed on the server. "
+                    + "This can slow busy servers and may capture sensitive data "
+                    + "such as passwords.")
+        }
     }
 
     private func toggleCapture() {
         if app.isProfilerRunning || app.isProfilerStarting {
             app.stopProfiler()
+        } else {
+            startProfilerGated()
+        }
+    }
+
+    private func startProfilerGated() {
+        if isProduction {
+            showingProductionWarning = true
         } else {
             app.startProfiler()
         }

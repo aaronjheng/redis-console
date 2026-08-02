@@ -43,8 +43,12 @@ struct RedisProfilerEntry: Identifiable, Hashable {
         let database: Int?
         let source: String
         let commandName: String
-        let commandText: String
         let arguments: [String]
+        /// Literal text preceding the command arguments (timestamp + metadata),
+        /// used to rebuild a redacted raw line.
+        let prefix: String
+        /// The raw command portion string, used when arguments is empty.
+        let commandRemainder: String
     }
 
     let id = UUID()
@@ -58,7 +62,6 @@ struct RedisProfilerEntry: Identifiable, Hashable {
     let node: RedisEndpoint?
 
     init(rawLine: String, node: RedisEndpoint? = nil, capturedAt: Date = Date()) {
-        self.rawLine = rawLine
         self.node = node
 
         let parsed = Self.parse(rawLine: rawLine, capturedAt: capturedAt)
@@ -66,8 +69,20 @@ struct RedisProfilerEntry: Identifiable, Hashable {
         database = parsed.database
         source = parsed.source
         commandName = parsed.commandName
-        commandText = parsed.commandText
-        arguments = parsed.arguments
+
+        // Redact sensitive arguments before they reach the UI or memory.
+        let redactedArguments = Self.redactArguments(parsed.arguments)
+        arguments = redactedArguments
+        commandText =
+            redactedArguments.isEmpty
+            ? parsed.commandRemainder
+            : redactedArguments.map(Self.displayArgument).joined(separator: " ")
+
+        if redactedArguments == parsed.arguments {
+            self.rawLine = rawLine
+        } else {
+            self.rawLine = parsed.prefix + commandText
+        }
     }
 
     var databaseText: String {
@@ -158,6 +173,7 @@ struct RedisProfilerEntry: Identifiable, Hashable {
 
         var database: Int?
         var source = "-"
+        var prefix = ""
 
         if remainder.first == "[", let closeBracketIndex = remainder.firstIndex(of: "]") {
             let metadataStart = remainder.index(after: remainder.startIndex)
@@ -169,21 +185,24 @@ struct RedisProfilerEntry: Identifiable, Hashable {
             } else if !metadata.isEmpty {
                 source = metadata
             }
+            prefix = "\(timestampText) [\(metadata)] "
 
             let commandStart = remainder.index(after: closeBracketIndex)
             remainder = String(remainder[commandStart...]).trimmingCharacters(in: .whitespaces)
+        } else if timestampEnd < trimmed.endIndex {
+            prefix = "\(timestampText) "
         }
 
         let arguments = parseArguments(remainder)
         let commandName = arguments.first?.uppercased() ?? "-"
-        let commandText = arguments.isEmpty ? remainder : arguments.map(displayArgument).joined(separator: " ")
         return ParsedLine(
             timestamp: timestamp,
             database: database,
             source: source,
             commandName: commandName,
-            commandText: commandText,
-            arguments: arguments
+            arguments: arguments,
+            prefix: prefix,
+            commandRemainder: remainder
         )
     }
 
@@ -246,5 +265,85 @@ struct RedisProfilerEntry: Identifiable, Hashable {
             .replacingOccurrences(of: "\r", with: "\\r")
             .replacingOccurrences(of: "\t", with: "\\t")
         return "\"\(escaped)\""
+    }
+
+    // MARK: - Sensitive Argument Redaction
+
+    /// Redacts sensitive arguments (passwords, secrets) from a parsed command.
+    /// `arguments[0]` is the command verb. Mirrors the redaction applied to shell
+    /// history so captured commands never expose secrets in the UI or memory.
+    private static func redactArguments(_ arguments: [String]) -> [String] {
+        guard let verb = arguments.first else { return arguments }
+        switch verb.uppercased() {
+        case "AUTH":
+            guard arguments.count > 1 else { return arguments }
+            return [verb] + Array(repeating: "****", count: arguments.count - 1)
+        case "CONFIG":
+            return redactConfigArguments(arguments)
+        case "ACL":
+            return redactAclArguments(arguments)
+        case "MIGRATE":
+            return redactMigrateArguments(arguments)
+        case "HELLO":
+            return redactHelloArguments(arguments)
+        default:
+            return arguments
+        }
+    }
+
+    private static func redactConfigArguments(_ arguments: [String]) -> [String] {
+        // CONFIG SET <key> <value> — redact value for password-related keys
+        guard arguments.count >= 4, arguments[1].uppercased() == "SET" else { return arguments }
+        let sensitiveKeys: Set<String> = ["requirepass", "masterauth", "masteruser"]
+        guard sensitiveKeys.contains(arguments[2].lowercased()) else { return arguments }
+        var redacted = arguments
+        for index in 3..<redacted.count {
+            redacted[index] = "****"
+        }
+        return redacted
+    }
+
+    private static func redactAclArguments(_ arguments: [String]) -> [String] {
+        // ACL SETUSER <user> … — redact password rules (>… / <…)
+        guard arguments.count >= 3, arguments[1].uppercased() == "SETUSER" else { return arguments }
+        return arguments.map { token in
+            if token.hasPrefix(">") { return ">****" }
+            if token.hasPrefix("<") { return "<****" }
+            return token
+        }
+    }
+
+    private static func redactMigrateArguments(_ arguments: [String]) -> [String] {
+        // MIGRATE … AUTH <password> | AUTH2 <username> <password>
+        var redacted: [String] = []
+        var index = 0
+        while index < arguments.count {
+            let upper = arguments[index].uppercased()
+            if upper == "AUTH" && index + 1 < arguments.count {
+                redacted.append(arguments[index])
+                redacted.append("****")
+                index += 2
+            } else if upper == "AUTH2" && index + 2 < arguments.count {
+                redacted.append(arguments[index])
+                redacted.append("****")
+                redacted.append("****")
+                index += 3
+            } else {
+                redacted.append(arguments[index])
+                index += 1
+            }
+        }
+        return redacted
+    }
+
+    private static func redactHelloArguments(_ arguments: [String]) -> [String] {
+        // HELLO [protover] [AUTH username password] [SETNAME name]
+        guard let authIndex = arguments.firstIndex(where: { $0.uppercased() == "AUTH" }),
+            authIndex + 2 < arguments.count
+        else { return arguments }
+        var redacted = arguments
+        redacted[authIndex + 1] = "****"
+        redacted[authIndex + 2] = "****"
+        return redacted
     }
 }
