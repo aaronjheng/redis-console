@@ -4,6 +4,11 @@ import SwiftUI
 
 struct DatabaseAnalysisView: View {
     @Environment(ConnectionState.self) private var app
+    @State private var showingProductionWarning = false
+
+    private var isProduction: Bool {
+        app.selectedConnection?.environment == .production
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,12 +22,27 @@ struct DatabaseAnalysisView: View {
                 }
 
                 Button {
-                    Task { await app.runDatabaseAnalysis() }
+                    if isProduction {
+                        showingProductionWarning = true
+                    } else {
+                        Task { await app.runDatabaseAnalysis() }
+                    }
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(app.isLoadingAnalysis)
+                .alert("Production Database", isPresented: $showingProductionWarning) {
+                    Button("Cancel", role: .cancel) {}
+                    Button("Run Analysis") {
+                        Task { await app.runDatabaseAnalysis() }
+                    }
+                } message: {
+                    Text(
+                        "Analysis will scan up to 2,000 keys and send TYPE, "
+                            + "MEMORY USAGE, and TTL for each. This can be "
+                            + "resource-intensive on a production server.")
+                }
 
                 Button {
                     exportAnalysis()
@@ -55,7 +75,11 @@ struct DatabaseAnalysisView: View {
                     description: Text("Run analysis to see database statistics")
                 )
                 Button("Run Analysis") {
-                    Task { await app.runDatabaseAnalysis() }
+                    if isProduction {
+                        showingProductionWarning = true
+                    } else {
+                        Task { await app.runDatabaseAnalysis() }
+                    }
                 }
                 .padding(.top, AppSpacing.small)
                 Spacer()

@@ -4,6 +4,7 @@ extension ConnectionState {
     // MARK: - Database Analysis
 
     private static let analysisSampleLimit = 10_000
+    static let analysisProductionSampleLimit = 2_000
     private static let analysisTopKeysCount = 50
 
     private struct NamespaceAgg {
@@ -17,6 +18,9 @@ extension ConnectionState {
         isLoadingAnalysis = true
         analysisError = nil
         analysis = nil
+
+        let isProduction = selectedConnection?.environment == .production
+        let sampleLimit = isProduction ? Self.analysisProductionSampleLimit : Self.analysisSampleLimit
 
         let analysisTask = Task { @MainActor in
             var result = DatabaseAnalysis()
@@ -40,9 +44,9 @@ extension ConnectionState {
                 var cursor = "0"
                 var hasMore = true
 
-                while hasMore && sampledKeys.count < Self.analysisSampleLimit {
+                while hasMore && sampledKeys.count < sampleLimit {
                     let scanResult = try await client.scan(
-                        cursor: cursor, match: "*", count: Self.analysisSampleLimit
+                        cursor: cursor, match: "*", count: sampleLimit
                     )
                     cursor = scanResult.nextCursor
                     hasMore = cursor != "0"
@@ -50,7 +54,7 @@ extension ConnectionState {
                 }
 
                 result.keysSampled = sampledKeys.count
-                result.isEstimate = hasMore && sampledKeys.count >= Self.analysisSampleLimit
+                result.isEstimate = hasMore && sampledKeys.count >= sampleLimit
 
                 try Task.checkCancellation()
 
@@ -74,7 +78,8 @@ extension ConnectionState {
                 try Task.checkCancellation()
 
                 // 4. Memory usage and TTL for top keys
-                let memoryCommands = sampledKeys.map { ["MEMORY", "USAGE", $0, "SAMPLES", "0"] }
+                let samplesCount = isProduction ? "5" : "0"
+                let memoryCommands = sampledKeys.map { ["MEMORY", "USAGE", $0, "SAMPLES", samplesCount] }
                 let memoryResults = try await client.sendPipeline(memoryCommands)
 
                 let ttlCommands = sampledKeys.map { ["TTL", $0] }
