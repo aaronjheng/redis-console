@@ -88,20 +88,6 @@ extension ConnectionState {
         }
     }
 
-    /// `FUNCTION FLUSH [ASYNC|SYNC]`. Sent to every primary in cluster mode.
-    func flushAllFunctions(async isAsync: Bool) async throws {
-        let args = isAsync ? ["FUNCTION", "FLUSH", "ASYNC"] : ["FUNCTION", "FLUSH", "SYNC"]
-        do {
-            try await sendToAllPrimaries(args)
-            AppLogger.info("function flush ok async=\(isAsync)", category: "Functions")
-            selectedFunctionLibrary = nil
-            await fetchFunctionLibraries()
-        } catch {
-            AppLogger.error("function flush failed async=\(isAsync) error=\(error)", category: "Functions")
-            throw error
-        }
-    }
-
     // MARK: - Cluster helpers
 
     /// Sends a command to every primary node (cluster) or directly (standalone).

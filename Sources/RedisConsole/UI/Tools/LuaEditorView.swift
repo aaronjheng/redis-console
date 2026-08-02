@@ -35,6 +35,8 @@ struct LuaEditorView: View {
     @State private var dryRunState: DryRunState = .idle
     @State private var isWorking = false
     @State private var error: String?
+    @State private var showingSaveConfirm = false
+    @State private var productionConfirmText = ""
 
     init(mode: Mode) {
         self.mode = mode
@@ -65,7 +67,51 @@ struct LuaEditorView: View {
             actions
         }
         .frame(width: 700, height: 540)
-    }
+        .confirmationDialog(
+            mode.isEdit ? "Save library \"\(libraryName)\"?" : "Load library \"\(libraryName)\"?",
+            isPresented: Binding(
+                get: { showingSaveConfirm && !isProduction },
+                set: { showingSaveConfirm = $0 }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(mode.isEdit ? "Save" : "Load") {
+                Task { await save() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if mode.isEdit {
+                Text("This will overwrite the existing library with the edited code.")
+            } else {
+                Text("This will load a new library. If a library with this name already exists, it will be replaced.")
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { showingSaveConfirm && isProduction },
+            set: {
+                if !$0 {
+                    showingSaveConfirm = false
+                    productionConfirmText = ""
+                }
+            }
+        )) {
+            ProductionConfirmView(
+                title: "\(mode.isEdit ? "Save" : "Load") library \"\(libraryName)\"?",
+                message: "This will \(mode.isEdit ? "overwrite" : "load") a library on a production server. This action cannot be undone.",
+                confirmText: mode.isEdit ? "SAVE" : "LOAD",
+                input: $productionConfirmText,
+                onConfirm: {
+                    Task { await save() }
+                    showingSaveConfirm = false
+                    productionConfirmText = ""
+                },
+                onCancel: {
+                    showingSaveConfirm = false
+                    productionConfirmText = ""
+                }
+            )
+            .presentationSizing(.form)
+        }
 
     // MARK: Header
 
@@ -177,7 +223,7 @@ struct LuaEditorView: View {
             Button("Cancel", role: .cancel) { dismiss() }
                 .disabled(isWorking)
             Button {
-                Task { await save() }
+                showingSaveConfirm = true
             } label: {
                 Label(mode.isEdit ? "Save" : "Load", systemImage: mode.isEdit ? "checkmark" : "arrow.down.doc")
             }
@@ -191,6 +237,10 @@ struct LuaEditorView: View {
 
     private var trimmedCode: String {
         code.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isProduction: Bool {
+        app.selectedConnection?.environment == .production
     }
 
     /// Keeps the `#!lua name=<name>` shebang in sync with the library name field.
