@@ -30,14 +30,30 @@ extension ConnectionState {
         UserDefaults.standard.set(data, forKey: Self.browserPreferencesKey)
     }
 
-    private func shellHistoryKey(for connection: RedisConnectionConfig) -> String {
-        Self.shellHistoryKeyPrefix + connection.id.uuidString
+    // MARK: - Shell History (Keychain-backed)
+
+    private static let shellHistoryKeychainService = "com.redisconsole.shellHistory"
+
+    private func shellHistoryKeychainAccount(for connection: RedisConnectionConfig) -> String {
+        connection.id.uuidString
     }
 
     func loadShellHistory(for connection: RedisConnectionConfig) {
+        // One-shot migration from UserDefaults to Keychain
+        let account = shellHistoryKeychainAccount(for: connection)
+        try? KeychainStore.migrateFromUserDefaults(
+            [ShellHistoryEntry].self,
+            userDefaultsKey: Self.shellHistoryKeyPrefix + connection.id.uuidString,
+            service: Self.shellHistoryKeychainService,
+            account: account
+        )
+
         guard
-            let data = UserDefaults.standard.data(forKey: shellHistoryKey(for: connection)),
-            let decoded = try? JSONDecoder().decode([ShellHistoryEntry].self, from: data)
+            let decoded = try? KeychainStore.load(
+                [ShellHistoryEntry].self,
+                service: Self.shellHistoryKeychainService,
+                account: account
+            )
         else {
             shellHistory = []
             return
@@ -48,8 +64,15 @@ extension ConnectionState {
     private func saveShellHistory(for connection: RedisConnectionConfig) {
         let limitedHistory = Array(shellHistory.suffix(shellHistoryLimit))
         shellHistory = limitedHistory
-        guard let data = try? JSONEncoder().encode(limitedHistory) else { return }
-        UserDefaults.standard.set(data, forKey: shellHistoryKey(for: connection))
+        let account = shellHistoryKeychainAccount(for: connection)
+        let service = Self.shellHistoryKeychainService
+        Task.detached {
+            try? KeychainStore.store(
+                limitedHistory,
+                service: service,
+                account: account
+            )
+        }
     }
 
     func appendShellHistory(_ entry: ShellHistoryEntry) {

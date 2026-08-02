@@ -86,15 +86,17 @@ struct LuaEditorView: View {
                 Text("This will load a new library. If a library with this name already exists, it will be replaced.")
             }
         }
-        .sheet(isPresented: Binding(
-            get: { showingSaveConfirm && isProduction },
-            set: {
-                if !$0 {
-                    showingSaveConfirm = false
-                    productionConfirmText = ""
+        .sheet(
+            isPresented: Binding(
+                get: { showingSaveConfirm && isProduction },
+                set: {
+                    if !$0 {
+                        showingSaveConfirm = false
+                        productionConfirmText = ""
+                    }
                 }
-            }
-        )) {
+            )
+        ) {
             ProductionConfirmView(
                 title: "\(mode.isEdit ? "Save" : "Load") library \"\(libraryName)\"?",
                 message: "This will \(mode.isEdit ? "overwrite" : "load") a library on a production server. This action cannot be undone.",
@@ -112,6 +114,7 @@ struct LuaEditorView: View {
             )
             .presentationSizing(.form)
         }
+    }
 
     // MARK: Header
 

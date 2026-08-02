@@ -213,13 +213,13 @@ extension ConnectionState {
             if case .error(let message) = response {
                 errorMessage = message
                 AppLogger.error(
-                    "fcall failed command=\(command.joined(separator: " ")) error=\(message)",
+                    "fcall failed name=\(name) keys=\(keys.count) args=\(args.count) error=\(message)",
                     category: "Functions"
                 )
             } else {
                 errorMessage = nil
                 AppLogger.info(
-                    "fcall ok command=\(command.joined(separator: " ")) response=\(response.displayString)",
+                    "fcall ok name=\(name) keys=\(keys.count) args=\(args.count)",
                     category: "Functions"
                 )
             }
@@ -227,7 +227,7 @@ extension ConnectionState {
             response = .null
             errorMessage = error.localizedDescription
             AppLogger.error(
-                "fcall failed command=\(command.joined(separator: " ")) error=\(error)",
+                "fcall failed name=\(name) keys=\(keys.count) args=\(args.count) error=\(error)",
                 category: "Functions"
             )
         }
