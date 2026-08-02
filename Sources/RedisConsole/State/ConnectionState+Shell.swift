@@ -23,7 +23,8 @@ extension ConnectionState {
                     connectHost = endpoint.host
                     connectPort = endpoint.port
                 } else {
-                    // Create a dedicated tunnel for shell
+                    // Create a dedicated tunnel for shell and save the reference
+                    // so it is properly cleaned up by disconnect() on teardown.
                     let tunnel = SSHTunnel()
                     tunnel.setupTimeoutSeconds = config.ssh.setupTimeout
                     tunnel.connectionAttemptTimeout = .seconds(Int64(config.ssh.connectionAttemptTimeout))
@@ -38,6 +39,7 @@ extension ConnectionState {
                         remoteHost: config.host,
                         remotePort: config.port
                     )
+                    sshTunnel = tunnel
                     connectHost = "127.0.0.1"
                     connectPort = tunnel.localPort
                 }

@@ -21,139 +21,32 @@ extension ConnectionState {
 
         let isProduction = selectedConnection?.environment == .production
         let sampleLimit = isProduction ? Self.analysisProductionSampleLimit : Self.analysisSampleLimit
+        let separator = namespaceSeparator.isEmpty ? ":" : namespaceSeparator
 
-        let analysisTask = Task { @MainActor in
-            var result = DatabaseAnalysis()
-
+        // The handle IS the worker. ConnectionState is @MainActor, so state
+        // mutations below hop to the main actor automatically; the Redis calls
+        // and CPU work run off the main actor because `RedisSession` and the
+        // pure static helpers are nonisolated. Cancellation via `cancel()` is
+        // delivered to this Task's `try Task.checkCancellation()` checkpoints.
+        analysisTask = Task {
+            try await Self.runAnalysisWork(
+                client: client,
+                sampleLimit: sampleLimit,
+                separator: separator,
+                isProduction: isProduction
+            )
+        }
+        analysisTaskHandle = Task { @MainActor in
+            guard let analysisTask else {
+                isLoadingAnalysis = false
+                return
+            }
             do {
-                // 1. Server Metrics from INFO
-                let infoResult = try await client.send("INFO")
-                if case .error(let message) = infoResult {
-                    throw RedisError.commandError(message)
-                }
-                if let infoStr = infoResult.string {
-                    let parsed = parseServerInfoForAnalysis(infoStr)
-                    result.serverMetrics = parsed.metrics
-                    result.totalKeys = parsed.totalKeys
-                }
-
-                try Task.checkCancellation()
-
-                // 2. Scan keys for sampling
-                var sampledKeys: [String] = []
-                var cursor = "0"
-                var hasMore = true
-
-                while hasMore && sampledKeys.count < sampleLimit {
-                    let scanResult = try await client.scan(
-                        cursor: cursor, match: "*", count: sampleLimit
-                    )
-                    cursor = scanResult.nextCursor
-                    hasMore = cursor != "0"
-                    sampledKeys.append(contentsOf: scanResult.keys)
-                }
-
-                result.keysSampled = sampledKeys.count
-                result.isEstimate = hasMore && sampledKeys.count >= sampleLimit
-
-                try Task.checkCancellation()
-
-                guard !sampledKeys.isEmpty else {
-                    result.analyzedAt = Date()
-                    analysis = result
+                let result = try await analysisTask.value
+                guard !Task.isCancelled else {
                     isLoadingAnalysis = false
                     return
                 }
-
-                // 3. Type Distribution via pipeline
-                let typeCommands = sampledKeys.map { ["TYPE", $0] }
-                let typeResults = try await client.sendPipeline(typeCommands)
-
-                var typeCount: [String: Int] = [:]
-                for typeResult in typeResults {
-                    let typeName = typeResult.string ?? "unknown"
-                    typeCount[typeName, default: 0] += 1
-                }
-
-                try Task.checkCancellation()
-
-                // 4. Memory usage and TTL for top keys
-                let samplesCount = isProduction ? "5" : "0"
-                let memoryCommands = sampledKeys.map { ["MEMORY", "USAGE", $0, "SAMPLES", samplesCount] }
-                let memoryResults = try await client.sendPipeline(memoryCommands)
-
-                let ttlCommands = sampledKeys.map { ["TTL", $0] }
-                let ttlResults = try await client.sendPipeline(ttlCommands)
-
-                var keyMemoryEntries: [KeyMemoryEntry] = []
-                var typeMemory: [String: Int] = [:]
-                var typeCountFinal: [String: Int] = [:]
-                var expirationBuckets: [String: (count: Int, memory: Int)] = [
-                    "< 1h": (0, 0), "1-6h": (0, 0), "6-24h": (0, 0),
-                    "1-7d": (0, 0), "7-30d": (0, 0), "> 30d": (0, 0), "No expiry": (0, 0),
-                ]
-
-                for (index, key) in sampledKeys.enumerated() {
-                    let typeName = index < typeResults.count ? typeResults[index].string ?? "unknown" : "unknown"
-                    let memory = index < memoryResults.count ? memoryResults[index].intValue ?? 0 : 0
-                    let ttl = index < ttlResults.count ? ttlResults[index].intValue : nil
-
-                    typeCountFinal[typeName, default: 0] += 1
-                    typeMemory[typeName, default: 0] += memory
-                    result.totalMemory += memory
-
-                    keyMemoryEntries.append(
-                        KeyMemoryEntry(
-                            key: key, type: typeName, memory: memory, length: 0, ttl: ttl
-                        ))
-
-                    // Expiration buckets
-                    let bucketLabel = expirationBucketLabel(for: ttl)
-                    var bucket = expirationBuckets[bucketLabel] ?? (0, 0)
-                    bucket.count += 1
-                    bucket.memory += memory
-                    expirationBuckets[bucketLabel] = bucket
-                }
-
-                // Type distribution
-                for (type, count) in typeCountFinal {
-                    let mem = typeMemory[type] ?? 0
-                    result.typeDistribution[type] = TypeStats(count: count, memory: mem)
-                }
-
-                // Top keys by memory (sorted descending)
-                result.topKeysByMemory = Array(
-                    keyMemoryEntries
-                        .sorted { $0.memory > $1.memory }
-                        .prefix(Self.analysisTopKeysCount))
-
-                // Namespace aggregation
-                let separator = namespaceSeparator.isEmpty ? ":" : namespaceSeparator
-                var namespaceAgg: [String: NamespaceAgg] = [:]
-                for entry in keyMemoryEntries {
-                    let ns = namespaceFromKey(entry.key, separator: separator)
-                    var agg = namespaceAgg[ns] ?? NamespaceAgg()
-                    agg.count += 1
-                    agg.memory += entry.memory
-                    agg.types[entry.type, default: 0] += 1
-                    namespaceAgg[ns] = agg
-                }
-                result.topNamespaces =
-                    namespaceAgg
-                    .map { ns, agg in
-                        NamespaceStats(namespace: ns, keyCount: agg.count, totalMemory: agg.memory, types: agg.types)
-                    }
-                    .sorted { $0.totalMemory > $1.totalMemory }
-                    .prefix(20)
-                    .map { $0 }
-
-                // Expiration summary
-                result.expirationSummary =
-                    expirationBuckets
-                    .map { ExpirationBucket(label: $0.key, keyCount: $0.value.count, estimatedMemory: $0.value.memory) }
-                    .sorted { bucketSortIndex($0.label) < bucketSortIndex($1.label) }
-
-                result.analyzedAt = Date()
                 analysis = result
                 isLoadingAnalysis = false
             } catch is CancellationError {
@@ -164,16 +57,150 @@ extension ConnectionState {
             }
         }
 
-        analysisTaskHandle = analysisTask
-        await analysisTask.value
+        await analysisTaskHandle?.value
     }
 
     func cancelAnalysis() {
+        analysisTask?.cancel()
         analysisTaskHandle?.cancel()
+        analysisTask = nil
         analysisTaskHandle = nil
     }
 
-    private func parseServerInfoForAnalysis(_ infoStr: String) -> (metrics: ServerMetrics, totalKeys: Int) {
+    /// Off-main-actor analysis body. `client` calls are `nonisolated async` so
+    /// they suspend without blocking the main actor; CPU-bound parsing/aggregation
+    /// runs here on the default executor.
+    private static func runAnalysisWork(
+        client: any RedisSession,
+        sampleLimit: Int,
+        separator: String,
+        isProduction: Bool
+    ) async throws -> DatabaseAnalysis {
+        var result = DatabaseAnalysis()
+
+        // 1. Server Metrics from INFO
+        let infoResult = try await client.send("INFO")
+        if case .error(let message) = infoResult {
+            throw RedisError.commandError(message)
+        }
+        if let infoStr = infoResult.string {
+            let parsed = parseServerInfoForAnalysis(infoStr)
+            result.serverMetrics = parsed.metrics
+            result.totalKeys = parsed.totalKeys
+        }
+
+        try Task.checkCancellation()
+
+        // 2. Scan keys for sampling
+        var sampledKeys: [String] = []
+        var cursor = "0"
+        var hasMore = true
+
+        while hasMore && sampledKeys.count < sampleLimit {
+            let scanResult = try await client.scan(
+                cursor: cursor, match: "*", count: sampleLimit
+            )
+            cursor = scanResult.nextCursor
+            hasMore = cursor != "0"
+            sampledKeys.append(contentsOf: scanResult.keys)
+        }
+
+        result.keysSampled = sampledKeys.count
+        result.isEstimate = hasMore && sampledKeys.count >= sampleLimit
+
+        try Task.checkCancellation()
+
+        guard !sampledKeys.isEmpty else {
+            result.analyzedAt = Date()
+            return result
+        }
+
+        // 3. Type Distribution via pipeline
+        let typeCommands = sampledKeys.map { ["TYPE", $0] }
+        let typeResults = try await client.sendPipeline(typeCommands)
+
+        try Task.checkCancellation()
+
+        // 4. Memory usage and TTL for top keys
+        let samplesCount = isProduction ? "5" : "0"
+        let memoryCommands = sampledKeys.map { ["MEMORY", "USAGE", $0, "SAMPLES", samplesCount] }
+        let memoryResults = try await client.sendPipeline(memoryCommands)
+
+        let ttlCommands = sampledKeys.map { ["TTL", $0] }
+        let ttlResults = try await client.sendPipeline(ttlCommands)
+
+        var keyMemoryEntries: [KeyMemoryEntry] = []
+        var typeMemory: [String: Int] = [:]
+        var typeCountFinal: [String: Int] = [:]
+        var expirationBuckets: [String: (count: Int, memory: Int)] = [
+            "< 1h": (0, 0), "1-6h": (0, 0), "6-24h": (0, 0),
+            "1-7d": (0, 0), "7-30d": (0, 0), "> 30d": (0, 0), "No expiry": (0, 0),
+        ]
+
+        for (index, key) in sampledKeys.enumerated() {
+            let typeName = index < typeResults.count ? typeResults[index].string ?? "unknown" : "unknown"
+            let memory = index < memoryResults.count ? memoryResults[index].intValue ?? 0 : 0
+            let ttl = index < ttlResults.count ? ttlResults[index].intValue : nil
+
+            typeCountFinal[typeName, default: 0] += 1
+            typeMemory[typeName, default: 0] += memory
+            result.totalMemory += memory
+
+            keyMemoryEntries.append(
+                KeyMemoryEntry(
+                    key: key, type: typeName, memory: memory, length: 0, ttl: ttl
+                ))
+
+            // Expiration buckets
+            let bucketLabel = expirationBucketLabel(for: ttl)
+            var bucket = expirationBuckets[bucketLabel] ?? (0, 0)
+            bucket.count += 1
+            bucket.memory += memory
+            expirationBuckets[bucketLabel] = bucket
+        }
+
+        // Type distribution
+        for (type, count) in typeCountFinal {
+            let mem = typeMemory[type] ?? 0
+            result.typeDistribution[type] = TypeStats(count: count, memory: mem)
+        }
+
+        // Top keys by memory (sorted descending)
+        result.topKeysByMemory = Array(
+            keyMemoryEntries
+                .sorted { $0.memory > $1.memory }
+                .prefix(analysisTopKeysCount))
+
+        // Namespace aggregation
+        var namespaceAgg: [String: NamespaceAgg] = [:]
+        for entry in keyMemoryEntries {
+            let ns = namespaceFromKey(entry.key, separator: separator)
+            var agg = namespaceAgg[ns] ?? NamespaceAgg()
+            agg.count += 1
+            agg.memory += entry.memory
+            agg.types[entry.type, default: 0] += 1
+            namespaceAgg[ns] = agg
+        }
+        result.topNamespaces =
+            namespaceAgg
+            .map { ns, agg in
+                NamespaceStats(namespace: ns, keyCount: agg.count, totalMemory: agg.memory, types: agg.types)
+            }
+            .sorted { $0.totalMemory > $1.totalMemory }
+            .prefix(20)
+            .map { $0 }
+
+        // Expiration summary
+        result.expirationSummary =
+            expirationBuckets
+            .map { ExpirationBucket(label: $0.key, keyCount: $0.value.count, estimatedMemory: $0.value.memory) }
+            .sorted { bucketSortIndex($0.label) < bucketSortIndex($1.label) }
+
+        result.analyzedAt = Date()
+        return result
+    }
+
+    private static func parseServerInfoForAnalysis(_ infoStr: String) -> (metrics: ServerMetrics, totalKeys: Int) {
         var metrics = ServerMetrics()
         var totalKeys = 0
         var currentSection = ""
@@ -239,7 +266,7 @@ extension ConnectionState {
         return (metrics, totalKeys)
     }
 
-    private func expirationBucketLabel(for ttl: Int?) -> String {
+    private static func expirationBucketLabel(for ttl: Int?) -> String {
         guard let ttl, ttl > 0 else { return "No expiry" }
         switch ttl {
         case ..<3600: return "< 1h"
@@ -251,7 +278,7 @@ extension ConnectionState {
         }
     }
 
-    private func bucketSortIndex(_ label: String) -> Int {
+    private static func bucketSortIndex(_ label: String) -> Int {
         switch label {
         case "< 1h": return 0
         case "1-6h": return 1
@@ -264,7 +291,7 @@ extension ConnectionState {
         }
     }
 
-    private func namespaceFromKey(_ key: String, separator: String) -> String {
+    private static func namespaceFromKey(_ key: String, separator: String) -> String {
         guard !separator.isEmpty else { return "default" }
         if let range = key.range(of: separator) {
             return String(key[..<range.lowerBound])

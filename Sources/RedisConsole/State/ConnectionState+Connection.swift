@@ -254,6 +254,8 @@ extension ConnectionState {
         analysis = nil
         analysisError = nil
         isLoadingAnalysis = false
+        analysisTask?.cancel()
+        analysisTask = nil
         analysisTaskHandle?.cancel()
         analysisTaskHandle = nil
 

@@ -1,3 +1,4 @@
+// Needed for `fnmatch` (POSIX pattern matching) used in `keyMatchesCurrentFilter`.
 import Darwin
 import Foundation
 

@@ -114,10 +114,15 @@ class SSHTunnel: @unchecked Sendable {
         channel?.close(promise: nil)
         channel = nil
 
-        // Shutdown event loop group
+        // Shutdown event loop group asynchronously to avoid blocking the caller.
+        // syncShutdownGracefully() can block the calling thread, which is
+        // problematic when called from the main actor or a Task.
         if let group = group {
-            try? group.syncShutdownGracefully()
+            let groupToShutdown = group
             self.group = nil
+            Task {
+                try? await groupToShutdown.shutdownGracefully()
+            }
         }
     }
 

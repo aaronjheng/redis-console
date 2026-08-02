@@ -81,6 +81,10 @@ class ConnectionState {
     var isLoadingAnalysis = false
     var analysisError: String?
     var analysisTaskHandle: Task<Void, Never>?
+    /// The off-main-actor worker that performs the actual analysis work. Held
+    /// separately so cancellation (via `cancelAnalysis()`) reaches the worker's
+    /// `try Task.checkCancellation()` checkpoints.
+    var analysisTask: Task<DatabaseAnalysis, Error>?
 
     var profilerEntries: [RedisProfilerEntry] = []
     var profilerCapturedCount = 0

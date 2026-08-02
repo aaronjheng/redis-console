@@ -61,60 +61,15 @@ extension ConnectionState {
     }
 
     private func runProfiler(config: RedisConnectionConfig, generation: Int) async {
-        var monitorClients: [RedisMonitorClient] = []
-        var monitorTasks: RedisProfilerTaskBag?
-        var tunnel: SSHTunnel?
-        var clusterTunnelManager: SSHClusterTunnelManager?
-
-        defer {
-            let shouldClearStoredResources = profilerGeneration == generation
-            let storedMonitorClients = shouldClearStoredResources ? profilerMonitorClients : []
-            let storedMonitorTasks = shouldClearStoredResources ? profilerMonitorTasks : nil
-            let storedTunnel = shouldClearStoredResources ? profilerSSHTunnel : nil
-            let storedClusterTunnelManager = shouldClearStoredResources ? profilerClusterTunnelManager : nil
-
-            monitorTasks?.cancelAll()
-            storedMonitorTasks?.cancelAll()
-            for client in monitorClients {
-                client.disconnect()
-            }
-            for client in storedMonitorClients {
-                client.disconnect()
-            }
-            tunnel?.stop()
-            storedTunnel?.stop()
-            let clusterTunnelManager = clusterTunnelManager
-            let clusterTunnelManagerFromStoredState = storedClusterTunnelManager
-            Task {
-                await clusterTunnelManager?.disconnect()
-                await clusterTunnelManagerFromStoredState?.disconnect()
-            }
-
-            if shouldClearStoredResources {
-                profilerMonitorClients = []
-                profilerMonitorTasks = nil
-                profilerSSHTunnel = nil
-                profilerClusterTunnelManager = nil
-                profilerTask = nil
-                isProfilerRunning = false
-                isProfilerStarting = false
-            }
-        }
+        let profilerStream: RedisProfilerStream
 
         do {
-            let profilerStream: RedisProfilerStream
-
             switch config.mode {
             case .standalone:
                 profilerStream = try await startStandaloneProfilerStream(config: config)
             case .cluster:
                 profilerStream = try await startClusterProfilerStream(config: config)
             }
-
-            monitorClients = profilerStream.monitorClients
-            monitorTasks = profilerStream.monitorTasks
-            tunnel = profilerStream.tunnel
-            clusterTunnelManager = profilerStream.tunnelManager
 
             try Task.checkCancellation()
 
@@ -126,13 +81,39 @@ extension ConnectionState {
                 try Task.checkCancellation()
                 appendProfilerCapture(capture)
             }
-        } catch is CancellationError {
+
             AppLogger.info("profiler stopped redis=\(config.address)", category: "Profiler")
+        } catch is CancellationError {
+            AppLogger.info("profiler cancelled redis=\(config.address)", category: "Profiler")
         } catch {
             if profilerGeneration == generation {
                 profilerError = error.localizedDescription
             }
             AppLogger.error("profiler failed redis=\(config.address) error=\(error)", category: "Profiler")
+        }
+
+        // Cleanup: disconnect resources regardless of how the loop exited.
+        // The stored state resources are cleaned up by cancelProfilerResources()
+        // when stopProfiler() or startProfiler() is called. The local stream
+        // resources are owned by the stored state, so they are already handled.
+        // On natural exit (server disconnect) cancelProfilerResources() is not
+        // invoked, so explicitly tear down here to avoid relying on deinit.
+        if profilerGeneration == generation {
+            profilerMonitorTasks?.cancelAll()
+            for client in profilerMonitorClients {
+                client.disconnect()
+            }
+            profilerSSHTunnel?.stop()
+            let clusterTunnelManager = profilerClusterTunnelManager
+            Task { await clusterTunnelManager?.disconnect() }
+
+            profilerMonitorClients = []
+            profilerMonitorTasks = nil
+            profilerSSHTunnel = nil
+            profilerClusterTunnelManager = nil
+            profilerTask = nil
+            isProfilerRunning = false
+            isProfilerStarting = false
         }
     }
 

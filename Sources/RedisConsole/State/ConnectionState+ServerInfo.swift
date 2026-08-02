@@ -52,7 +52,9 @@ extension ConnectionState {
             serverCapabilities =
                 await loadModuleCapabilities(using: client, endpoint: capabilityEndpoint)
                 ?? infoCapabilities
-        } catch {}
+        } catch {
+            AppLogger.error("Failed to load server info: \(error)", category: "ServerInfo")
+        }
     }
 
     func selectServerInfoNode(_ endpoint: RedisEndpoint) async {

@@ -340,6 +340,12 @@ struct RESPParser: Sendable {
         return .array(items)
     }
 
+    /// Parse a RESP3 attribute (`|`) and return the next value.
+    ///
+    /// RESP3 attributes are metadata attached to the immediately following
+    /// value. The current implementation skips the attribute key/value pairs
+    /// and returns the next value. A future improvement could surface the
+    /// attribute data as part of the RESPValue type.
     private mutating func parseAttribute() -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '|'
         guard let line = readLine(), let count = Int(line), count >= 0 else { return nil }
@@ -348,6 +354,7 @@ struct RESPParser: Sendable {
                 return nil
             }
         }
+        // Return the next value (the one the attribute annotates)
         return parseValue()
     }
 

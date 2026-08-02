@@ -3,7 +3,13 @@ import NIO
 import NIOCore
 @preconcurrency import NIOSSH
 
-class AcceptAllServerHostKeysDelegate: NIOSSHClientServerAuthenticationDelegate {
+/// Accepts all SSH server host keys without verification.
+///
+/// - Note: This is a known security limitation: the app is vulnerable to
+///   man-in-the-middle attacks on SSH connections. A future improvement
+///   should implement known-hosts verification (e.g. `~/.ssh/known_hosts`)
+///   or at minimum cache the first-seen host key and warn on mismatch.
+final class AcceptAllServerHostKeysDelegate: NIOSSHClientServerAuthenticationDelegate {
     func validateHostKey(hostKey: NIOSSHPublicKey, validationCompletePromise: EventLoopPromise<Void>) {
         validationCompletePromise.succeed(())
     }

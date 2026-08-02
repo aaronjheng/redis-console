@@ -4,19 +4,14 @@ import SwiftUI
 @MainActor
 final class WindowDelegateManager {
     private var delegates: [ObjectIdentifier: WindowDelegate] = [:]
-    private let lock = NSLock()
 
     func setDelegate(_ delegate: WindowDelegate, for window: NSWindow) {
         let id = ObjectIdentifier(window)
-        lock.lock()
-        defer { lock.unlock() }
         delegates[id] = delegate
     }
 
     func removeDelegate(for window: NSWindow) {
         let id = ObjectIdentifier(window)
-        lock.lock()
-        defer { lock.unlock() }
         delegates.removeValue(forKey: id)
     }
 }
