@@ -4,16 +4,6 @@
 
 Redis Console is a native macOS Redis client written in Swift, with SSH tunnel support.
 
-## Tech Stack
-
-- **Language**: Swift 6.3+
-- **Platform**: macOS 26+
-- **UI Framework**: SwiftUI + AppKit (hybrid as needed)
-- **Dependency Management**: Swift Package Manager
-- **SSH**: swift-nio-ssh (local Vendor directory)
-- **Code Formatting**: swift-format
-- **Code Linting**: SwiftLint
-
 ## Technology Choices
 
 - Prefer SwiftUI; use AppKit only when necessary
@@ -22,17 +12,11 @@ Redis Console is a native macOS Redis client written in Swift, with SSH tunnel s
 
 Design system tokens live in `Sources/RedisConsole/Theme/` (AppColor, AppFont, AppMetrics, UIComponents).
 
-
-
 ## Code Quality
 
 - Follow `.swift-format` and `.swiftlint.yml` configurations
 - Run `just lint` to check code style, `just lint-fix` to auto-fix
 - Run `just format-check` to check formatting, `just format` to auto-format
-
-## Testing
-
-- Do not generate tests of any kind (unit tests, integration tests, snapshots, fixtures, test scaffolding) unless explicitly requested. Do not add a test target, test files, or test dependencies on your own initiative. When in doubt, ask first.
 
 ## Git Workflow
 
