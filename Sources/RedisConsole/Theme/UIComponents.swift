@@ -490,10 +490,10 @@ struct FilterField: View {
     }
 
     /// Right-side inset so typed text never slides underneath the overlay icons.
-    /// One icon visible when empty (magnifying glass ≈ 16 pt + 8 pt trailing = 24),
-    /// two icons when text is present (clear + glass ≈ 16 + 4 + 16 + 8 = 44).
+    /// One icon visible when empty (magnifying glass ≈ 16 pt + 8 pt trailing + 6 pt gap = 30),
+    /// two icons when text is present (clear + glass ≈ 16 + 4 + 16 + 8 + 6 gap = 50).
     private var trailingInset: CGFloat {
-        text.isEmpty ? 24 : 44
+        text.isEmpty ? 30 : 50
     }
 
     var body: some View {
