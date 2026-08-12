@@ -90,9 +90,9 @@ enum ShellSyntaxHighlighter {
         var color: Color {
             switch self {
             case .command: return AppColor.terminalCommand
-            case .string: return AppColor.syntaxString
-            case .number: return AppColor.syntaxNumber
-            case .comment: return .secondary
+            case .string: return .secondary
+            case .number: return .secondary
+            case .comment: return Color(nsColor: .tertiaryLabelColor)
             case .default: return .primary
             }
         }

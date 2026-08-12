@@ -44,9 +44,9 @@ enum AppColor {
 
     // MARK: - Terminal / Shell
 
-    static let terminalPrompt: Color = .accentColor
-    static let terminalCommand: Color = .accentColor
-    static let terminalSuccess: Color = .green
+    static let terminalPrompt: Color = .secondary
+    static let terminalCommand: Color = .primary
+    static let terminalSuccess: Color = .secondary
     static let terminalError: Color = .red
     static let terminalOutputBackground: Color = Color.secondary.opacity(0.1)
 
