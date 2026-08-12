@@ -352,7 +352,7 @@
 			<key>requirement</key>
 			<dict>
 				<key>kind</key>
-				<string>upToNextMajorVersion</string>
+				<string>upToNextMinorVersion</string>
 				<key>minimumVersion</key>
 				<string>0.25.10</string>
 			</dict>
