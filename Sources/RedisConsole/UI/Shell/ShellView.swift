@@ -239,7 +239,7 @@ struct ShellHistoryRow: View {
                     .fontWeight(.bold)
                     .foregroundStyle(AppColor.terminalPrompt.opacity(0.65))
 
-                Text(ShellSyntaxHighlighter.highlight(entry.command))
+                Text(TreeSitterBashHighlighter.shared.highlight(entry.command))
                     .font(AppFont.dataCell)
                     .lineLimit(nil)
                     .frame(maxWidth: .infinity, alignment: .leading)

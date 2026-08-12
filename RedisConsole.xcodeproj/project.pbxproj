@@ -178,7 +178,6 @@
 				<string>1F32709210594BD89762AEBC</string>
 				<string>B84C59C6043D482F8DFD3112</string>
 				<string>9EC4428D0FA54FB68D6B4A52</string>
-				<string>D40A3ED953B1431590D304AA</string>
 				<string>5F3D8B79A05147879D96CC46</string>
 				<string>EF88D75BB4254D1BB711C93B</string>
 				<string>4802E28E6C154B3FA32C51DD</string>
@@ -204,6 +203,7 @@
 				<string>30154E03B5DE5970A72B3E24</string>
 				<string>575791CCC9A84EC88B2E7DF1</string>
 				<string>BA899187A2404A41A541D011</string>
+				<string>E7B2C4D6E8F0A1B2C3D4E5F6</string>
 				<string>DDAEA26E1EB44856A4E40CE9</string>
 				<string>E7DAE39125644185BA5CBBCC</string>
 			</array>
@@ -426,6 +426,20 @@
 				<string>upToNextMajorVersion</string>
 				<key>minimumVersion</key>
 				<string>0.24.0</string>
+			</dict>
+		</dict>
+		<key>A7B2C4D6E8F0A1B2C3D4E5F7</key>
+		<dict>
+			<key>isa</key>
+			<string>XCRemoteSwiftPackageReference</string>
+			<key>repositoryURL</key>
+			<string>https://github.com/tree-sitter/tree-sitter-bash.git</string>
+			<key>requirement</key>
+			<dict>
+				<key>kind</key>
+				<string>revision</string>
+				<key>revision</key>
+				<string>a06c2e4415e9bc0346c6b86d401879ffb44058f7</string>
 			</dict>
 		</dict>
 		<key>2B5AD09BA69DA97463912AAE</key>
@@ -911,7 +925,7 @@
 				<string>9465CADB220C48D59D813C20</string>
 				<string>F9C6BA72B69944C5B807904F</string>
 				<string>26D28D976EFD4A1A9893B37F</string>
-				<string>F3A1B33BA3AC468D82C2C7C9</string>
+				<string>F7B2C4D6E8F0A1B2C3D4E5F6</string>
 				<string>53AF0CC868B84D76BF9AF9E8</string>
 				<string>CF8BEF2A3CBD4F6FA7A656CC</string>
 				<string>D4F731F3E4344143B8D697A3</string>
@@ -1648,6 +1662,7 @@
 				<string>280FCA2E53CE44BBB28DA06E</string>
 				<string>A4E7282C6C5D4E9F80123456</string>
 				<string>2AA01E6A552B4B759968E6D3</string>
+				<string>A7B2C4D6E8F0A1B2C3D4E5F7</string>
 				<string>217D16D1D5454047A9B4BD7E</string>
 				<string>0995007D9541490192CC214B</string>
 			</array>
@@ -1807,6 +1822,7 @@
 				<string>6FBB135E6C4D2D0FB8D15AC7</string>
 				<string>A4E7282D6C5D4E9F80123456</string>
 				<string>FCFC0D3871064B0C8DD52CA8</string>
+				<string>A7B2C4D6E8F0A1B2C3D4E5F8</string>
 				<string>66ABCE02FFFB4C96BC884DDF</string>
 				<string>7456B1470B5645EB9C7B4390</string>
 				<string>8EF1BEB908E646A1A65E9096</string>
@@ -1934,16 +1950,23 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
-		<key>D40A3ED953B1431590D304AA</key>
+		<key>E7B2C4D6E8F0A1B2C3D4E5F6</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/Shell/ShellSyntaxHighlighter.swift</string>
+			<string>UI/Tools/TreeSitterBashHighlighter.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
+		</dict>
+		<key>F7B2C4D6E8F0A1B2C3D4E5F6</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E7B2C4D6E8F0A1B2C3D4E5F6</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
 		</dict>
 		<key>D499544E2952AF7EBA6A</key>
 		<dict>
@@ -2169,13 +2192,6 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
-		<key>F3A1B33BA3AC468D82C2C7C9</key>
-		<dict>
-			<key>fileRef</key>
-			<string>D40A3ED953B1431590D304AA</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
 		<key>F59767EE7E02A667EEC3A156</key>
 		<dict>
 			<key>isa</key>
@@ -2245,6 +2261,15 @@
 			<string>2AA01E6A552B4B759968E6D3</string>
 			<key>productName</key>
 			<string>TreeSitterJSON</string>
+		</dict>
+		<key>A7B2C4D6E8F0A1B2C3D4E5F8</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>package</key>
+			<string>A7B2C4D6E8F0A1B2C3D4E5F7</string>
+			<key>productName</key>
+			<string>TreeSitterBash</string>
 		</dict>
 		<key>FEAD361A497E3B97E10C7FC6</key>
 		<dict>
