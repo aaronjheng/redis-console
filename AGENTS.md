@@ -54,8 +54,9 @@ macOS native Redis client with SSH tunnel support, written in Swift/SwiftUI.
 
 ### Key Dependencies
 
-- **无 Swift Package Manager 依赖** — 所有 Redis 协议解析、SSH 隧道均为自实现。
-- Vendor 内嵌 `swift-nio-ssh`（NIOSSH + NIOTransportServices）。
+- Redis 协议解析、SSH 隧道均为自实现，无第三方依赖。
+- SPM 包（Xcode 工程引入）：`swift-tree-sitter` + `tree-sitter`（传递依赖）、`tree-sitter-lua`、`tree-sitter-json` — 用于 Functions 的 Lua 编辑器（`LuaEditorView` / `FunctionLibraryDetailView`）和 key 值的 JSON 高亮（`StringDetailView`）的语法高亮。相关代码在 `UI/Tools/TreeSitterLuaHighlighter.swift`, `TreeSitterJsonHighlighter.swift`, `SyntaxTextView.swift`。
+- Vendor 内嵌 `swift-nio-ssh`（NIOSSH + NIOTransportServices）子模块。
 - 系统框架：`Network.framework`, `AppKit`, `SwiftUI`, `Observation`, `CryptoKit`, `Security`, `OSLog`。
 
 ### Code Conventions
