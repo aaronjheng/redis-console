@@ -109,6 +109,24 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>0F00B57A3C4E5D6F7A8B9C01</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Infrastructure/ShellHistoryStore.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>0F00B57A3C4E5D6F7A8B9C02</key>
+		<dict>
+			<key>fileRef</key>
+			<string>0F00B57A3C4E5D6F7A8B9C01</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>0F2812CECCF9A2C39AD8DE80</key>
 		<dict>
 			<key>children</key>
@@ -146,7 +164,7 @@
 				<string>FF94C12BB25368F858F2D60A</string>
 				<string>47D8EAB9242B4058BB99D900</string>
 				<string>E1202E9EAD648CAADB72313E</string>
-				<string>A5EB450CD6ED433FBAEE13ED</string>
+				<string>0F00B57A3C4E5D6F7A8B9C01</string>
 				<string>FACEB586CD12D0873A8718B1</string>
 				<string>F9E8D7C6B5A43210FEDCBA09</string>
 				<string>CF606A6964524077E9B2C2AC</string>
@@ -878,8 +896,8 @@
 				<string>73DFE7FD90FC7B63E795E8C5</string>
 				<string>ACB9A5A0F74DD02D7C5C6927</string>
 				<string>7EEE9F0E74615C5D4FBC55CD</string>
-				<string>7B677D9CD6E242C2BC3A9187</string>
 				<string>D88BEDDC62ACB7432ACD4694</string>
+				<string>0F00B57A3C4E5D6F7A8B9C02</string>
 				<string>A1B2C3D4E5F6789012345678</string>
 				<string>08CAE39503D01547D187531D</string>
 				<string>C1A5F0E7A4B94C3D9E613002</string>
@@ -1131,13 +1149,6 @@
 			<string>Models/Shell/ShellHistoryEntry.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
-		</dict>
-		<key>7B677D9CD6E242C2BC3A9187</key>
-		<dict>
-			<key>fileRef</key>
-			<string>A5EB450CD6ED433FBAEE13ED</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
 		</dict>
 		<key>7EEE9F0E74615C5D4FBC55CD</key>
 		<dict>
@@ -1536,17 +1547,6 @@
 			<string>710A7EA408D4C4107D58570D</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
-		</dict>
-		<key>A5EB450CD6ED433FBAEE13ED</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>Infrastructure/KeychainStore.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
 		</dict>
 		<key>A6015014E8B5470484133293</key>
 		<dict>

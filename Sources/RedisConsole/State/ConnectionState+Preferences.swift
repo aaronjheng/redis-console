@@ -30,49 +30,38 @@ extension ConnectionState {
         UserDefaults.standard.set(data, forKey: Self.browserPreferencesKey)
     }
 
-    // MARK: - Shell History (Keychain-backed)
+    // MARK: - Shell History (SQLite-backed)
 
-    private static let shellHistoryKeychainService = "com.redisconsole.shellHistory"
-
-    private func shellHistoryKeychainAccount(for connection: RedisConnectionConfig) -> String {
-        connection.id.uuidString
+    /// URL of the JSON history file used before history moved to SQLite.
+    private func legacyShellHistoryURL(for connection: RedisConnectionConfig) -> URL? {
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        return
+            appSupport
+            .appendingPathComponent("redis.console", isDirectory: true)
+            .appendingPathComponent("shell-history-\(connection.id.uuidString).json")
     }
 
     func loadShellHistory(for connection: RedisConnectionConfig) {
-        // One-shot migration from UserDefaults to Keychain
-        let account = shellHistoryKeychainAccount(for: connection)
-        try? KeychainStore.migrateFromUserDefaults(
-            [ShellHistoryEntry].self,
-            userDefaultsKey: Self.shellHistoryKeyPrefix + connection.id.uuidString,
-            service: Self.shellHistoryKeychainService,
-            account: account
-        )
-
-        guard
-            let decoded = try? KeychainStore.load(
-                [ShellHistoryEntry].self,
-                service: Self.shellHistoryKeychainService,
-                account: account
-            )
-        else {
-            shellHistory = []
-            return
+        shellHistory = ShellHistoryStore.shared.load(connectionID: connection.id, limit: shellHistoryLimit)
+        if shellHistory.isEmpty {
+            migrateLegacyJSONFile(for: connection)
         }
-        shellHistory = Array(decoded.suffix(shellHistoryLimit))
     }
 
-    private func saveShellHistory(for connection: RedisConnectionConfig) {
-        let limitedHistory = Array(shellHistory.suffix(shellHistoryLimit))
-        shellHistory = limitedHistory
-        let account = shellHistoryKeychainAccount(for: connection)
-        let service = Self.shellHistoryKeychainService
-        Task.detached {
-            try? KeychainStore.store(
-                limitedHistory,
-                service: service,
-                account: account
-            )
+    /// One-shot migration from the JSON file used before history moved to
+    /// SQLite. The file is removed after a successful import.
+    private func migrateLegacyJSONFile(for connection: RedisConnectionConfig) {
+        guard
+            let url = legacyShellHistoryURL(for: connection),
+            let data = try? Data(contentsOf: url),
+            let decoded = try? JSONDecoder().decode([ShellHistoryEntry].self, from: data)
+        else {
+            return
         }
+        ShellHistoryStore.shared.importEntries(decoded, connectionID: connection.id)
+        try? FileManager.default.removeItem(at: url)
     }
 
     func appendShellHistory(_ entry: ShellHistoryEntry) {
@@ -81,18 +70,28 @@ extension ConnectionState {
             shellHistory.removeFirst(shellHistory.count - shellHistoryLimit)
         }
         guard let selectedConnection else { return }
-        saveShellHistory(for: selectedConnection)
+        let connectionID = selectedConnection.id
+        let limit = shellHistoryLimit
+        Task.detached {
+            ShellHistoryStore.shared.append(entry, connectionID: connectionID, limit: limit)
+        }
     }
 
     func deleteShellHistoryEntry(_ entry: ShellHistoryEntry) {
         shellHistory.removeAll { $0.id == entry.id }
         guard let selectedConnection else { return }
-        saveShellHistory(for: selectedConnection)
+        let connectionID = selectedConnection.id
+        Task.detached {
+            ShellHistoryStore.shared.delete(id: entry.id, connectionID: connectionID)
+        }
     }
 
     func clearShellHistory() {
         shellHistory = []
         guard let selectedConnection else { return }
-        saveShellHistory(for: selectedConnection)
+        let connectionID = selectedConnection.id
+        Task.detached {
+            ShellHistoryStore.shared.clear(connectionID: connectionID)
+        }
     }
 }

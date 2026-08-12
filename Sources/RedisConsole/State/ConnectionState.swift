@@ -126,7 +126,6 @@ class ConnectionState {
     let keyPatternScanIterationLimit = 1_000
     let shellHistoryLimit = 200
     static let browserPreferencesKey = "com.redisconsole.browserPreferences"
-    static let shellHistoryKeyPrefix = "com.redisconsole.shellHistory."
 
     init() {
         loadBrowserPreferences()

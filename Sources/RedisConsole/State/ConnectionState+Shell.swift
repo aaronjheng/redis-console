@@ -178,8 +178,8 @@ extension ConnectionState {
 
     // MARK: - Sensitive Command Redaction
 
-    /// Maximum length of a shell result stored in history (prevents Keychain
-    /// blob overflow).
+    /// Maximum length of a shell result stored in history (keeps history
+    /// files compact).
     private static let maxShellResultBytes = 4096
 
     /// Commands whose arguments should be redacted in history.
@@ -297,8 +297,8 @@ extension ConnectionState {
         return input
     }
 
-    /// Truncates a shell result string to `maxShellResultBytes` for safe
-    /// Keychain storage.
+    /// Truncates a shell result string to `maxShellResultBytes` for compact
+    /// history storage.
     private func truncateForHistory(_ string: String) -> String {
         guard string.utf8.count > Self.maxShellResultBytes else { return string }
         return String(string.prefix(Self.maxShellResultBytes)) + "\u{2026}"
