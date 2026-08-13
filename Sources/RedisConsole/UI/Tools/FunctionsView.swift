@@ -57,9 +57,7 @@ struct FunctionsView: View {
         @Bindable var app = app
         return HStack(spacing: AppSpacing.medium) {
             FilterField("Filter libraries", text: $searchText)
-                .frame(maxWidth: 320)
-
-            Spacer()
+                .frame(maxWidth: .infinity)
 
             if app.isLoadingFunctions {
                 ProgressView()
