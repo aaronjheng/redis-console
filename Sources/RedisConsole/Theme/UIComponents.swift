@@ -713,6 +713,23 @@ extension View {
     }
 }
 
+// MARK: - List Row Separator
+
+extension View {
+    /// Stretches the leading end of a `List` row separator to the pane edge.
+    ///
+    /// macOS `List` draws row separators with an extra leading inset on top of
+    /// the row's own 8pt content inset, and `listRowInsets` cannot remove the
+    /// horizontal insets on macOS. Aligning the separator guide back to the
+    /// pane edge keeps separators connected to the split-view dividers on
+    /// both sides.
+    func fullWidthListRowSeparator() -> some View {
+        alignmentGuide(.listRowSeparatorLeading) { dimensions in
+            dimensions[.leading] - AppSpacing.small
+        }
+    }
+}
+
 // MARK: - Inline Text Field
 
 struct InlineTextField: NSViewRepresentable {

@@ -149,7 +149,9 @@ struct FunctionsView: View {
                     )
                 ) {
                     ForEach(filteredLibraries) { library in
-                        libraryRow(library).tag(library.name)
+                        libraryRow(library)
+                            .fullWidthListRowSeparator()
+                            .tag(library.name)
                     }
                 }
                 .listStyle(.plain)

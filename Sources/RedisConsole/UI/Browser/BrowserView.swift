@@ -425,6 +425,7 @@ private struct KeyFlatList: View {
             List(selection: $selectedKey) {
                 ForEach(keys) { entry in
                     KeyRow(entry: entry)
+                        .fullWidthListRowSeparator()
                         .id(entry.key)
                         .contextMenu {
                             Button("Copy Key") {
@@ -462,6 +463,7 @@ private struct KeyNamespaceList: View {
             List(selection: $selectedKey) {
                 ForEach(tree.rootKeys) { entry in
                     KeyRow(entry: entry)
+                        .fullWidthListRowSeparator()
                         .id(entry.key)
                         .contextMenu {
                             Button("Copy Key") {
@@ -529,6 +531,7 @@ private struct KeyNamespaceNodeView: View {
 
             ForEach(displayedKeys) { entry in
                 KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
+                    .fullWidthListRowSeparator()
                     .id(entry.key)
                     .contextMenu {
                         Button("Copy Key") {
@@ -551,10 +554,12 @@ private struct KeyNamespaceNodeView: View {
                     Spacer()
                 }
                 .padding(.vertical, AppSpacing.xSmall)
+                    .fullWidthListRowSeparator()
             }
         } label: {
             KeyNamespaceRow(namespace: namespace)
         }
+        .fullWidthListRowSeparator()
     }
 
     private var namespaceKeys: [RedisKeyEntry] {
