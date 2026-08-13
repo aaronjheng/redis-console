@@ -23,9 +23,7 @@ struct SlowLogView: View {
             // Header
             HStack(spacing: AppSpacing.medium) {
                 FilterField("Filter command, client, or name", text: $filterText)
-                    .frame(maxWidth: 360)
-
-                Spacer()
+                    .frame(maxWidth: .infinity)
 
                 if app.isLoadingSlowLog {
                     ProgressView()
