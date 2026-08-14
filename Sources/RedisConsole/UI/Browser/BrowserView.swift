@@ -554,7 +554,7 @@ private struct KeyNamespaceNodeView: View {
                     Spacer()
                 }
                 .padding(.vertical, AppSpacing.xSmall)
-                    .fullWidthListRowSeparator()
+                .fullWidthListRowSeparator()
             }
         } label: {
             KeyNamespaceRow(namespace: namespace)

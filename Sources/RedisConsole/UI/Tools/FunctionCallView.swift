@@ -31,8 +31,6 @@ struct FunctionCallView: View {
             configurationSection
             Divider()
             resultSection
-            Divider()
-            actions
         }
         .frame(width: 640, height: 560)
     }
@@ -46,6 +44,14 @@ struct FunctionCallView: View {
             Text("Call Function")
                 .font(.headline)
             Spacer()
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help("Close (Esc)")
         }
         .padding(AppSpacing.large)
     }
@@ -59,6 +65,24 @@ struct FunctionCallView: View {
             readOnlyRow
             keysSection
             argsSection
+
+            HStack(spacing: AppSpacing.small) {
+                if let error {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(AppColor.error)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Button {
+                    Task { await runCall() }
+                } label: {
+                    Label("Run", systemImage: "play.fill")
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(app.isCallingFunction || selectedFunctionName.isEmpty)
+            }
+            .padding(.top, AppSpacing.small)
         }
         .padding(AppSpacing.large)
         .fixedSize(horizontal: false, vertical: true)
@@ -278,29 +302,6 @@ struct FunctionCallView: View {
         parts.append(contentsOf: result.keys)
         parts.append(contentsOf: result.args)
         return parts.joined(separator: " ")
-    }
-
-    // MARK: Actions
-
-    private var actions: some View {
-        HStack(spacing: AppSpacing.small) {
-            if let error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(AppColor.error)
-                    .lineLimit(1)
-            }
-            Spacer()
-            Button("Close", role: .cancel) { dismiss() }
-            Button {
-                Task { await runCall() }
-            } label: {
-                Label("Run", systemImage: "play.fill")
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .disabled(app.isCallingFunction || selectedFunctionName.isEmpty)
-        }
-        .padding(AppSpacing.large)
     }
 
     private func runCall() async {
