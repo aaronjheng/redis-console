@@ -6,6 +6,12 @@ struct FunctionsView: View {
     @Environment(ConnectionState.self) private var app
     @State private var searchText = ""
     @State private var showingLoadSheet = false
+    @State private var libraryPendingDeletion: RedisFunctionLibrary?
+    @State private var productionConfirmText = ""
+
+    private var isProduction: Bool {
+        app.selectedConnection?.environment == .production
+    }
     private var isClusterMode: Bool {
         app.selectedConnection?.mode == .cluster || !app.clusterNodes.isEmpty
     }
@@ -48,6 +54,74 @@ struct FunctionsView: View {
         }
         .sheet(isPresented: $showingLoadSheet) {
             LuaEditorView(mode: .create)
+        }
+        .confirmationDialog(
+            "Delete library \"\(libraryPendingDeletion?.name ?? "")\"?",
+            isPresented: Binding(
+                get: { libraryPendingDeletion != nil && !isProduction },
+                set: { isPresented in
+                    if !isPresented { libraryPendingDeletion = nil }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let library = libraryPendingDeletion {
+                Button("Delete", role: .destructive) {
+                    Task {
+                        do {
+                            try await app.deleteFunctionLibrary(name: library.name)
+                        } catch {
+                            app.functionsError = error.localizedDescription
+                        }
+                    }
+                    libraryPendingDeletion = nil
+                }
+            }
+            Button("Cancel", role: .cancel) { libraryPendingDeletion = nil }
+        } message: {
+            if let nodes = libraryPendingDeletion?.nodes, !nodes.isEmpty {
+                Text(
+                    "This will delete the library from \(nodes.count) primary node(s). This action cannot be undone."
+                )
+            } else {
+                Text("This action cannot be undone.")
+            }
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { libraryPendingDeletion != nil && isProduction },
+                set: { isPresented in
+                    if !isPresented {
+                        libraryPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                }
+            )
+        ) {
+            if let library = libraryPendingDeletion {
+                ProductionConfirmView(
+                    title: "Delete library \"\(library.name)\"?",
+                    message: "This will permanently delete the library. This action cannot be undone.",
+                    confirmText: "DELETE",
+                    input: $productionConfirmText,
+                    onConfirm: {
+                        Task {
+                            do {
+                                try await app.deleteFunctionLibrary(name: library.name)
+                            } catch {
+                                app.functionsError = error.localizedDescription
+                            }
+                        }
+                        libraryPendingDeletion = nil
+                        productionConfirmText = ""
+                    },
+                    onCancel: {
+                        libraryPendingDeletion = nil
+                        productionConfirmText = ""
+                    }
+                )
+                .presentationSizing(.form)
+            }
         }
     }
 
@@ -150,6 +224,13 @@ struct FunctionsView: View {
                         libraryRow(library)
                             .fullWidthListRowSeparator()
                             .tag(library.name)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    libraryPendingDeletion = library
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                     }
                 }
                 .listStyle(.plain)
