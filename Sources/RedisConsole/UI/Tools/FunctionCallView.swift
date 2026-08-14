@@ -93,7 +93,7 @@ struct FunctionCallView: View {
             Text("Library")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .frame(width: 80, alignment: .leading)
+                .frame(width: AppSize.formLabelWidth, alignment: .leading)
             Text(library.name)
                 .font(.subheadline)
                 .textSelection(.enabled)
@@ -106,7 +106,7 @@ struct FunctionCallView: View {
             Text("Function")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .frame(width: 80, alignment: .leading)
+                .frame(width: AppSize.formLabelWidth, alignment: .leading)
             OptionsPicker(
                 "Select function",
                 selection: $selectedFunctionName,
@@ -132,7 +132,7 @@ struct FunctionCallView: View {
             Text("Mode")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .frame(width: 80, alignment: .leading)
+                .frame(width: AppSize.formLabelWidth, alignment: .leading)
             BinaryTogglePicker(
                 selection: $useReadOnly,
                 first: false,

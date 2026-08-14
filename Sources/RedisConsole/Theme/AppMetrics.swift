@@ -24,6 +24,9 @@ enum AppSize {
     static let productionConfirmWidth: CGFloat = 320
     static let ttlEditorWidth: CGFloat = 260
     static let formFieldWidth: CGFloat = 80
+    /// Fixed width for leading form labels (e.g. Library / Function / Mode rows in dialogs)
+    /// so their values stay left-aligned across rows.
+    static let formLabelWidth: CGFloat = 68
     static let footerHeight: CGFloat = 34
     /// Unified minimum height for panel toolbars/headers (Browser, Shell, Profiler, Slow Log, Analysis, Server Info).
     /// Applied as a `minHeight` so headers stay consistent while still growing to fit taller content.
