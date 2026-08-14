@@ -45,9 +45,6 @@ struct FunctionCallView: View {
                 .foregroundStyle(.tint)
             Text("Call Function")
                 .font(.headline)
-            Text(library.name)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
             Spacer()
         }
         .padding(AppSpacing.large)
@@ -57,6 +54,7 @@ struct FunctionCallView: View {
 
     private var configurationSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
+            libraryRow
             functionPickerRow
             readOnlyRow
             keysSection
@@ -64,6 +62,19 @@ struct FunctionCallView: View {
         }
         .padding(AppSpacing.large)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var libraryRow: some View {
+        HStack(spacing: AppSpacing.medium) {
+            Text("Library")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(width: 80, alignment: .leading)
+            Text(library.name)
+                .font(.subheadline)
+                .textSelection(.enabled)
+            Spacer()
+        }
     }
 
     private var functionPickerRow: some View {
