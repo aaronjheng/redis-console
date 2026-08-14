@@ -209,7 +209,7 @@ struct FunctionCallView: View {
     private var resultSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Result")
+                Text("Results (\(app.functionCallHistory.count))")
                     .font(.subheadline.weight(.medium))
                 Spacer()
                 if app.isCallingFunction {
@@ -221,45 +221,56 @@ struct FunctionCallView: View {
             Divider()
 
             Group {
-                if let result = app.lastFunctionCallResult {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
-                            HStack(spacing: AppSpacing.small) {
-                                Text(result.timestamp, style: .time)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .monospacedDigit()
-                                Text(commandText(for: result))
-                                    .font(AppFont.monoCaption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-                            if let errorMessage = result.error {
-                                Text(errorMessage)
-                                    .font(AppFont.monoSubheadline)
-                                    .foregroundStyle(AppColor.error)
-                                    .textSelection(.enabled)
-                            } else {
-                                RESPValueView(value: result.response)
-                                    .font(AppFont.monoSubheadline)
-                                    .textSelection(.enabled)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(AppSpacing.large)
-                    }
-                } else {
+                if app.functionCallHistory.isEmpty {
                     Text("Run a function to see its result.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .padding(AppSpacing.large)
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array(app.functionCallHistory.enumerated()), id: \.element.id) { index, result in
+                                resultRow(result)
+                                if index < app.functionCallHistory.count - 1 {
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
                 }
             }
             .frame(maxHeight: .infinity)
             .background(AppColor.codeBackground)
         }
+    }
+
+    private func resultRow(_ result: RedisFunctionCallResult) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.small) {
+            HStack(spacing: AppSpacing.small) {
+                Text(result.timestamp, style: .time)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                Text(commandText(for: result))
+                    .font(AppFont.monoCaption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            if let errorMessage = result.error {
+                Text(errorMessage)
+                    .font(AppFont.monoSubheadline)
+                    .foregroundStyle(AppColor.error)
+                    .textSelection(.enabled)
+            } else {
+                RESPValueView(value: result.response)
+                    .font(AppFont.monoSubheadline)
+                    .textSelection(.enabled)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(AppSpacing.large)
     }
 
     private func commandText(for result: RedisFunctionCallResult) -> String {

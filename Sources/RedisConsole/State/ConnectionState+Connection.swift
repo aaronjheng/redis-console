@@ -264,7 +264,7 @@ extension ConnectionState {
         functionsError = nil
         isLoadingFunctions = false
         selectedFunctionLibrary = nil
-        lastFunctionCallResult = nil
+        functionCallHistory = []
         isCallingFunction = false
     }
 }

@@ -103,7 +103,7 @@ class ConnectionState {
     var functionsError: String?
     var selectedFunctionLibrary: RedisFunctionLibrary?
 
-    var lastFunctionCallResult: RedisFunctionCallResult?
+    var functionCallHistory: [RedisFunctionCallResult] = []
     var isCallingFunction = false
 
     var currentView: AppView = .browser

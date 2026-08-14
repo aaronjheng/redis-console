@@ -241,7 +241,7 @@ extension ConnectionState {
             error: errorMessage,
             timestamp: Date()
         )
-        lastFunctionCallResult = result
+        functionCallHistory.insert(result, at: 0)
     }
 
 }
