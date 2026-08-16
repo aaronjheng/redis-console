@@ -153,6 +153,8 @@ struct AddKeySheet: View {
     @State private var setMembers: [String] = [""]
     @State private var zsetPairs: [(score: String, member: String)] = [("", "")]
 
+    private static let typeOptions = ["string", "list", "hash", "set", "zset"]
+
     private var hasValidMembers: Bool {
         switch keyType {
         case "list":
@@ -179,198 +181,288 @@ struct AddKeySheet: View {
     }
 
     var body: some View {
-        VStack(spacing: AppSpacing.large) {
+        VStack(spacing: 0) {
+            header
+            Divider()
+            formSection
+        }
+        .frame(width: 560)
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        HStack(spacing: AppSpacing.small) {
+            Image(systemName: "plus.circle")
+                .foregroundStyle(.tint)
             Text("Add New Key")
                 .font(.headline)
-
-            Form {
-                TextField("Key name", text: $keyName)
-                Picker("Type", selection: $keyType) {
-                    Text("String").tag("string")
-                    Text("List").tag("list")
-                    Text("Hash").tag("hash")
-                    Text("Set").tag("set")
-                    Text("Sorted Set").tag("zset")
-                }
-                .onChange(of: keyType) { _, newValue in
-                    resetArrays(for: newValue)
-                }
-
-                switch keyType {
-                case "list":
-                    dynamicValueRows(
-                        values: $listValues,
-                        placeholder: { "Value \($0 + 1)" },
-                        addLabel: "Add Value"
-                    )
-                case "hash":
-                    dynamicPairRows(
-                        pairs: $hashPairs,
-                        firstPlaceholder: "Field",
-                        secondPlaceholder: "Value",
-                        addLabel: "Add Field"
-                    )
-                case "set":
-                    dynamicValueRows(
-                        values: $setMembers,
-                        placeholder: { "Member \($0 + 1)" },
-                        addLabel: "Add Member"
-                    )
-                case "zset":
-                    dynamicZSetRows(
-                        pairs: $zsetPairs,
-                        addLabel: "Add Member"
-                    )
-                default:
-                    TextField("Value", text: $keyValue, axis: .vertical)
-                        .lineLimit(3...6)
-                }
+            Spacer()
+            Button {
+                onCancel()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
             }
-            .formStyle(.grouped)
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .keyboardShortcut(.cancelAction)
+            .help("Close (Esc)")
+        }
+        .padding(AppSpacing.large)
+    }
 
-            HStack {
-                Button("Cancel") { onCancel() }
-                    .keyboardShortcut(.cancelAction)
+    // MARK: Form
+
+    private var formSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
+            keyRow
+            typeRow
+            valueSection
+
+            HStack(spacing: AppSpacing.small) {
                 Spacer()
-                Button("Add") {
-                    switch keyType {
-                    case "list":
-                        onSave(keyName, keyType, listValues.joined(separator: "\n"))
-                    case "hash":
-                        let pairs = hashPairs.map { "\($0.field):\($0.value)" }.joined(separator: "\n")
-                        onSave(keyName, keyType, pairs)
-                    case "set":
-                        onSave(keyName, keyType, setMembers.joined(separator: "\n"))
-                    case "zset":
-                        let pairs = zsetPairs.map { "\($0.score):\($0.member)" }.joined(separator: "\n")
-                        onSave(keyName, keyType, pairs)
-                    default:
-                        onSave(keyName, keyType, keyValue)
-                    }
+                Button {
+                    save()
+                } label: {
+                    Label("Add", systemImage: "plus")
                 }
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(keyName.isEmpty || !hasValidMembers)
                 .keyboardShortcut(.defaultAction)
             }
+            .padding(.top, AppSpacing.small)
         }
         .padding(AppSpacing.large)
-        .onAppear {
-            resetArrays(for: keyType)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var keyRow: some View {
+        HStack(spacing: AppSpacing.medium) {
+            Text("Key")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(width: AppSize.formLabelWidth, alignment: .leading)
+            TextField("Key name", text: $keyName)
+                .textFieldStyle(.roundedBorder)
+                .font(AppFont.monoSubheadline)
+        }
+    }
+
+    private var typeRow: some View {
+        HStack(spacing: AppSpacing.medium) {
+            Text("Type")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(width: AppSize.formLabelWidth, alignment: .leading)
+            OptionsPicker(
+                "Select key type",
+                selection: $keyType,
+                options: Self.typeOptions,
+                label: { typeLabel($0) }
+            )
+            .frame(maxWidth: 260, alignment: .leading)
+            .onChange(of: keyType) { _, newValue in
+                resetArrays(for: newValue)
+            }
+            Spacer()
         }
     }
 
     @ViewBuilder
-    private func dynamicValueRows(
+    private var valueSection: some View {
+        switch keyType {
+        case "list":
+            valueRows(
+                values: $listValues,
+                heading: "Values",
+                placeholder: { "Value \($0 + 1)" },
+                addLabel: "Add Value"
+            )
+        case "hash":
+            pairRows(
+                pairs: Binding(
+                    get: { hashPairs.map { (first: $0.field, second: $0.value) } },
+                    set: { hashPairs = $0.map { (field: $0.first, value: $0.second) } }
+                ),
+                heading: "Fields",
+                firstPlaceholder: "Field",
+                secondPlaceholder: "Value",
+                addLabel: "Add Field"
+            )
+        case "set":
+            valueRows(
+                values: $setMembers,
+                heading: "Members",
+                placeholder: { "Member \($0 + 1)" },
+                addLabel: "Add Member"
+            )
+        case "zset":
+            pairRows(
+                pairs: Binding(
+                    get: { zsetPairs.map { (first: $0.score, second: $0.member) } },
+                    set: { zsetPairs = $0.map { (score: $0.first, member: $0.second) } }
+                ),
+                heading: "Members",
+                firstPlaceholder: "Score",
+                secondPlaceholder: "Member",
+                addLabel: "Add Member",
+                firstWidth: AppSize.formFieldWidth
+            )
+        default:
+            stringRow
+        }
+    }
+
+    private var stringRow: some View {
+        HStack(alignment: .top, spacing: AppSpacing.medium) {
+            Text("Value")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(width: AppSize.formLabelWidth, alignment: .leading)
+            TextField("Value", text: $keyValue, axis: .vertical)
+                .lineLimit(3...6)
+                .textFieldStyle(.roundedBorder)
+                .font(AppFont.monoSubheadline)
+        }
+    }
+
+    private func valueRows(
         values: Binding<[String]>,
+        heading: String,
         placeholder: @escaping (Int) -> String,
         addLabel: String
     ) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.small) {
-            ForEach(Array(values.wrappedValue.enumerated()), id: \.offset) { index, _ in
-                HStack {
+            sectionHeader(
+                title: "\(heading) (\(values.wrappedValue.count))",
+                addLabel: addLabel
+            ) {
+                values.wrappedValue.append("")
+            }
+            ForEach(values.wrappedValue.indices, id: \.self) { index in
+                HStack(spacing: AppSpacing.small) {
                     TextField(
                         placeholder(index),
                         text: Binding(
                             get: { values.wrappedValue[index] },
                             set: { values.wrappedValue[index] = $0 }
-                        ))
-                    if values.wrappedValue.count > 1 {
-                        Button("Remove Value", systemImage: "minus.circle.fill") {
-                            values.wrappedValue.remove(at: index)
-                        }
-                        .labelStyle(.iconOnly)
-                        .foregroundStyle(AppColor.error)
-                        .buttonStyle(.borderless)
+                        )
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .font(AppFont.monoSubheadline)
+                    removeButton(disabled: values.wrappedValue.count <= 1) {
+                        values.wrappedValue.remove(at: index)
                     }
                 }
             }
-            Button {
-                values.wrappedValue.append("")
-            } label: {
-                Label(addLabel, systemImage: "plus")
-            }
-            .buttonStyle(.borderless)
         }
     }
 
-    @ViewBuilder
-    private func dynamicPairRows(
-        pairs: Binding<[(field: String, value: String)]>,
+    private func pairRows(
+        pairs: Binding<[(first: String, second: String)]>,
+        heading: String,
         firstPlaceholder: String,
         secondPlaceholder: String,
-        addLabel: String
+        addLabel: String,
+        firstWidth: CGFloat? = nil
     ) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.small) {
-            ForEach(Array(pairs.wrappedValue.enumerated()), id: \.offset) { index, _ in
-                HStack {
+            sectionHeader(
+                title: "\(heading) (\(pairs.wrappedValue.count))",
+                addLabel: addLabel
+            ) {
+                pairs.wrappedValue.append(("", ""))
+            }
+            ForEach(pairs.wrappedValue.indices, id: \.self) { index in
+                HStack(spacing: AppSpacing.small) {
                     TextField(
                         firstPlaceholder,
                         text: Binding(
-                            get: { pairs.wrappedValue[index].field },
-                            set: { pairs.wrappedValue[index].field = $0 }
-                        ))
+                            get: { pairs.wrappedValue[index].first },
+                            set: { pairs.wrappedValue[index].first = $0 }
+                        )
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .font(AppFont.monoSubheadline)
+                    .modifier(ConditionalWidth(width: firstWidth))
                     TextField(
                         secondPlaceholder,
                         text: Binding(
-                            get: { pairs.wrappedValue[index].value },
-                            set: { pairs.wrappedValue[index].value = $0 }
-                        ))
-                    if pairs.wrappedValue.count > 1 {
-                        Button("Remove Pair", systemImage: "minus.circle.fill") {
-                            pairs.wrappedValue.remove(at: index)
-                        }
-                        .labelStyle(.iconOnly)
-                        .foregroundStyle(AppColor.error)
-                        .buttonStyle(.borderless)
+                            get: { pairs.wrappedValue[index].second },
+                            set: { pairs.wrappedValue[index].second = $0 }
+                        )
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .font(AppFont.monoSubheadline)
+                    removeButton(disabled: pairs.wrappedValue.count <= 1) {
+                        pairs.wrappedValue.remove(at: index)
                     }
                 }
             }
-            Button {
-                pairs.wrappedValue.append(("", ""))
-            } label: {
-                Label(addLabel, systemImage: "plus")
-            }
-            .buttonStyle(.borderless)
         }
     }
 
-    @ViewBuilder
-    private func dynamicZSetRows(
-        pairs: Binding<[(score: String, member: String)]>,
-        addLabel: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: AppSpacing.small) {
-            ForEach(Array(pairs.wrappedValue.enumerated()), id: \.offset) { index, _ in
-                HStack {
-                    TextField(
-                        "Score",
-                        text: Binding(
-                            get: { pairs.wrappedValue[index].score },
-                            set: { pairs.wrappedValue[index].score = $0 }
-                        )
-                    )
-                    .frame(width: AppSize.formFieldWidth)
-                    TextField(
-                        "Member",
-                        text: Binding(
-                            get: { pairs.wrappedValue[index].member },
-                            set: { pairs.wrappedValue[index].member = $0 }
-                        ))
-                    if pairs.wrappedValue.count > 1 {
-                        Button("Remove Member", systemImage: "minus.circle.fill") {
-                            pairs.wrappedValue.remove(at: index)
-                        }
-                        .labelStyle(.iconOnly)
-                        .foregroundStyle(AppColor.error)
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-            Button {
-                pairs.wrappedValue.append(("", ""))
-            } label: {
+    private func sectionHeader(title: String, addLabel: String, action: @escaping () -> Void) -> some View {
+        HStack {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+            Spacer()
+            Button(action: action) {
                 Label(addLabel, systemImage: "plus")
             }
             .buttonStyle(.borderless)
+            .font(.caption)
+        }
+    }
+
+    private func removeButton(disabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "minus.circle.fill")
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
+        .disabled(disabled)
+    }
+
+    // MARK: Actions
+
+    private func save() {
+        switch keyType {
+        case "list":
+            onSave(keyName, keyType, listValues.joined(separator: "\n"))
+        case "hash":
+            let pairs = hashPairs.map { "\($0.field):\($0.value)" }.joined(separator: "\n")
+            onSave(keyName, keyType, pairs)
+        case "set":
+            onSave(keyName, keyType, setMembers.joined(separator: "\n"))
+        case "zset":
+            let pairs = zsetPairs.map { "\($0.score):\($0.member)" }.joined(separator: "\n")
+            onSave(keyName, keyType, pairs)
+        default:
+            onSave(keyName, keyType, keyValue)
+        }
+    }
+
+    private func typeLabel(_ type: String) -> String {
+        switch type {
+        case "string": return "String"
+        case "list": return "List"
+        case "hash": return "Hash"
+        case "set": return "Set"
+        case "zset": return "Sorted Set"
+        default: return type
+        }
+    }
+}
+
+private struct ConditionalWidth: ViewModifier {
+    let width: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let width {
+            content.frame(width: width)
+        } else {
+            content
         }
     }
 }

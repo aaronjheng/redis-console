@@ -178,7 +178,6 @@ struct BrowserView: View {
                 },
                 onCancel: { showingAddKey = false }
             )
-            .presentationSizing(.form)
         }
         .confirmationDialog(
             "Delete Key?",
