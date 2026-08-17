@@ -268,6 +268,7 @@ final class RedisClient: Sendable {
         var serverCapabilities: [String: RESPValue] = [:]
         var protocolFallbackReason: String?
         var pushHandler: (@Sendable (RESPValue) -> Void)?
+        var handshakeTask: Task<Void, Never>?
     }
 
     private let state = Mutex(State())
@@ -462,7 +463,8 @@ final class RedisClient: Sendable {
                         self.updateConnectionState(isConnected: true)
                         self.startReceiving()
 
-                        Task {
+                        let handshakeTask = Task {
+                            defer { self.state.withLock { $0.handshakeTask = nil } }
                             guard !connectContinuation.isCompleted else { return }
                             do {
                                 var authenticatedByHello = false
@@ -493,6 +495,7 @@ final class RedisClient: Sendable {
                                 connectContinuation.complete(.failure(error))
                             }
                         }
+                        self.state.withLock { $0.handshakeTask = handshakeTask }
                     case .failed(let error):
                         self.updateConnectionState(isConnected: false, lastError: error.localizedDescription)
                         connectContinuation.complete(.failure(error))
@@ -632,12 +635,15 @@ final class RedisClient: Sendable {
     }
 
     private func cancelConnectionOnQueue(error: Error = RedisError.notConnected) {
-        let connection = state.withLock {
+        let (connection, handshakeTask) = state.withLock {
             let connection = $0.connection
+            let handshakeTask = $0.handshakeTask
             $0.connection = nil
+            $0.handshakeTask = nil
             $0.parser = RESPParser()
-            return connection
+            return (connection, handshakeTask)
         }
+        handshakeTask?.cancel()
         connection?.cancel()
         completePendingCommands(with: error)
     }
