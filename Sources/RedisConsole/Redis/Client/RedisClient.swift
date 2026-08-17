@@ -273,6 +273,7 @@ final class RedisClient: Sendable {
     private let state = Mutex(State())
     private let queue = DispatchQueue(label: "redis.client.queue")
     private let queueKey = DispatchSpecificKey<Bool>()
+    private let tlsValidationQueue = DispatchQueue(label: "redis.client.tls-validation")
 
     var isConnected: Bool {
         state.withLock { $0.isConnected }
@@ -389,7 +390,7 @@ final class RedisClient: Sendable {
                                 let isValid = SecTrustEvaluateWithError(secTrust, &error)
                                 completionHandler(isValid)
                             },
-                            .main
+                            tlsValidationQueue
                         )
                     } else if !verifyServerCertificate {
                         sec_protocol_options_set_verify_block(
@@ -397,7 +398,7 @@ final class RedisClient: Sendable {
                             { _, _, completionHandler in
                                 completionHandler(true)
                             },
-                            .main
+                            tlsValidationQueue
                         )
                     }
 

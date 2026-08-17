@@ -55,6 +55,7 @@ final class RedisMonitorClient: Sendable {
     private let state = Mutex(State())
     private let queue = DispatchQueue(label: "redis.monitor.client.queue")
     private let queueKey = DispatchSpecificKey<Bool>()
+    private let tlsValidationQueue = DispatchQueue(label: "redis.monitor.tls-validation")
 
     private let host: String
     private let port: UInt16
@@ -210,7 +211,7 @@ final class RedisMonitorClient: Sendable {
                     let isValid = SecTrustEvaluateWithError(secTrust, &error)
                     completionHandler(isValid)
                 },
-                .main
+                tlsValidationQueue
             )
         } else if !verifyServerCertificate {
             sec_protocol_options_set_verify_block(
@@ -218,7 +219,7 @@ final class RedisMonitorClient: Sendable {
                 { _, _, completionHandler in
                     completionHandler(true)
                 },
-                .main
+                tlsValidationQueue
             )
         }
 
