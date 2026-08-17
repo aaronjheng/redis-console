@@ -23,6 +23,7 @@ class SSHTunnel: @unchecked Sendable {
     ]
 
     private var group: NIOTSEventLoopGroup?
+    private var ownsGroup = true
     private var channel: Channel?
     private var localServer: Channel?
     private(set) var localPort: UInt16 = 0
@@ -55,7 +56,8 @@ class SSHTunnel: @unchecked Sendable {
         sshPassword: String?,
         privateKeyPath: String?,
         remoteHost: String,
-        remotePort: UInt16
+        remotePort: UInt16,
+        eventLoopGroup: NIOTSEventLoopGroup? = nil
     ) async throws {
         let effectiveUser = sshUser.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? NSUserName() : sshUser
         AppLogger.info(
@@ -74,8 +76,15 @@ class SSHTunnel: @unchecked Sendable {
         // Find available local port
         self.localPort = findAvailablePort()
 
-        // Create Network.framework-backed event loop group.
-        let group = NIOTSEventLoopGroup(loopCount: 1)
+        // Create Network.framework-backed event loop group, or reuse an injected one.
+        let group: NIOTSEventLoopGroup
+        if let eventLoopGroup {
+            group = eventLoopGroup
+            ownsGroup = false
+        } else {
+            group = NIOTSEventLoopGroup(loopCount: 1)
+            ownsGroup = true
+        }
         self.group = group
 
         do {
@@ -93,7 +102,9 @@ class SSHTunnel: @unchecked Sendable {
             AppLogger.info("tunnel mode=nioSSH ready local=127.0.0.1:\(localPort)", category: "SSHTunnel")
         } catch {
             AppLogger.error("start failed error=\(error)", category: "SSHTunnel")
-            try? await group.shutdownGracefully()
+            if ownsGroup {
+                try? await group.shutdownGracefully()
+            }
             self.group = nil
             throw error
         }
@@ -120,8 +131,10 @@ class SSHTunnel: @unchecked Sendable {
         if let group = group {
             let groupToShutdown = group
             self.group = nil
-            Task {
-                try? await groupToShutdown.shutdownGracefully()
+            if ownsGroup {
+                Task {
+                    try? await groupToShutdown.shutdownGracefully()
+                }
             }
         }
     }

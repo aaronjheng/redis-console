@@ -1,4 +1,5 @@
 import Foundation
+import NIOTransportServices
 
 actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
     private let sshHost: String
@@ -9,6 +10,7 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
     private let setupTimeout: TimeInterval
     private var tunnels: [RedisEndpoint: SSHTunnel] = [:]
     private var generation = 0
+    private let sharedGroup: NIOTSEventLoopGroup
 
     init(ssh: SSHConfig) {
         sshHost = ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -19,6 +21,9 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
         sshPassword = ssh.password.isEmpty ? nil : ssh.password
         privateKeyPath = ssh.privateKeyPath.isEmpty ? nil : ssh.privateKeyPath
         setupTimeout = ssh.setupTimeout
+        sharedGroup = NIOTSEventLoopGroup(
+            loopCount: max(2, min(ProcessInfo.processInfo.activeProcessorCount, 4))
+        )
     }
 
     func clientEndpoint(for endpoint: RedisEndpoint) async throws -> RedisEndpoint {
@@ -53,7 +58,8 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
                     sshPassword: configuredSSHPassword,
                     privateKeyPath: configuredPrivateKeyPath,
                     remoteHost: endpoint.host,
-                    remotePort: endpoint.port
+                    remotePort: endpoint.port,
+                    eventLoopGroup: self.sharedGroup
                 )
             }
             try Task.checkCancellation()
@@ -89,6 +95,10 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
         for tunnel in activeTunnels {
             tunnel.stop()
         }
+
+        // All tunnels reuse the shared group; only shut it down once every
+        // tunnel has stopped so channels close before the group is torn down.
+        try? await sharedGroup.shutdownGracefully()
     }
 
     private func localEndpoint(for tunnel: SSHTunnel) -> RedisEndpoint {
