@@ -1,7 +1,8 @@
 import Foundation
 import Network
+import Synchronization
 
-final class RedisMonitorClient: @unchecked Sendable {
+final class RedisMonitorClient: Sendable {
     private final class ConnectContinuationState: @unchecked Sendable {
         private let lock = NSLock()
         private var didResume = false
@@ -42,14 +43,18 @@ final class RedisMonitorClient: @unchecked Sendable {
         }
     }
 
+    private struct State: Sendable {
+        var connection: NWConnection?
+        var pendingCompletions: [PendingCommand] = []
+        var parser = RESPParser()
+        var isConnected = false
+        var isMonitoring = false
+        var monitorContinuation: AsyncThrowingStream<String, Error>.Continuation?
+    }
+
+    private let state = Mutex(State())
     private let queue = DispatchQueue(label: "redis.monitor.client.queue")
     private let queueKey = DispatchSpecificKey<Bool>()
-    private var connection: NWConnection?
-    private var pendingCompletions: [PendingCommand] = []
-    private var parser = RESPParser()
-    private var isConnected = false
-    private var isMonitoring = false
-    private var monitorContinuation: AsyncThrowingStream<String, Error>.Continuation?
 
     private let host: String
     private let port: UInt16
@@ -94,9 +99,7 @@ final class RedisMonitorClient: @unchecked Sendable {
             bufferingPolicy: .bufferingNewest(2_000)
         )
 
-        runOnQueue {
-            self.monitorContinuation = continuation
-        }
+        state.withLock { $0.monitorContinuation = continuation }
 
         continuation.onTermination = { [weak self] _ in
             self?.disconnect()
@@ -105,9 +108,7 @@ final class RedisMonitorClient: @unchecked Sendable {
         do {
             try await connect()
             try await authenticateIfNeeded()
-            runOnQueue {
-                self.isMonitoring = true
-            }
+            state.withLock { $0.isMonitoring = true }
 
             let result = try await send("MONITOR")
             guard case .simpleString(let message) = result, message.uppercased() == "OK" else {
@@ -145,27 +146,27 @@ final class RedisMonitorClient: @unchecked Sendable {
                 port: nwPort,
                 using: params
             )
-            self.connection = connection
+            state.withLock { $0.connection = connection }
 
             connection.stateUpdateHandler = { [weak self] state in
                 guard let self else { return }
 
                 switch state {
                 case .ready:
-                    self.isConnected = true
+                    self.state.withLock { $0.isConnected = true }
                     self.receiveLoop()
                     if continuationState.tryMarkResumed() {
                         continuation.resume()
                     }
                 case .failed(let error):
-                    self.isConnected = false
+                    self.state.withLock { $0.isConnected = false }
                     self.completePendingCommands(with: error)
                     self.finishMonitor(with: error)
                     if continuationState.tryMarkResumed() {
                         continuation.resume(throwing: error)
                     }
                 case .cancelled:
-                    self.isConnected = false
+                    self.state.withLock { $0.isConnected = false }
                     if continuationState.tryMarkResumed() {
                         continuation.resume(throwing: RedisError.notConnected)
                     }
@@ -279,6 +280,7 @@ final class RedisMonitorClient: @unchecked Sendable {
     }
 
     private func receiveOnQueue() {
+        let connection = state.withLock { $0.connection }
         connection?.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { [weak self] data, _, isComplete, error in
             self?.handleReceive(data: data, isComplete: isComplete, error: error)
         }
@@ -287,7 +289,7 @@ final class RedisMonitorClient: @unchecked Sendable {
     private func handleReceive(data: Data?, isComplete: Bool, error: NWError?) {
         if let data, !data.isEmpty {
             queue.async {
-                self.parser.append(data)
+                self.state.withLock { $0.parser.append(data) }
                 self.processBuffer()
             }
         }
@@ -298,30 +300,52 @@ final class RedisMonitorClient: @unchecked Sendable {
             queue.async {
                 let finishError: Error = error ?? RedisError.notConnected
                 self.completePendingCommands(with: finishError)
-                self.parser = RESPParser()
-                self.isConnected = false
+                self.state.withLock {
+                    $0.parser = RESPParser()
+                    $0.isConnected = false
+                }
                 self.finishMonitor(with: finishError)
             }
         }
     }
 
     private func processBuffer() {
-        while let message = parser.parse() {
-            let value: RESPValue
-            switch message {
-            case .response(let parsedValue), .push(let parsedValue):
-                value = parsedValue
+        let (completions, monitorLines, finishError) = state.withLock {
+            var completions: [(PendingCommand, RESPValue)] = []
+            var monitorLines: [String] = []
+            var finishError: RedisError?
+
+            while let message = $0.parser.parse() {
+                let value: RESPValue
+                switch message {
+                case .response(let parsedValue), .push(let parsedValue):
+                    value = parsedValue
+                }
+                if let completion = $0.pendingCompletions.first {
+                    $0.pendingCompletions.removeFirst()
+                    completions.append((completion, value))
+                } else if $0.isMonitoring, let line = value.string {
+                    monitorLines.append(line)
+                } else if case .error(let message) = value {
+                    finishError = RedisError.commandError(message)
+                }
             }
-            if let completion = pendingCompletions.first {
-                pendingCompletions.removeFirst()
-                completion.complete(.success(value))
-            } else if isMonitoring, let line = value.string {
-                monitorContinuation?.yield(line)
-            } else if case .error(let message) = value {
-                finishMonitor(with: RedisError.commandError(message))
+            $0.parser.compact()
+            return (completions, monitorLines, finishError)
+        }
+
+        for (completion, value) in completions {
+            completion.complete(.success(value))
+        }
+        if !monitorLines.isEmpty {
+            let continuation = state.withLock { $0.monitorContinuation }
+            for line in monitorLines {
+                continuation?.yield(line)
             }
         }
-        parser.compact()
+        if let finishError {
+            finishMonitor(with: finishError)
+        }
     }
 
     private func send(_ args: String...) async throws -> RESPValue {
@@ -334,12 +358,14 @@ final class RedisMonitorClient: @unchecked Sendable {
             let pendingCompletion = PendingCommand(continuation)
 
             self.queue.async {
-                guard let connection = self.connection, self.isConnected else {
+                guard let connection = self.state.withLock({ $0.connection }),
+                    self.state.withLock({ $0.isConnected })
+                else {
                     pendingCompletion.complete(.failure(RedisError.notConnected))
                     return
                 }
 
-                self.pendingCompletions.append(pendingCompletion)
+                self.state.withLock { $0.pendingCompletions.append(pendingCompletion) }
 
                 connection.send(
                     content: data,
@@ -355,8 +381,10 @@ final class RedisMonitorClient: @unchecked Sendable {
     }
 
     private func removePendingCompletion(_ completion: PendingCommand) {
-        if let index = pendingCompletions.firstIndex(where: { $0 === completion }) {
-            pendingCompletions.remove(at: index)
+        state.withLock {
+            if let index = $0.pendingCompletions.firstIndex(where: { $0 === completion }) {
+                $0.pendingCompletions.remove(at: index)
+            }
         }
     }
 
@@ -366,27 +394,37 @@ final class RedisMonitorClient: @unchecked Sendable {
     }
 
     private func completePendingCommands(with error: Error) {
-        let pendingCompletions = pendingCompletions
-        self.pendingCompletions.removeAll()
+        let pendingCompletions = state.withLock {
+            let pendingCompletions = $0.pendingCompletions
+            $0.pendingCompletions.removeAll()
+            return pendingCompletions
+        }
         for completion in pendingCompletions {
             completion.complete(.failure(error))
         }
     }
 
     private func cancelConnectionOnQueue(finishError: Error?) {
+        let connection = state.withLock {
+            let connection = $0.connection
+            $0.connection = nil
+            $0.isConnected = false
+            $0.isMonitoring = false
+            $0.parser = RESPParser()
+            return connection
+        }
         connection?.cancel()
-        connection = nil
-        isConnected = false
-        isMonitoring = false
         completePendingCommands(with: finishError ?? RedisError.notConnected)
-        parser = RESPParser()
         finishMonitor(with: finishError)
     }
 
     private func finishMonitor(with error: Error?) {
-        let continuation = monitorContinuation
-        monitorContinuation = nil
-        isMonitoring = false
+        let continuation = state.withLock {
+            let continuation = $0.monitorContinuation
+            $0.monitorContinuation = nil
+            $0.isMonitoring = false
+            return continuation
+        }
 
         if let error {
             continuation?.finish(throwing: error)
