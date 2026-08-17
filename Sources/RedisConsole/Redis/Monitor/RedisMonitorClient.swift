@@ -3,17 +3,55 @@ import Network
 import Synchronization
 
 final class RedisMonitorClient: Sendable {
-    private final class ConnectContinuationState: @unchecked Sendable {
-        private let lock = NSLock()
-        private var didResume = false
+    private final class ConnectContinuationState: Sendable {
+        private struct State: Sendable {
+            var continuation: CheckedContinuation<Void, Error>?
+            var result: Result<Void, Error>?
+        }
 
-        func tryMarkResumed() -> Bool {
-            lock.lock()
-            defer { lock.unlock() }
+        private let state = Mutex(State())
 
-            guard !didResume else { return false }
-            didResume = true
-            return true
+        var isCompleted: Bool {
+            state.withLock { $0.result != nil }
+        }
+
+        func setContinuation(_ continuation: CheckedContinuation<Void, Error>) {
+            let result = state.withLock { state -> Result<Void, Error>? in
+                if let result = state.result {
+                    return result
+                }
+                state.continuation = continuation
+                return nil
+            }
+
+            if let result {
+                resume(continuation, with: result)
+            }
+        }
+
+        @discardableResult
+        func complete(_ result: Result<Void, Error>) -> Bool {
+            let (continuation, didComplete) = state.withLock { state -> (CheckedContinuation<Void, Error>?, Bool) in
+                guard state.result == nil else { return (nil, false) }
+                state.result = result
+                let continuation = state.continuation
+                state.continuation = nil
+                return (continuation, true)
+            }
+
+            if let continuation {
+                resume(continuation, with: result)
+            }
+            return didComplete
+        }
+
+        private func resume(_ continuation: CheckedContinuation<Void, Error>, with result: Result<Void, Error>) {
+            switch result {
+            case .success:
+                continuation.resume()
+            case .failure(let error):
+                continuation.resume(throwing: error)
+            }
         }
     }
 
@@ -133,50 +171,53 @@ final class RedisMonitorClient: Sendable {
     }
 
     private func connect() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let continuationState = ConnectContinuationState()
-            let params = makeConnectionParameters()
+        let connectContinuation = ConnectContinuationState()
 
-            guard let nwPort = NWEndpoint.Port(rawValue: port) else {
-                continuation.resume(throwing: RedisError.commandError("Invalid Redis port: \(port)"))
-                return
-            }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                connectContinuation.setContinuation(continuation)
 
-            let connection = NWConnection(
-                host: NWEndpoint.Host(host),
-                port: nwPort,
-                using: params
-            )
-            state.withLock { $0.connection = connection }
+                let params = makeConnectionParameters()
 
-            connection.stateUpdateHandler = { [weak self] state in
-                guard let self else { return }
-
-                switch state {
-                case .ready:
-                    self.state.withLock { $0.isConnected = true }
-                    self.receiveLoop()
-                    if continuationState.tryMarkResumed() {
-                        continuation.resume()
-                    }
-                case .failed(let error):
-                    self.state.withLock { $0.isConnected = false }
-                    self.completePendingCommands(with: error)
-                    self.finishMonitor(with: error)
-                    if continuationState.tryMarkResumed() {
-                        continuation.resume(throwing: error)
-                    }
-                case .cancelled:
-                    self.state.withLock { $0.isConnected = false }
-                    if continuationState.tryMarkResumed() {
-                        continuation.resume(throwing: RedisError.notConnected)
-                    }
-                default:
-                    break
+                guard let nwPort = NWEndpoint.Port(rawValue: port) else {
+                    connectContinuation.complete(.failure(RedisError.commandError("Invalid Redis port: \(port)")))
+                    return
                 }
-            }
 
-            connection.start(queue: queue)
+                let connection = NWConnection(
+                    host: NWEndpoint.Host(host),
+                    port: nwPort,
+                    using: params
+                )
+                state.withLock { $0.connection = connection }
+
+                connection.stateUpdateHandler = { [weak self] state in
+                    guard let self else { return }
+
+                    switch state {
+                    case .ready:
+                        guard !connectContinuation.isCompleted else { return }
+                        self.state.withLock { $0.isConnected = true }
+                        self.receiveLoop()
+                        connectContinuation.complete(.success(()))
+                    case .failed(let error):
+                        self.state.withLock { $0.isConnected = false }
+                        self.completePendingCommands(with: error)
+                        self.finishMonitor(with: error)
+                        connectContinuation.complete(.failure(error))
+                    case .cancelled:
+                        self.state.withLock { $0.isConnected = false }
+                        connectContinuation.complete(.failure(RedisError.notConnected))
+                    default:
+                        break
+                    }
+                }
+
+                connection.start(queue: queue)
+            }
+        } onCancel: {
+            connectContinuation.complete(.failure(CancellationError()))
+            self.cancelConnectionForCancellation()
         }
     }
 
@@ -417,6 +458,18 @@ final class RedisMonitorClient: Sendable {
         connection?.cancel()
         completePendingCommands(with: finishError ?? RedisError.notConnected)
         finishMonitor(with: finishError)
+    }
+
+    private func cancelConnectionForCancellation() {
+        let cancelAction: @Sendable () -> Void = {
+            self.cancelConnectionOnQueue(finishError: CancellationError())
+        }
+
+        if DispatchQueue.getSpecific(key: queueKey) == true {
+            cancelAction()
+        } else {
+            queue.async(execute: cancelAction)
+        }
     }
 
     private func finishMonitor(with error: Error?) {
