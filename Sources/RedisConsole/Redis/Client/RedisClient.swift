@@ -339,6 +339,12 @@ final class RedisClient: Sendable {
     }
 
     func connect() async throws {
+        try await withTimeout(connectionTimeout, context: "Redis connection") {
+            try await self.performConnect()
+        }
+    }
+
+    private func performConnect() async throws {
         try Task.checkCancellation()
         let connectContinuation = ConnectContinuationState()
         let staleCompletions = state.withLock {
