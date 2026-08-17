@@ -241,7 +241,7 @@ struct AddKeySheet: View {
             Text("Key")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .frame(width: AppSize.formLabelWidth, alignment: .leading)
+                .frame(width: AppSize.formLabelWidthCompact, alignment: .leading)
             TextField("Key name", text: $keyName)
                 .textFieldStyle(.roundedBorder)
                 .font(AppFont.monoSubheadline)
@@ -253,7 +253,7 @@ struct AddKeySheet: View {
             Text("Type")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .frame(width: AppSize.formLabelWidth, alignment: .leading)
+                .frame(width: AppSize.formLabelWidthCompact, alignment: .leading)
             OptionsPicker(
                 "Select key type",
                 selection: $keyType,
@@ -318,7 +318,7 @@ struct AddKeySheet: View {
             Text("Value")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .frame(width: AppSize.formLabelWidth, alignment: .leading)
+                .frame(width: AppSize.formLabelWidthCompact, alignment: .leading)
             TextField("Value", text: $keyValue, axis: .vertical)
                 .lineLimit(3...6)
                 .textFieldStyle(.roundedBorder)
