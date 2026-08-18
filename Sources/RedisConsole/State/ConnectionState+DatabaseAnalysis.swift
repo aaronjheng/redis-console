@@ -3,9 +3,9 @@ import Foundation
 extension ConnectionState {
     // MARK: - Database Analysis
 
-    private static let analysisSampleLimit = 10_000
-    static let analysisProductionSampleLimit = 2_000
-    private static let analysisTopKeysCount = 50
+    private nonisolated static let analysisSampleLimit = 10_000
+    nonisolated static let analysisProductionSampleLimit = 2_000
+    private nonisolated static let analysisTopKeysCount = 50
 
     private struct NamespaceAgg {
         var count = 0
@@ -24,9 +24,9 @@ extension ConnectionState {
         let separator = namespaceSeparator.isEmpty ? ":" : namespaceSeparator
 
         // The handle IS the worker. ConnectionState is @MainActor, so state
-        // mutations below hop to the main actor automatically; the Redis calls
-        // and CPU work run off the main actor because `RedisSession` and the
-        // pure static helpers are nonisolated. Cancellation via `cancel()` is
+        // mutations below hop to the main actor automatically; the Redis
+        // calls and CPU work run off the main actor because `runAnalysisWork`
+        // is `nonisolated @concurrent`. Cancellation via `cancel()` is
         // delivered to this Task's `try Task.checkCancellation()` checkpoints.
         analysisTask = Task {
             try await Self.runAnalysisWork(
@@ -67,10 +67,15 @@ extension ConnectionState {
         analysisTaskHandle = nil
     }
 
-    /// Off-main-actor analysis body. `client` calls are `nonisolated async` so
-    /// they suspend without blocking the main actor; CPU-bound parsing/aggregation
-    /// runs here on the default executor.
-    private static func runAnalysisWork(
+    /// Off-main-actor analysis body. Without `nonisolated`, this would inherit
+    /// `@MainActor` from `ConnectionState` (extension members do), putting the
+    /// CPU-heavy parsing and aggregation on the main thread. `@concurrent`
+    /// pins execution to the global concurrent pool: the body, its
+    /// suspensions, and resumptions all stay off the main actor; the result
+    /// crosses back to the main actor via the handle task in
+    /// `runDatabaseAnalysis()`.
+    @concurrent
+    private nonisolated static func runAnalysisWork(
         client: any RedisSession,
         sampleLimit: Int,
         separator: String,
@@ -200,7 +205,7 @@ extension ConnectionState {
         return result
     }
 
-    private static func parseServerInfoForAnalysis(_ infoStr: String) -> (metrics: ServerMetrics, totalKeys: Int) {
+    private nonisolated static func parseServerInfoForAnalysis(_ infoStr: String) -> (metrics: ServerMetrics, totalKeys: Int) {
         var metrics = ServerMetrics()
         var totalKeys = 0
         var currentSection = ""
@@ -266,7 +271,7 @@ extension ConnectionState {
         return (metrics, totalKeys)
     }
 
-    private static func expirationBucketLabel(for ttl: Int?) -> String {
+    private nonisolated static func expirationBucketLabel(for ttl: Int?) -> String {
         guard let ttl, ttl > 0 else { return "No expiry" }
         switch ttl {
         case ..<3600: return "< 1h"
@@ -278,7 +283,7 @@ extension ConnectionState {
         }
     }
 
-    private static func bucketSortIndex(_ label: String) -> Int {
+    private nonisolated static func bucketSortIndex(_ label: String) -> Int {
         switch label {
         case "< 1h": return 0
         case "1-6h": return 1
@@ -291,7 +296,7 @@ extension ConnectionState {
         }
     }
 
-    private static func namespaceFromKey(_ key: String, separator: String) -> String {
+    private nonisolated static func namespaceFromKey(_ key: String, separator: String) -> String {
         guard !separator.isEmpty else { return "default" }
         if let range = key.range(of: separator) {
             return String(key[..<range.lowerBound])
