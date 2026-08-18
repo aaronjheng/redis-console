@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Shell History
 
-struct ShellHistoryEntry: Identifiable, Codable {
+struct ShellHistoryEntry: Identifiable, Codable, Equatable {
     let id: UUID
     let command: String
     let result: String

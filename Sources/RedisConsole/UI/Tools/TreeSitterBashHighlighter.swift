@@ -57,7 +57,26 @@ final class TreeSitterBashHighlighter: @unchecked Sendable, SyntaxTokenizer {
 
     /// Renders a command line as an attributed string for shell history rows.
     /// Command names are bolded, echoing the previous highlighter's emphasis.
+    ///
+    /// Results are cached per command text. History rows are re-created on
+    /// every keystroke in the input field (before the `Equatable` check) and
+    /// whenever a `LazyVStack` row scrolls back into view, so re-parsing the
+    /// same commands each time would dominate rendering cost. Keying the cache
+    /// by command text (rather than entry) lets repeated commands share one
+    /// parse. Access is main-actor only, matching the rest of this type.
     func highlight(_ text: String) -> AttributedString {
+        if let cached = highlightCache[text] {
+            return cached
+        }
+        let rendered = renderHighlighted(text)
+        highlightCache[text] = rendered
+        if highlightCache.count > Self.highlightCacheLimit {
+            highlightCache.removeAll(keepingCapacity: true)
+        }
+        return rendered
+    }
+
+    private func renderHighlighted(_ text: String) -> AttributedString {
         var attributed = AttributedString(text)
         for token in tokens(in: text) {
             guard token.range.length > 0,
@@ -70,6 +89,12 @@ final class TreeSitterBashHighlighter: @unchecked Sendable, SyntaxTokenizer {
         }
         return attributed
     }
+
+    /// Rendered command lines, keyed by command text. Shell history is capped
+    /// at 200 entries and commands are short, so memory use is negligible; the
+    /// limit is a safety net against unbounded growth.
+    private var highlightCache: [String: AttributedString] = [:]
+    private static let highlightCacheLimit = 512
 
     // MARK: Capture -> color mapping
 

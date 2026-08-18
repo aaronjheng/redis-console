@@ -223,8 +223,15 @@ struct ShellView: View {
     }
 }
 
-struct ShellHistoryRow: View {
+struct ShellHistoryRow: View, Equatable {
     let entry: ShellHistoryEntry
+
+    /// Without `Equatable`, SwiftUI re-evaluates every history row's body on
+    /// each keystroke in the input field; this lets unchanged rows skip their
+    /// body (and the highlighter call) entirely.
+    static nonisolated func == (lhs: ShellHistoryRow, rhs: ShellHistoryRow) -> Bool {
+        lhs.entry == rhs.entry
+    }
 
     private var statusColor: Color {
         entry.isError ? AppColor.terminalError : AppColor.terminalSuccess
