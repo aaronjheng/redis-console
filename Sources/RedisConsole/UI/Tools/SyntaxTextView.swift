@@ -66,7 +66,7 @@ struct SyntaxTextEditor: NSViewRepresentable {
 
         textView.coordinator = context.coordinator
         textView.string = text
-        context.coordinator.applyHighlighting(to: textView)
+        context.coordinator.applyHighlightingIfNeeded(to: textView)
 
         scrollView.documentView = textView
         return scrollView
@@ -78,7 +78,10 @@ struct SyntaxTextEditor: NSViewRepresentable {
         if textView.string != text {
             textView.string = text
         }
-        context.coordinator.applyHighlighting(to: textView)
+        // `textDidChange` has already highlighted the current text (the
+        // binding write above synchronously re-runs `updateNSView`); skip the
+        // second full parse when nothing changed.
+        context.coordinator.applyHighlightingIfNeeded(to: textView)
     }
 
     // MARK: Coordinator
@@ -87,6 +90,11 @@ struct SyntaxTextEditor: NSViewRepresentable {
         var parent: SyntaxTextEditor
         /// Suppresses highlighting when we programmatically reset `string`.
         private var isSettingText = false
+        /// The text that was last highlighted. `textDidChange` highlights
+        /// immediately after every edit; the `updateNSView` pass that follows
+        /// (triggered by the binding write) then skips the redundant second
+        /// highlight.
+        private var lastHighlightedText: String?
 
         init(_ parent: SyntaxTextEditor) {
             self.parent = parent
@@ -99,6 +107,16 @@ struct SyntaxTextEditor: NSViewRepresentable {
         }
 
         // MARK: Highlighting
+
+        /// Re-applies highlighting only if the current text has not been
+        /// highlighted yet. `updateNSView` runs right after `textDidChange`
+        /// handled the edit, so this avoids a second full parse per keystroke
+        /// and per body re-evaluation.
+        func applyHighlightingIfNeeded(to textView: NSTextView) {
+            if textView.string != lastHighlightedText {
+                applyHighlighting(to: textView)
+            }
+        }
 
         func applyHighlighting(to textView: NSTextView) {
             guard let storage = textView.textStorage else { return }
@@ -120,6 +138,7 @@ struct SyntaxTextEditor: NSViewRepresentable {
                 }
             }
             storage.endEditing()
+            lastHighlightedText = text
         }
 
         // MARK: Completion

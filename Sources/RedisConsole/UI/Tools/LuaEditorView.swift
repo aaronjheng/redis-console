@@ -159,7 +159,7 @@ struct LuaEditorView: View {
     private var editor: some View {
         SyntaxTextEditor(
             text: $code,
-            tokenizer: TreeSitterLuaHighlighter(),
+            tokenizer: TreeSitterLuaHighlighter.shared,
             completionProvider: LuaCompletionProvider()
         )
         .background(AppColor.codeBackground)

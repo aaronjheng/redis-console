@@ -35,8 +35,12 @@ enum SyntaxTokenType {
     }
 }
 
-/// Tokenizes source text into highlightable ranges. Implementations are pure
-/// functions of the source: the editor calls this after every edit.
+/// Tokenizes source text into highlightable ranges. The editor calls this
+/// after every edit.
+///
+/// Implementations may keep parse state for incremental re-parsing
+/// (`TreeSitterLuaHighlighter` reuses its previous tree); in practice they are
+/// confined to the main actor.
 ///
 /// Highlighting itself is provided by tree-sitter grammars
 /// (`TreeSitterLuaHighlighter`, `TreeSitterJsonHighlighter`); this protocol is

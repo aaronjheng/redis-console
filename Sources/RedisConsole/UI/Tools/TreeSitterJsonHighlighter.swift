@@ -16,6 +16,12 @@ import TreeSitterJSON
 /// `@unchecked Sendable` to satisfy the `SyntaxTokenizer` protocol. Instances
 /// are only used from the main actor, so this is safe.
 final class TreeSitterJsonHighlighter: @unchecked Sendable, SyntaxTokenizer {
+    /// Shared instance used by the key-value detail view. Query compilation is
+    /// expensive; sharing avoids recompiling it on every body evaluation.
+    /// Parses are always fresh (read-only display), so sharing the parser
+    /// across documents is safe.
+    static let shared = TreeSitterJsonHighlighter()
+
     private let parser = Parser()
     private let query: Query
     private let language = Language(language: tree_sitter_json())

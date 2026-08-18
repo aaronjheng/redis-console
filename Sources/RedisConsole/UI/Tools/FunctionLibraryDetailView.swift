@@ -28,7 +28,7 @@ struct FunctionLibraryDetailView: View {
                 SelectableText(
                     text: library.code,
                     font: .monospacedSystemFont(ofSize: NSFont.systemFont(ofSize: 13).pointSize, weight: .regular),
-                    tokenizer: TreeSitterLuaHighlighter()
+                    tokenizer: TreeSitterLuaHighlighter.shared
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(AppSpacing.small)

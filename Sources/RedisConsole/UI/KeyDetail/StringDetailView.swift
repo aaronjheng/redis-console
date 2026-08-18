@@ -153,7 +153,7 @@ struct StringDetailView: View {
                             SelectableText(
                                 text: beautifiedValue,
                                 font: .monospacedSystemFont(ofSize: 13, weight: .regular),
-                                tokenizer: TreeSitterJsonHighlighter()
+                                tokenizer: TreeSitterJsonHighlighter.shared
                             )
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(AppSpacing.large)
