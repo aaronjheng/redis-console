@@ -71,14 +71,13 @@ struct ConnectionHubSidebarView: View {
                                 conn.selectedConnection = copy
                                 conn.rightPanel = .editConnection(copy)
                             }
-                            Divider()
-                            Button("Copy Address") {
-                                copyToPasteboard(config.address)
-                            }
                             Button("Delete", role: .destructive) {
                                 connectionPendingDeletion = config
                             }
                             Divider()
+                            Button("Copy Address") {
+                                copyToPasteboard(config.address)
+                            }
                             Button("Copy URI") {
                                 var uri = "redis://"
                                 if !config.username.isEmpty || !config.password.isEmpty {
