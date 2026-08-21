@@ -15,7 +15,7 @@ format-check:
     swift format lint --recursive Sources
 
 build-release:
-    xcodebuild -project RedisConsole.xcodeproj -scheme RedisConsole -configuration '{{ configuration }}' -destination 'platform=macOS,arch=arm64' -derivedDataPath '{{ derived_data }}' CODE_SIGN_IDENTITY='-' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build
+    xcodebuild -project RedisConsole.xcodeproj -scheme RedisConsole -configuration '{{ configuration }}' -destination 'platform=macOS,arch=arm64' -derivedDataPath '{{ derived_data }}' CODE_SIGN_IDENTITY='-' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES build
 
 clean:
     rm -rf .build
