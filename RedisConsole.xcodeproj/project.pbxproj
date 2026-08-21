@@ -437,9 +437,9 @@
 			<key>requirement</key>
 			<dict>
 				<key>kind</key>
-				<string>revision</string>
-				<key>revision</key>
-				<string>a06c2e4415e9bc0346c6b86d401879ffb44058f7</string>
+				<string>upToNextMajorVersion</string>
+				<key>minimumVersion</key>
+				<string>0.25.1</string>
 			</dict>
 		</dict>
 		<key>2B5AD09BA69DA97463912AAE</key>
