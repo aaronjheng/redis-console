@@ -23,9 +23,15 @@ struct ServerInfoView: View {
                 Button {
                     Task { await app.loadServerInfo() }
                 } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
+                    if app.isLoadingServerInfo {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
                 }
                 .buttonStyle(SecondaryButtonStyle())
+                .disabled(app.isLoadingServerInfo)
             }
             .panelToolbar()
 
@@ -35,15 +41,19 @@ struct ServerInfoView: View {
                 clusterInfoView
             } else if app.serverInfo.isEmpty {
                 Spacer()
-                ContentUnavailableView(
-                    "No server info loaded",
-                    systemImage: "info.circle",
-                    description: Text("Click Refresh to load server information")
-                )
-                Button("Load Info") {
-                    Task { await app.loadServerInfo() }
+                if app.isLoadingServerInfo {
+                    LoadingState(message: "Loading server info...")
+                } else {
+                    ContentUnavailableView(
+                        "No server info loaded",
+                        systemImage: "info.circle",
+                        description: Text("Click Refresh to load server information")
+                    )
+                    Button("Load Info") {
+                        Task { await app.loadServerInfo() }
+                    }
+                    .padding(.top, AppSpacing.small)
                 }
-                .padding(.top, AppSpacing.small)
                 Spacer()
             } else {
                 serverInfoList
@@ -181,6 +191,19 @@ struct ServerInfoView: View {
             }
         }
         .listStyle(.inset)
+        .overlay {
+            if app.isLoadingServerInfo && !app.serverInfo.isEmpty {
+                VStack(spacing: AppSpacing.small) {
+                    ProgressView()
+                    Text("Loading node info...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(AppSpacing.large)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppRadius.medium))
+                .padding(AppSpacing.large)
+            }
+        }
     }
 
     private var capabilitiesSection: some View {

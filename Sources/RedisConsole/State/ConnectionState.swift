@@ -97,6 +97,7 @@ class ConnectionState {
     var clusterInfo: [String: String] = [:]
     var clusterNodes: [RedisClusterNodeSummary] = []
     var selectedServerInfoNode: RedisEndpoint?
+    var isLoadingServerInfo = false
 
     var functionLibraries: [RedisFunctionLibrary] = []
     var isLoadingFunctions = false

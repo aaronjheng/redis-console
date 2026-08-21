@@ -5,6 +5,8 @@ extension ConnectionState {
 
     func loadServerInfo() async {
         guard let client = activeClient else { return }
+        isLoadingServerInfo = true
+        defer { isLoadingServerInfo = false }
         do {
             let result: RESPValue
             var capabilityEndpoint: RedisEndpoint?
@@ -59,7 +61,29 @@ extension ConnectionState {
 
     func selectServerInfoNode(_ endpoint: RedisEndpoint) async {
         selectedServerInfoNode = endpoint
-        await loadServerInfo()
+        await loadServerInfoForSelectedNode()
+    }
+
+    /// Fetches only the per-node `INFO` for the currently selected node. The
+    /// cluster topology (`CLUSTER NODES` / `CLUSTER INFO`) is global and is not
+    /// re-fetched here, so switching nodes stays responsive.
+    func loadServerInfoForSelectedNode() async {
+        guard let client = activeClient else { return }
+        guard let clusterClient = client as? RedisClusterClient else { return }
+        guard let endpoint = selectedServerInfoNode else { return }
+        isLoadingServerInfo = true
+        defer { isLoadingServerInfo = false }
+        do {
+            let result = try await clusterClient.send(["INFO"], to: endpoint)
+            if case .error(let message) = result {
+                throw RedisError.commandError(message)
+            }
+            guard let infoStr = result.string else { return }
+            serverInfo = parseServerInfo(infoStr)
+            serverCapabilities = parseInfoModuleCapabilities(infoStr)
+        } catch {
+            AppLogger.error("Failed to load server info for node: \(error)", category: "ServerInfo")
+        }
     }
 
     private func parseServerInfo(_ infoStr: String) -> [String: [String: String]] {
