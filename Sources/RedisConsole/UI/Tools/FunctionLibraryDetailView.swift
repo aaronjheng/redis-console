@@ -45,6 +45,13 @@ struct FunctionLibraryDetailView: View {
                 .help("Edit library source")
                 .padding(AppSpacing.small)
             }
+
+            Divider()
+
+            WorkspaceFooterBar {
+                StatusFooterView(countText: footerText)
+                Spacer()
+            }
         }
         .frame(maxHeight: .infinity)
         .sheet(isPresented: $showingEditSheet) {
@@ -167,6 +174,14 @@ struct FunctionLibraryDetailView: View {
             }
         }
         .padding(AppSpacing.small)
+    }
+
+    // MARK: Footer
+
+    private var footerText: String {
+        let functionsText = "\(library.functionCount) function\(library.functionCount == 1 ? "" : "s")"
+        let lineCount = library.code.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).count
+        return "\(functionsText) \u{00B7} \(lineCount) lines"
     }
 
     // MARK: Functions

@@ -41,12 +41,6 @@ struct FunctionsView: View {
             Divider()
 
             content
-
-            Divider()
-            WorkspaceFooterBar {
-                StatusFooterView(countText: footerText)
-                Spacer()
-            }
         }
         .task {
             if app.serverInfo.isEmpty { await app.loadServerInfo() }
@@ -200,40 +194,49 @@ struct FunctionsView: View {
 
     private var libraryList: some View {
         @Bindable var app = app
-        return Group {
-            if filteredLibraries.isEmpty {
-                Spacer()
-                ContentUnavailableView(
-                    "No libraries",
-                    systemImage: "curlybraces",
-                    description: Text("Load a function library to get started.")
-                )
-                Spacer()
-            } else {
-                List(
-                    selection: Binding<String?>(
-                        get: { app.selectedFunctionLibrary?.name },
-                        set: { selectedName in
-                            app.selectedFunctionLibrary = selectedName.flatMap { name in
-                                app.functionLibraries.first { $0.name == name }
-                            }
-                        }
+        return VStack(spacing: 0) {
+            Group {
+                if filteredLibraries.isEmpty {
+                    Spacer()
+                    ContentUnavailableView(
+                        "No libraries",
+                        systemImage: "curlybraces",
+                        description: Text("Load a function library to get started.")
                     )
-                ) {
-                    ForEach(filteredLibraries) { library in
-                        libraryRow(library)
-                            .fullWidthListRowSeparator()
-                            .tag(library.name)
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    libraryPendingDeletion = library
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+                    Spacer()
+                } else {
+                    List(
+                        selection: Binding<String?>(
+                            get: { app.selectedFunctionLibrary?.name },
+                            set: { selectedName in
+                                app.selectedFunctionLibrary = selectedName.flatMap { name in
+                                    app.functionLibraries.first { $0.name == name }
                                 }
                             }
+                        )
+                    ) {
+                        ForEach(filteredLibraries) { library in
+                            libraryRow(library)
+                                .fullWidthListRowSeparator()
+                                .tag(library.name)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        libraryPendingDeletion = library
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        }
                     }
+                    .listStyle(.plain)
                 }
-                .listStyle(.plain)
+            }
+
+            Divider()
+
+            WorkspaceFooterBar {
+                StatusFooterView(countText: footerText)
+                Spacer()
             }
         }
     }
