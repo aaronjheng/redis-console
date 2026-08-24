@@ -225,6 +225,7 @@ extension ConnectionState {
         keyDetailSearchText = ""
         keyDetailZSetOrder = .ascending
         resetKeyDetailPaging(clearRows: true)
+        keyDetailGeneration += 1
         await loadSelectedKeyDetail(append: false)
     }
 
@@ -236,6 +237,7 @@ extension ConnectionState {
     func searchSelectedKeyDetail(_ searchText: String) async {
         keyDetailSearchText = searchText
         resetKeyDetailPaging(clearRows: true)
+        keyDetailGeneration += 1
         await loadSelectedKeyDetail(append: false)
     }
 
@@ -243,10 +245,12 @@ extension ConnectionState {
         guard keyDetailZSetOrder != order else { return }
         keyDetailZSetOrder = order
         resetKeyDetailPaging(clearRows: true)
+        keyDetailGeneration += 1
         await loadSelectedKeyDetail(append: false)
     }
 
     private func loadSelectedKeyDetail(append: Bool) async {
+        let token = keyDetailGeneration
         guard let entry = selectedKey else { return }
         guard let client = activeClient else { return }
 
@@ -262,6 +266,7 @@ extension ConnectionState {
         do {
             let typeResult = try await client.send("TYPE", entry.key)
             try throwIfRedisError(typeResult)
+            guard token == keyDetailGeneration else { return }
             keyType = typeResult.string ?? "string"
             guard keyType != "none" else {
                 keys.removeAll { $0.key == entry.key }
@@ -270,35 +275,44 @@ extension ConnectionState {
             }
             entry.type = keyType
             keyDetailLength = await loadLength(for: entry.key, type: keyType, using: client)
+            guard token == keyDetailGeneration else { return }
             entry.length = keyDetailLength
 
             switch keyType {
             case "string":
                 let value = try await client.send("GET", entry.key)
                 try throwIfRedisError(value)
+                guard token == keyDetailGeneration else { return }
                 keyDetail = value.string ?? "(nil)"
                 keyDetailHasMoreRows = false
             case "list":
-                try await loadListDetail(key: entry.key, append: append, using: client)
+                try await loadListDetail(key: entry.key, append: append, using: client, token: token)
             case "hash":
-                try await loadHashDetail(key: entry.key, append: append, using: client)
+                try await loadHashDetail(key: entry.key, append: append, using: client, token: token)
             case "set":
-                try await loadSetDetail(key: entry.key, append: append, using: client)
+                try await loadSetDetail(key: entry.key, append: append, using: client, token: token)
             case "zset":
-                try await loadZSetDetail(key: entry.key, append: append, using: client)
+                try await loadZSetDetail(key: entry.key, append: append, using: client, token: token)
             default:
                 let value = try await client.send("GET", entry.key)
                 try throwIfRedisError(value)
+                guard token == keyDetailGeneration else { return }
                 keyDetail = value.string ?? "(nil)"
                 keyDetailHasMoreRows = false
             }
 
+            guard token == keyDetailGeneration else { return }
             await refreshMetadata(for: entry, using: client)
+            guard token == keyDetailGeneration else { return }
             keyDetailLastRefreshedAt = Date()
         } catch {
-            reportKeyOperationError(error)
+            if token == keyDetailGeneration {
+                reportKeyOperationError(error)
+            }
         }
-        isLoadingDetail = false
+        if token == keyDetailGeneration {
+            isLoadingDetail = false
+        }
     }
 
     private func resetKeyDetailPaging(clearRows: Bool) {
@@ -340,11 +354,12 @@ extension ConnectionState {
         return result.intValue
     }
 
-    private func loadListDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+    private func loadListDetail(key: String, append: Bool, using client: any RedisSession, token: Int) async throws {
         let start = append ? keyDetailOffset : 0
         let stop = start + keyDetailPageSize - 1
         let value = try await client.send("LRANGE", key, "\(start)", "\(stop)")
         try throwIfRedisError(value)
+        guard token == keyDetailGeneration else { return }
         let rows = value.arrayValues.enumerated().compactMap { index, value -> (String, String)? in
             guard let value else { return nil }
             return ("\(start + index)", value.string ?? value.displayString)
@@ -362,7 +377,7 @@ extension ConnectionState {
         }
     }
 
-    private func loadHashDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+    private func loadHashDetail(key: String, append: Bool, using client: any RedisSession, token: Int) async throws {
         var args = ["HSCAN", key, append ? keyDetailCursor : "0"]
         if let pattern = keyDetailMatchPattern {
             args.append(contentsOf: ["MATCH", pattern])
@@ -371,6 +386,7 @@ extension ConnectionState {
 
         let response = try await client.send(args)
         let result = try parseScanValues(response, context: "HSCAN")
+        guard token == keyDetailGeneration else { return }
         let rows = keyValueRows(from: result.values)
         if append {
             keyDetailRows.append(contentsOf: rows)
@@ -381,7 +397,7 @@ extension ConnectionState {
         keyDetailHasMoreRows = result.nextCursor != "0"
     }
 
-    private func loadSetDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+    private func loadSetDetail(key: String, append: Bool, using client: any RedisSession, token: Int) async throws {
         var args = ["SSCAN", key, append ? keyDetailCursor : "0"]
         if let pattern = keyDetailMatchPattern {
             args.append(contentsOf: ["MATCH", pattern])
@@ -390,6 +406,7 @@ extension ConnectionState {
 
         let response = try await client.send(args)
         let result = try parseScanValues(response, context: "SSCAN")
+        guard token == keyDetailGeneration else { return }
         let baseIndex = append ? keyDetailRows.count : 0
         let rows = result.values.enumerated().compactMap { index, value -> (String, String)? in
             guard let value else { return nil }
@@ -404,9 +421,9 @@ extension ConnectionState {
         keyDetailHasMoreRows = result.nextCursor != "0"
     }
 
-    private func loadZSetDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+    private func loadZSetDetail(key: String, append: Bool, using client: any RedisSession, token: Int) async throws {
         if keyDetailMatchPattern != nil {
-            try await loadScannedZSetDetail(key: key, append: append, using: client)
+            try await loadScannedZSetDetail(key: key, append: append, using: client, token: token)
             return
         }
 
@@ -415,6 +432,7 @@ extension ConnectionState {
         let command = keyDetailZSetOrder == .descending ? "ZREVRANGE" : "ZRANGE"
         let value = try await client.send(command, key, "\(start)", "\(stop)", "WITHSCORES")
         try throwIfRedisError(value)
+        guard token == keyDetailGeneration else { return }
         let rows = scoredRows(from: value.arrayValues)
         if append {
             keyDetailRows.append(contentsOf: rows)
@@ -429,7 +447,7 @@ extension ConnectionState {
         }
     }
 
-    private func loadScannedZSetDetail(key: String, append: Bool, using client: any RedisSession) async throws {
+    private func loadScannedZSetDetail(key: String, append: Bool, using client: any RedisSession, token: Int) async throws {
         var args = ["ZSCAN", key, append ? keyDetailCursor : "0"]
         if let pattern = keyDetailMatchPattern {
             args.append(contentsOf: ["MATCH", pattern])
@@ -438,6 +456,7 @@ extension ConnectionState {
 
         let response = try await client.send(args)
         let result = try parseScanValues(response, context: "ZSCAN")
+        guard token == keyDetailGeneration else { return }
         let rows = scoredRows(from: result.values)
         if append {
             keyDetailRows.append(contentsOf: rows)

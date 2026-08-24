@@ -296,6 +296,11 @@ final class RedisClient: Sendable {
     let preferredProtocolVersion: RESPProtocolVersion
     let connectionTimeout: TimeInterval
 
+    /// Client TLS identity (certificate + private key). Retained for the
+    /// connection's lifetime and released on disconnect; its temporary keychain
+    /// must stay alive so the `sec_identity_t` keeps referencing the key.
+    private let clientIdentityBundle = Mutex<LoadedClientIdentity?>(nil)
+
     private var negotiatedProtocolVersion: RESPProtocolVersion {
         get { state.withLock { $0.negotiatedProtocolVersion } }
         set { state.withLock { $0.negotiatedProtocolVersion = newValue } }
@@ -409,27 +414,27 @@ final class RedisClient: Sendable {
                         )
                     }
 
-                    if !clientCertificatePath.isEmpty && !clientKeyPath.isEmpty {
-                        let certURL = URL(fileURLWithPath: clientCertificatePath)
-                        if let certData = try? Data(contentsOf: certURL) {
-                            let cert = SecCertificateCreateWithData(nil, certData as CFData)
-                            if let cert {
-                                var identity: SecIdentity?
-                                let status = SecIdentityCreateWithCertificate(
-                                    nil,
-                                    cert,
-                                    &identity
-                                )
-                                if status == errSecSuccess, let identity {
-                                    let secIdentity = sec_identity_create(identity)
-                                    if let secIdentity {
-                                        sec_protocol_options_set_local_identity(
-                                            tlsOptions.securityProtocolOptions,
-                                            secIdentity
-                                        )
-                                    }
-                                }
+                    if clientCertificatePath.isEmpty != clientKeyPath.isEmpty {
+                        connectContinuation.complete(.failure(ClientIdentityLoaderError.incompleteConfiguration))
+                        return
+                    } else if !clientCertificatePath.isEmpty {
+                        do {
+                            clearClientIdentity()
+                            guard let bundle = try loadClientIdentity(
+                                certificatePath: clientCertificatePath,
+                                keyPath: clientKeyPath
+                            ) else {
+                                connectContinuation.complete(.failure(ClientIdentityLoaderError.incompleteConfiguration))
+                                return
                             }
+                            self.clientIdentityBundle.withLock { $0 = bundle }
+                            sec_protocol_options_set_local_identity(
+                                tlsOptions.securityProtocolOptions,
+                                bundle.secIdentity
+                            )
+                        } catch {
+                            connectContinuation.complete(.failure(error))
+                            return
                         }
                     }
 
@@ -530,6 +535,7 @@ final class RedisClient: Sendable {
     private func disconnect(publishState: Bool) {
         let disconnectAction = {
             self.cancelConnectionOnQueue()
+            self.clearClientIdentity()
         }
 
         if DispatchQueue.getSpecific(key: queueKey) == true {
@@ -540,6 +546,15 @@ final class RedisClient: Sendable {
 
         guard publishState else { return }
         updateConnectionState(isConnected: false)
+    }
+
+    /// Deletes the temporary keychain backing the client TLS identity (if any)
+    /// and drops the retained bundle so the private key is no longer kept alive.
+    private func clearClientIdentity() {
+        if let keychain = clientIdentityBundle.withLock({ $0?.keychain }) {
+            SecKeychainDelete(keychain)
+        }
+        clientIdentityBundle.withLock { $0 = nil }
     }
 
     private func updateConnectionState(isConnected: Bool? = nil, lastError: String? = nil) {

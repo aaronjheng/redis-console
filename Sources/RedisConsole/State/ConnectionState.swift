@@ -34,6 +34,11 @@ class ConnectionState {
 
     var keys: [RedisKeyEntry] = []
     var selectedKey: RedisKeyEntry?
+    /// Monotonic token bumped whenever a fresh key-detail load begins (select,
+    /// search, ordering change). In-flight loads capture it and discard their
+    /// results once it changes, preventing concurrent loads from clobbering the
+    /// detail state of the currently selected key.
+    var keyDetailGeneration = 0
     var keyDetail: String = ""
     var keyDetailRows: [(String, String)] = []
     var keyType: String = ""

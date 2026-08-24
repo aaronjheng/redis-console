@@ -128,11 +128,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         stateToWindow[state.id] = window
         requestTabChromeRefresh()
 
-        let delegate = WindowDelegate { [weak self] in
+        let delegate = WindowDelegate { [weak self, weak window] in
+            // Drop the manager's strong reference (and the window's) to this
+            // delegate synchronously while the window is still alive, otherwise
+            // `delegateManager.delegates` accumulates every closed tab's delegate
+            // (and its strongly-captured ConnectionState) for the app's lifetime.
+            if let self, let window {
+                self.delegateManager.removeDelegate(for: window)
+                window.delegate = nil
+            }
             Task { @MainActor in
-                self?.tabManager.closeTab(state)
-                self?.stateToWindow.removeValue(forKey: state.id)
-                self?.requestTabChromeRefresh()
+                guard let self else { return }
+                self.tabManager.closeTab(state)
+                self.stateToWindow.removeValue(forKey: state.id)
+                self.requestTabChromeRefresh()
             }
         }
         window.delegate = delegate

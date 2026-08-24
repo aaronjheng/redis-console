@@ -193,6 +193,8 @@ extension ConnectionState {
         AppLogger.info("disconnect current connection", category: "Connection")
         stopProfiler(clearEntries: true)
         disconnectShellClient()
+        connectTask?.cancel()
+        connectTask = nil
         activeClient?.disconnect()
         activeClient = nil
         sshTunnel?.stop()
@@ -201,6 +203,9 @@ extension ConnectionState {
         sshClusterTunnelManager = nil
         Task { await clusterTunnelManager?.disconnect() }
         selectedConnection = nil
+        isConnecting = false
+        pendingConnection = nil
+        connectionError = nil
         clearConnectionState()
     }
 

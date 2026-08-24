@@ -170,8 +170,9 @@
 				<string>CF606A6964524077E9B2C2AC</string>
 				<string>E31A8F9B6C2D4A5F90123459</string>
 				<string>C1A5F0E7A4B94C3D9E613001</string>
-				<string>6FC45097D404559C7802F7F8</string>
-				<string>E31A8F9B6C2D4A5F90123457</string>
+			<string>6FC45097D404559C7802F7F8</string>
+			<string>E0D1C2B3A4F5061728394A5B</string>
+			<string>E31A8F9B6C2D4A5F90123457</string>
 				<string>192713478BAB4601F8037492</string>
 				<string>288450F3CEC2CFCC1BF4B8C8</string>
 				<string>4A8D6099DE77854253F3FD15</string>
@@ -958,8 +959,9 @@
 				<string>4318EBA1CEFB492BA7B69596</string>
 				<string>BB90403899B2435B90545CDD</string>
 				<string>4E304EC41AB84507A2093DF2</string>
-				<string>B5F373F3E06145DE91F62466</string>
-			</array>
+			<string>B5F373F3E06145DE91F62466</string>
+			<string>F1E2D3C4B5A6978679485A6B</string>
+		</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
 			<key>runOnlyForDeploymentPostprocessing</key>
@@ -1016,6 +1018,13 @@
 		<dict>
 			<key>fileRef</key>
 			<string>288450F3CEC2CFCC1BF4B8C8</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>F1E2D3C4B5A6978679485A6B</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E0D1C2B3A4F5061728394A5B</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -1094,6 +1103,17 @@
 			<string>sourcecode.swift</string>
 			<key>path</key>
 			<string>Redis/Client/RedisClient.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E0D1C2B3A4F5061728394A5B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Redis/ClientIdentityLoader.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>

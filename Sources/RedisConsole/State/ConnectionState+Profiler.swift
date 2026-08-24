@@ -61,7 +61,10 @@ extension ConnectionState {
     }
 
     private func runProfiler(config: RedisConnectionConfig, generation: Int) async {
-        let profilerStream: RedisProfilerStream
+        // Holds the locally built stream until it is either published to shared
+        // state (current generation) or disposed (superseded generation). It is
+        // `nil` once ownership has been transferred to the shared properties.
+        var profilerStream: RedisProfilerStream?
 
         do {
             switch config.mode {
@@ -71,13 +74,29 @@ extension ConnectionState {
                 profilerStream = try await startClusterProfilerStream(config: config)
             }
 
+            // A superseded generation (startProfiler/stopProfiler already advanced
+            // the generation and cancelled this task) must not publish its
+            // resources, otherwise it would overwrite the active generation's
+            // references. Tear the local copy down instead.
             try Task.checkCancellation()
+            guard profilerGeneration == generation, let stream = profilerStream else {
+                if let stream = profilerStream {
+                    disposeProfilerStream(stream)
+                }
+                return
+            }
+
+            profilerSSHTunnel = stream.tunnel
+            profilerMonitorClients = stream.monitorClients
+            profilerMonitorTasks = stream.monitorTasks
+            profilerClusterTunnelManager = stream.tunnelManager
+            profilerStream = nil
 
             isProfilerStarting = false
             isProfilerRunning = true
             AppLogger.info("profiler started redis=\(config.address)", category: "Profiler")
 
-            for try await capture in profilerStream.stream {
+            for try await capture in stream.stream {
                 try Task.checkCancellation()
                 appendProfilerCapture(capture)
             }
@@ -92,12 +111,11 @@ extension ConnectionState {
             AppLogger.error("profiler failed redis=\(config.address) error=\(error)", category: "Profiler")
         }
 
-        // Cleanup: disconnect resources regardless of how the loop exited.
-        // The stored state resources are cleaned up by cancelProfilerResources()
-        // when stopProfiler() or startProfiler() is called. The local stream
-        // resources are owned by the stored state, so they are already handled.
-        // On natural exit (server disconnect) cancelProfilerResources() is not
-        // invoked, so explicitly tear down here to avoid relying on deinit.
+        // Tear down shared state when this generation is still the active one.
+        // On natural exit this is the only teardown; on stopProfiler() the shared
+        // state was already released by cancelProfilerResources(), so this is a
+        // harmless no-op. When the generation was superseded before publishing,
+        // the local stream is disposed below and shared state is untouched here.
         if profilerGeneration == generation {
             profilerMonitorTasks?.cancelAll()
             for client in profilerMonitorClients {
@@ -114,6 +132,23 @@ extension ConnectionState {
             profilerTask = nil
             isProfilerRunning = false
             isProfilerStarting = false
+        } else if let stream = profilerStream {
+            // The stream was built but never published because this generation
+            // was superseded/cancelled. Release its resources locally.
+            disposeProfilerStream(stream)
+        }
+    }
+
+    /// Releases resources owned by a `RedisProfilerStream` that was built but
+    /// never published to shared state (e.g. a cancelled, superseded generation).
+    private func disposeProfilerStream(_ stream: RedisProfilerStream) {
+        stream.monitorTasks?.cancelAll()
+        for client in stream.monitorClients {
+            client.disconnect()
+        }
+        stream.tunnel?.stop()
+        if let tunnelManager = stream.tunnelManager {
+            Task { await tunnelManager.disconnect() }
         }
     }
 
@@ -123,46 +158,55 @@ extension ConnectionState {
         var connectHost = config.host
         var connectPort = config.port
         var tunnel: SSHTunnel?
+        var monitorClient: RedisMonitorClient?
 
-        if config.ssh.enabled {
-            let createdTunnel = try await startProfilerSSHTunnel(config: config, remoteHost: config.host, remotePort: config.port)
-            tunnel = createdTunnel
-            profilerSSHTunnel = createdTunnel
-            connectHost = "127.0.0.1"
-            connectPort = createdTunnel.localPort
-        }
+        // Build every resource locally and publish nothing to shared state here.
+        // The caller publishes the returned stream once the generation is confirmed,
+        // so a superseded (cancelled) task can never clobber the active generation's
+        // references. Any failure path cleans up the locally owned resources.
+        do {
+            if config.ssh.enabled {
+                let createdTunnel = try await startProfilerSSHTunnel(config: config, remoteHost: config.host, remotePort: config.port)
+                tunnel = createdTunnel
+                connectHost = "127.0.0.1"
+                connectPort = createdTunnel.localPort
+            }
 
-        try Task.checkCancellation()
+            try Task.checkCancellation()
 
-        let monitorClient = makeProfilerMonitorClient(config: config, host: connectHost, port: connectPort)
-        profilerMonitorClients = [monitorClient]
+            let client = makeProfilerMonitorClient(config: config, host: connectHost, port: connectPort)
+            monitorClient = client
 
-        let rawStream = try await withTimeout(config.connectionTimeout, context: "Redis profiler connection") {
-            try await monitorClient.startMonitoring()
-        }
+            let rawStream = try await withTimeout(config.connectionTimeout, context: "Redis profiler connection") {
+                try await client.startMonitoring()
+            }
 
-        let (stream, continuation) = AsyncThrowingStream<RedisProfilerCapture, Error>.makeStream(
-            of: RedisProfilerCapture.self,
-            throwing: Error.self,
-            bufferingPolicy: .bufferingNewest(profilerMaxEntries)
-        )
-        let taskBag = RedisProfilerTaskBag()
-        profilerMonitorTasks = taskBag
-        taskBag.add(
-            monitorStreamTask(
-                rawStream: rawStream,
-                node: nil,
-                continuation: continuation
+            let (stream, continuation) = AsyncThrowingStream<RedisProfilerCapture, Error>.makeStream(
+                of: RedisProfilerCapture.self,
+                throwing: Error.self,
+                bufferingPolicy: .bufferingNewest(profilerMaxEntries)
             )
-        )
+            let taskBag = RedisProfilerTaskBag()
+            taskBag.add(
+                monitorStreamTask(
+                    rawStream: rawStream,
+                    node: nil,
+                    continuation: continuation
+                )
+            )
 
-        return RedisProfilerStream(
-            stream: stream,
-            monitorClients: [monitorClient],
-            monitorTasks: taskBag,
-            tunnel: tunnel,
-            tunnelManager: nil
-        )
+            return RedisProfilerStream(
+                stream: stream,
+                monitorClients: [client],
+                monitorTasks: taskBag,
+                tunnel: tunnel,
+                tunnelManager: nil
+            )
+        } catch {
+            tunnel?.stop()
+            monitorClient?.disconnect()
+            throw error
+        }
     }
 
     private func startClusterProfilerStream(
@@ -178,8 +222,8 @@ extension ConnectionState {
             throw RedisError.commandError("Redis Cluster topology has no nodes")
         }
 
+        // Owned locally until the caller confirms the generation below.
         let tunnelManager = config.ssh.enabled ? SSHClusterTunnelManager(ssh: config.ssh) : nil
-        profilerClusterTunnelManager = tunnelManager
 
         let (stream, continuation) = AsyncThrowingStream<RedisProfilerCapture, Error>.makeStream(
             of: RedisProfilerCapture.self,
@@ -187,35 +231,45 @@ extension ConnectionState {
             bufferingPolicy: .bufferingNewest(profilerMaxEntries)
         )
         let taskBag = RedisProfilerTaskBag()
-        profilerMonitorTasks = taskBag
 
         var monitorClients: [RedisMonitorClient] = []
 
-        for endpoint in endpoints {
-            try Task.checkCancellation()
+        do {
+            for endpoint in endpoints {
+                try Task.checkCancellation()
 
-            let clientEndpoint: RedisEndpoint
-            if let tunnelManager {
-                clientEndpoint = try await tunnelManager.clientEndpoint(for: endpoint)
-            } else {
-                clientEndpoint = endpoint
-            }
+                let clientEndpoint: RedisEndpoint
+                if let tunnelManager {
+                    clientEndpoint = try await tunnelManager.clientEndpoint(for: endpoint)
+                } else {
+                    clientEndpoint = endpoint
+                }
 
-            let monitorClient = makeProfilerMonitorClient(config: config, host: clientEndpoint.host, port: clientEndpoint.port)
-            monitorClients.append(monitorClient)
-            profilerMonitorClients = monitorClients
+                let monitorClient = makeProfilerMonitorClient(config: config, host: clientEndpoint.host, port: clientEndpoint.port)
+                monitorClients.append(monitorClient)
 
-            let rawStream = try await withTimeout(config.connectionTimeout, context: "Redis profiler connection to \(endpoint.address)") {
-                try await monitorClient.startMonitoring()
-            }
+                let context = "Redis profiler connection to \(endpoint.address)"
+                let rawStream = try await withTimeout(config.connectionTimeout, context: context) {
+                    try await monitorClient.startMonitoring()
+                }
 
-            taskBag.add(
-                monitorStreamTask(
-                    rawStream: rawStream,
-                    node: endpoint,
-                    continuation: continuation
+                taskBag.add(
+                    monitorStreamTask(
+                        rawStream: rawStream,
+                        node: endpoint,
+                        continuation: continuation
+                    )
                 )
-            )
+            }
+        } catch {
+            for client in monitorClients {
+                client.disconnect()
+            }
+            taskBag.cancelAll()
+            if let tunnelManager {
+                Task { await tunnelManager.disconnect() }
+            }
+            throw error
         }
 
         return RedisProfilerStream(

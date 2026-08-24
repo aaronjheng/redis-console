@@ -104,7 +104,12 @@ final class RedisMonitorClient: Sendable {
     private let caCertificatePath: String
     private let clientCertificatePath: String
     private let clientKeyPath: String
-    private let connectionTimeout: TimeInterval
+    private     let connectionTimeout: TimeInterval
+
+    /// Client TLS identity (certificate + private key). Retained for the
+    /// connection's lifetime and released on disconnect; its temporary keychain
+    /// must stay alive so the `sec_identity_t` keeps referencing the key.
+    private let clientIdentityBundle = Mutex<LoadedClientIdentity?>(nil)
 
     init(
         host: String,
@@ -167,7 +172,17 @@ final class RedisMonitorClient: Sendable {
     func disconnect() {
         runOnQueue {
             self.cancelConnectionOnQueue(finishError: nil)
+            self.clearClientIdentity()
         }
+    }
+
+    /// Deletes the temporary keychain backing the client TLS identity (if any)
+    /// and drops the retained bundle so the private key is no longer kept alive.
+    private func clearClientIdentity() {
+        if let keychain = clientIdentityBundle.withLock({ $0?.keychain }) {
+            SecKeychainDelete(keychain)
+        }
+        clientIdentityBundle.withLock { $0 = nil }
     }
 
     private func connect() async throws {
@@ -177,7 +192,29 @@ final class RedisMonitorClient: Sendable {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 connectContinuation.setContinuation(continuation)
 
-                let params = makeConnectionParameters()
+                var localIdentity: sec_identity_t?
+                if clientCertificatePath.isEmpty != clientKeyPath.isEmpty {
+                    connectContinuation.complete(.failure(ClientIdentityLoaderError.incompleteConfiguration))
+                    return
+                } else if !clientCertificatePath.isEmpty {
+                    do {
+                        clearClientIdentity()
+                        guard let bundle = try loadClientIdentity(
+                            certificatePath: clientCertificatePath,
+                            keyPath: clientKeyPath
+                        ) else {
+                            connectContinuation.complete(.failure(ClientIdentityLoaderError.incompleteConfiguration))
+                            return
+                        }
+                        self.clientIdentityBundle.withLock { $0 = bundle }
+                        localIdentity = bundle.secIdentity
+                    } catch {
+                        connectContinuation.complete(.failure(error))
+                        return
+                    }
+                }
+
+                let params = makeConnectionParameters(localIdentity: localIdentity)
 
                 guard let nwPort = NWEndpoint.Port(rawValue: port) else {
                     connectContinuation.complete(.failure(RedisError.commandError("Invalid Redis port: \(port)")))
@@ -221,7 +258,7 @@ final class RedisMonitorClient: Sendable {
         }
     }
 
-    private func makeConnectionParameters() -> NWParameters {
+    private func makeConnectionParameters(localIdentity: sec_identity_t?) -> NWParameters {
         guard tlsEnabled else {
             let params = NWParameters.tcp
             params.allowLocalEndpointReuse = true
@@ -264,28 +301,11 @@ final class RedisMonitorClient: Sendable {
             )
         }
 
-        if !clientCertificatePath.isEmpty && !clientKeyPath.isEmpty {
-            let certURL = URL(fileURLWithPath: clientCertificatePath)
-            if let certData = try? Data(contentsOf: certURL) {
-                let cert = SecCertificateCreateWithData(nil, certData as CFData)
-                if let cert {
-                    var identity: SecIdentity?
-                    let status = SecIdentityCreateWithCertificate(
-                        nil,
-                        cert,
-                        &identity
-                    )
-                    if status == errSecSuccess, let identity {
-                        let secIdentity = sec_identity_create(identity)
-                        if let secIdentity {
-                            sec_protocol_options_set_local_identity(
-                                tlsOptions.securityProtocolOptions,
-                                secIdentity
-                            )
-                        }
-                    }
-                }
-            }
+        if let localIdentity {
+            sec_protocol_options_set_local_identity(
+                tlsOptions.securityProtocolOptions,
+                localIdentity
+            )
         }
 
         sec_protocol_options_set_tls_server_name(
@@ -395,29 +415,44 @@ final class RedisMonitorClient: Sendable {
     }
 
     private func send(_ args: [String]) async throws -> RESPValue {
-        try await withCheckedThrowingContinuation { continuation in
-            let data = RESPEncoder.encode(args)
-            let pendingCompletion = PendingCommand(continuation)
+        let data = RESPEncoder.encode(args)
+        // A box is needed because the cancellation hook is a separate `@Sendable`
+        // closure and cannot capture the locally-scoped `PendingCommand` directly.
+        let pendingBox = Mutex<PendingCommand?>(nil)
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let pendingCompletion = PendingCommand(continuation)
+                pendingBox.withLock { $0 = pendingCompletion }
 
-            self.queue.async {
-                guard let connection = self.state.withLock({ $0.connection }),
-                    self.state.withLock({ $0.isConnected })
-                else {
-                    pendingCompletion.complete(.failure(RedisError.notConnected))
-                    return
-                }
+                self.queue.async {
+                    guard let connection = self.state.withLock({ $0.connection }),
+                        self.state.withLock({ $0.isConnected })
+                    else {
+                        pendingCompletion.complete(.failure(RedisError.notConnected))
+                        return
+                    }
 
-                self.state.withLock { $0.pendingCompletions.append(pendingCompletion) }
+                    self.state.withLock { $0.pendingCompletions.append(pendingCompletion) }
 
-                connection.send(
-                    content: data,
-                    completion: .contentProcessed { error in
-                        if let error {
-                            self.queue.async {
-                                self.failPendingCompletion(pendingCompletion, with: error)
+                    connection.send(
+                        content: data,
+                        completion: .contentProcessed { error in
+                            if let error {
+                                self.queue.async {
+                                    self.failPendingCompletion(pendingCompletion, with: error)
+                                }
                             }
-                        }
-                    })
+                        })
+                }
+            }
+        } onCancel: {
+            // Without this hook a half-open connection whose `connection.send`
+            // completion never arrives would leave the continuation suspended
+            // forever, so the enclosing task group (e.g. withTimeout) can never
+            // join the cancelled child and the call hangs indefinitely.
+            if let pendingCompletion = pendingBox.withLock({ $0 }) {
+                self.removePendingCompletion(pendingCompletion)
+                pendingCompletion.complete(.failure(CancellationError()))
             }
         }
     }
