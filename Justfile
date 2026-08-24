@@ -31,5 +31,3 @@ install: build
     @rm -rf ~/Applications/Redis\ Console.app
     @cp -R '{{ app_bundle }}' ~/Applications/Redis\ Console.app
     @echo 'Installed to ~/Applications/Redis Console.app'
-
-
