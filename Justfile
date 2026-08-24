@@ -18,7 +18,6 @@ build:
     xcodebuild -project RedisConsole.xcodeproj \
         -scheme RedisConsole \
         -configuration '{{ build_configuration }}' \
-        -destination 'platform=macOS,arch=arm64' \
         -derivedDataPath '{{ derived_data }}' \
         CODE_SIGN_IDENTITY='-' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES build
 
