@@ -15,6 +15,8 @@ extension ConnectionState {
             return
         }
 
+        isRestoringPreferences = true
+        defer { isRestoringPreferences = false }
         keyTypeFilter = preferences.keyTypeFilter
         isNamespaceGroupingEnabled = preferences.isNamespaceGroupingEnabled
         stringValueFormat = preferences.stringValueFormat

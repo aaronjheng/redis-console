@@ -55,8 +55,15 @@ class ConnectionState {
     var scanCursor: String = "0"
     var hasMoreKeys = true
     var keyFilter: String = "*"
+    /// True while `loadBrowserPreferences()` restores persisted values, so the
+    /// `didSet` hooks below don't write them straight back to UserDefaults.
+    @ObservationIgnored
+    var isRestoringPreferences = false
     var keyTypeFilter: String = "" {
-        didSet { saveBrowserPreferences() }
+        didSet {
+            guard !isRestoringPreferences else { return }
+            saveBrowserPreferences()
+        }
     }
     var keyScanCount = 500
     var keyTotalCount: Int?
@@ -64,11 +71,17 @@ class ConnectionState {
     var keyScanIterationCount = 0
     var keyScanLimitReached = false
     var isNamespaceGroupingEnabled = false {
-        didSet { saveBrowserPreferences() }
+        didSet {
+            guard !isRestoringPreferences else { return }
+            saveBrowserPreferences()
+        }
     }
     var namespaceSeparator = ":"
     var stringValueFormat: StringValueFormat = .json {
-        didSet { saveBrowserPreferences() }
+        didSet {
+            guard !isRestoringPreferences else { return }
+            saveBrowserPreferences()
+        }
     }
     var keyDetailLastRefreshedAt: Date?
 
