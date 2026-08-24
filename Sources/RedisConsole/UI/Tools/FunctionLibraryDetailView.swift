@@ -27,7 +27,7 @@ struct FunctionLibraryDetailView: View {
             ScrollView {
                 SelectableText(
                     text: library.code,
-                    font: .monospacedSystemFont(ofSize: NSFont.systemFont(ofSize: 13).pointSize, weight: .regular),
+                    font: .monospacedSystemFont(ofSize: 13, weight: .regular),
                     tokenizer: TreeSitterLuaHighlighter.shared
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
