@@ -87,7 +87,7 @@ just lint          # swiftlint
 just lint-fix      # swiftlint --fix
 just format        # swift-format
 just format-check  # swift-format lint
-just build-release # xcodebuild release
+just build         # xcodebuild release
 just run           # build + open app
 just install       # build + copy to ~/Applications
 just clean         # rm -rf .build

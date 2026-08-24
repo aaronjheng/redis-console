@@ -32,7 +32,7 @@ Native macOS Redis GUI client built with Swift and SwiftUI.
 just run
 
 # Build release only
-just build-release
+just build
 
 # Install to ~/Applications
 just install
