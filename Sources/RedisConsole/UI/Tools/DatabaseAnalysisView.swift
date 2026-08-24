@@ -1,10 +1,13 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Database Analysis View
 
 struct DatabaseAnalysisView: View {
     @Environment(ConnectionState.self) private var app
     @State private var showingProductionWarning = false
+    @State private var isExporting = false
+    @State private var exportReport: AnalysisReportDocument?
 
     private var isProduction: Bool {
         app.selectedConnection?.environment == .production
@@ -107,6 +110,12 @@ struct DatabaseAnalysisView: View {
         .onDisappear {
             app.cancelAnalysis()
         }
+        .fileExporter(
+            isPresented: $isExporting,
+            document: exportReport,
+            contentType: .plainText,
+            defaultFilename: exportReport?.defaultFilename
+        ) { _ in }
     }
 
     @ViewBuilder
@@ -348,14 +357,40 @@ struct DatabaseAnalysisView: View {
             lines.append("  \(bucket.label): \(bucket.keyCount) keys, \(bucket.memoryText)")
         }
 
-        let text = lines.joined(separator: "\n")
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.plainText]
-        panel.nameFieldStringValue = "analysis-\(ISO8601DateFormatter().string(from: analysis.analyzedAt)).txt"
-        panel.begin { response in
-            guard response == .OK, let url = panel.url else { return }
-            try? text.write(to: url, atomically: true, encoding: .utf8)
+        exportReport = AnalysisReportDocument(
+            text: lines.joined(separator: "\n"),
+            defaultFilename: "analysis-\(ISO8601DateFormatter().string(from: analysis.analyzedAt)).txt"
+        )
+        isExporting = true
+    }
+}
+
+// MARK: - Analysis Report Document
+
+/// Plain-text wrapper for `fileExporter`, carrying the timestamped
+/// suggested filename shown in the save dialog.
+private struct AnalysisReportDocument: FileDocument {
+    static let readableContentTypes: [UTType] = [.plainText]
+    static let writableContentTypes: [UTType] = [.plainText]
+
+    let text: String
+    let defaultFilename: String
+
+    init(text: String, defaultFilename: String) {
+        self.text = text
+        self.defaultFilename = defaultFilename
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
         }
+        text = String(data: data, encoding: .utf8) ?? ""
+        defaultFilename = "analysis.txt"
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: Data(text.utf8))
     }
 }
 

@@ -6,6 +6,9 @@ struct ConnectionHubSidebarView: View {
     @Environment(ConnectionState.self) private var conn
     @Environment(AppStore.self) private var store
     @State private var connectionPendingDeletion: RedisConnectionConfig?
+    @State private var isExporting = false
+    @State private var isImporting = false
+    @State private var exportDocument: ConnectionsDocument?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,13 +17,13 @@ struct ConnectionHubSidebarView: View {
                     .font(.headline)
                 Spacer()
                 Button("Export All Connections", systemImage: "square.and.arrow.up") {
-                    ConnectionTransfer.export(store.connections, store: store)
+                    beginExport(store.connections)
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .help("Export All Connections")
                 Button("Import Connections", systemImage: "square.and.arrow.down") {
-                    ConnectionTransfer.importConfigurations(store: store)
+                    isImporting = true
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
@@ -93,7 +96,7 @@ struct ConnectionHubSidebarView: View {
                             }
                             Divider()
                             Button("Export...") {
-                                ConnectionTransfer.export([config], store: store)
+                                beginExport([config])
                             }
                         }
                 }
@@ -126,5 +129,24 @@ struct ConnectionHubSidebarView: View {
                 Text("This permanently deletes \"\(config.name)\" (\(config.address)).")
             }
         }
+        .fileExporter(
+            isPresented: $isExporting,
+            document: exportDocument,
+            contentType: .json,
+            defaultFilename: exportDocument?.defaultFilename
+        ) { _ in }
+        .fileImporter(
+            isPresented: $isImporting,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            ConnectionTransfer.importConnections(from: result, store: store)
+        }
+    }
+
+    private func beginExport(_ configs: [RedisConnectionConfig]) {
+        guard let document = ConnectionTransfer.exportDocument(for: configs, store: store) else { return }
+        exportDocument = document
+        isExporting = true
     }
 }

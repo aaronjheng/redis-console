@@ -6,6 +6,7 @@ import SwiftUI
 struct WelcomeView: View {
     @Environment(ConnectionState.self) private var conn
     @Environment(AppStore.self) private var store
+    @State private var isImporting = false
 
     var body: some View {
         VStack(spacing: AppSpacing.xLarge) {
@@ -35,7 +36,7 @@ struct WelcomeView: View {
                 .buttonStyle(PrimaryButtonStyle())
 
                 Button {
-                    ConnectionTransfer.importConfigurations(store: store)
+                    isImporting = true
                 } label: {
                     Label("Import Connections", systemImage: "square.and.arrow.down")
                 }
@@ -47,5 +48,12 @@ struct WelcomeView: View {
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .fileImporter(
+            isPresented: $isImporting,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            ConnectionTransfer.importConnections(from: result, store: store)
+        }
     }
 }
