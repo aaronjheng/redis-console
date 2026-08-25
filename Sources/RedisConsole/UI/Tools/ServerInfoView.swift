@@ -60,11 +60,10 @@ struct ServerInfoView: View {
             }
             Divider()
             WorkspaceFooterBar {
-                StatusFooterView(countText: "\(sections.count) sections")
-                if !app.serverCapabilities.isEmpty {
-                    Text("·")
-                    Text("\(app.serverCapabilities.count) modules")
-                }
+                StatusFooterView(
+                    countText: "\(sections.count) sections",
+                    sizeText: app.serverCapabilities.isEmpty ? nil : "\(app.serverCapabilities.count) modules"
+                )
                 Spacer()
             }
         }
