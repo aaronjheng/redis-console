@@ -87,7 +87,7 @@ struct ShellView: View {
             // Input area — Grok-style pill composer
             VStack(spacing: AppSpacing.xSmall) {
                 if showCompletions && !filteredCompletions.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
+                    ScrollView(.horizontal) {
                         HStack(spacing: AppSpacing.xSmall) {
                             ForEach(filteredCompletions.prefix(12), id: \.self) { cmd in
                                 Button {
@@ -106,6 +106,7 @@ struct ShellView: View {
                         }
                         .padding(.horizontal, AppSpacing.large)
                     }
+                    .scrollIndicators(.hidden)
                 }
 
                 HStack(spacing: AppSpacing.small) {

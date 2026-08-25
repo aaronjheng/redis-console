@@ -245,7 +245,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func requestTabChromeRefresh() {
         guard !tabRefreshScheduled else { return }
         tabRefreshScheduled = true
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
             self.tabRefreshScheduled = false
             self.refreshTabChrome()

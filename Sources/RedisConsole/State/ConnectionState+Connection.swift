@@ -127,7 +127,7 @@ extension ConnectionState {
 
                 activeClient = redis
                 selectedConnection = resolvedConfig
-                loadShellHistory(for: resolvedConfig)
+                await loadShellHistory(for: resolvedConfig)
                 isConnecting = false
                 pendingConnection = nil
                 await loadServerInfo()

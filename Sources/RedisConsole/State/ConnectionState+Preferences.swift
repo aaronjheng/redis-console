@@ -45,16 +45,16 @@ extension ConnectionState {
             .appendingPathComponent("shell-history-\(connection.id.uuidString).json")
     }
 
-    func loadShellHistory(for connection: RedisConnectionConfig) {
-        shellHistory = ShellHistoryStore.shared.load(connectionID: connection.id, limit: shellHistoryLimit)
+    func loadShellHistory(for connection: RedisConnectionConfig) async {
+        shellHistory = await ShellHistoryStore.shared.load(connectionID: connection.id, limit: shellHistoryLimit)
         if shellHistory.isEmpty {
-            migrateLegacyJSONFile(for: connection)
+            await migrateLegacyJSONFile(for: connection)
         }
     }
 
     /// One-shot migration from the JSON file used before history moved to
     /// SQLite. The file is removed after a successful import.
-    private func migrateLegacyJSONFile(for connection: RedisConnectionConfig) {
+    private func migrateLegacyJSONFile(for connection: RedisConnectionConfig) async {
         guard
             let url = legacyShellHistoryURL(for: connection),
             let data = try? Data(contentsOf: url),
@@ -62,7 +62,7 @@ extension ConnectionState {
         else {
             return
         }
-        ShellHistoryStore.shared.importEntries(decoded, connectionID: connection.id)
+        await ShellHistoryStore.shared.importEntries(decoded, connectionID: connection.id)
         try? FileManager.default.removeItem(at: url)
     }
 
@@ -74,8 +74,8 @@ extension ConnectionState {
         guard let selectedConnection else { return }
         let connectionID = selectedConnection.id
         let limit = shellHistoryLimit
-        Task.detached {
-            ShellHistoryStore.shared.append(entry, connectionID: connectionID, limit: limit)
+        Task {
+            await ShellHistoryStore.shared.append(entry, connectionID: connectionID, limit: limit)
         }
     }
 
@@ -83,8 +83,8 @@ extension ConnectionState {
         shellHistory.removeAll { $0.id == entry.id }
         guard let selectedConnection else { return }
         let connectionID = selectedConnection.id
-        Task.detached {
-            ShellHistoryStore.shared.delete(id: entry.id, connectionID: connectionID)
+        Task {
+            await ShellHistoryStore.shared.delete(id: entry.id, connectionID: connectionID)
         }
     }
 
@@ -92,8 +92,8 @@ extension ConnectionState {
         shellHistory = []
         guard let selectedConnection else { return }
         let connectionID = selectedConnection.id
-        Task.detached {
-            ShellHistoryStore.shared.clear(connectionID: connectionID)
+        Task {
+            await ShellHistoryStore.shared.clear(connectionID: connectionID)
         }
     }
 }

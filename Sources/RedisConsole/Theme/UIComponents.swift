@@ -398,23 +398,23 @@ struct ToolbarButtonStyle: ButtonStyle {
 // MARK: - Stable screenshot pickers
 
 /// A two-option segmented picker drawn entirely in SwiftUI so it captures reliably.
-struct BinaryTogglePicker<Option: Hashable & Sendable>: View {
+struct BinaryTogglePicker<Option: Hashable & Sendable, FirstLabel: View, SecondLabel: View>: View {
     let options: (first: Option, second: Option)
-    let firstLabel: AnyView
-    let secondLabel: AnyView
+    let firstLabel: FirstLabel
+    let secondLabel: SecondLabel
     @Binding var selection: Option
 
     init(
         selection: Binding<Option>,
         first: Option,
         second: Option,
-        @ViewBuilder firstLabel: () -> some View,
-        @ViewBuilder secondLabel: () -> some View
+        @ViewBuilder firstLabel: () -> FirstLabel,
+        @ViewBuilder secondLabel: () -> SecondLabel
     ) {
         self._selection = selection
         self.options = (first, second)
-        self.firstLabel = AnyView(firstLabel())
-        self.secondLabel = AnyView(secondLabel())
+        self.firstLabel = firstLabel()
+        self.secondLabel = secondLabel()
     }
 
     var body: some View {

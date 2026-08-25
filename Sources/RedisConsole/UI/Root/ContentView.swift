@@ -65,11 +65,12 @@ struct ConnectionHubView: View {
             isPresented: Binding(
                 get: { conn.connectionError != nil },
                 set: { if !$0 { conn.connectionError = nil } }
-            )
-        ) {
+            ),
+            presenting: conn.connectionError
+        ) { _ in
             Button("OK", role: .cancel) {}
-        } message: {
-            Text(conn.connectionError ?? "")
+        } message: { error in
+            Text(error)
         }
     }
 }

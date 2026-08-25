@@ -1,22 +1,21 @@
 import Foundation
+import Synchronization
 
 // MARK: - Profiler
 
-final class RedisProfilerTaskBag: @unchecked Sendable {
-    private let lock = NSLock()
-    private var tasks: [Task<Void, Never>] = []
+final class RedisProfilerTaskBag: Sendable {
+    private let tasks = Mutex<[Task<Void, Never>]>([])
 
     func add(_ task: Task<Void, Never>) {
-        lock.lock()
-        tasks.append(task)
-        lock.unlock()
+        tasks.withLock { $0.append(task) }
     }
 
     func cancelAll() {
-        lock.lock()
-        let tasks = tasks
-        self.tasks.removeAll()
-        lock.unlock()
+        let tasks = self.tasks.withLock { state -> [Task<Void, Never>] in
+            let tasks = state
+            state.removeAll()
+            return tasks
+        }
 
         for task in tasks {
             task.cancel()

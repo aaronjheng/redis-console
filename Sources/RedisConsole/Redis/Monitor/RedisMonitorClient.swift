@@ -55,20 +55,19 @@ final class RedisMonitorClient: Sendable {
         }
     }
 
-    private final class PendingCommand: @unchecked Sendable {
-        private let lock = NSLock()
-        private var continuation: CheckedContinuation<RESPValue, Error>?
+    private final class PendingCommand: Sendable {
+        private let continuation = Mutex<CheckedContinuation<RESPValue, Error>?>(nil)
 
         init(_ continuation: CheckedContinuation<RESPValue, Error>) {
-            self.continuation = continuation
+            self.continuation.withLock { $0 = continuation }
         }
 
         func complete(_ result: Result<RESPValue, Error>) {
-            let continuation: CheckedContinuation<RESPValue, Error>?
-            lock.lock()
-            continuation = self.continuation
-            self.continuation = nil
-            lock.unlock()
+            let continuation = self.continuation.withLock { state -> CheckedContinuation<RESPValue, Error>? in
+                let continuation = state
+                state = nil
+                return continuation
+            }
 
             guard let continuation else { return }
 

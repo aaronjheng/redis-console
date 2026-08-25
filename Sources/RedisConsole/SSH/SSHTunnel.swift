@@ -5,6 +5,7 @@ import NIOCore
 @preconcurrency import NIOSSH
 import NIOTransportServices
 import Network
+import Synchronization
 
 class SSHTunnel: @unchecked Sendable {
     enum TunnelMode: String {
@@ -22,14 +23,43 @@ class SSHTunnel: @unchecked Sendable {
         1_600_000_000,
     ]
 
-    private var group: NIOTSEventLoopGroup?
-    private var ownsGroup = true
-    private var channel: Channel?
-    private var localServer: Channel?
-    private(set) var localPort: UInt16 = 0
-    private(set) var isRunning = false
-    private(set) var mode: TunnelMode = .nioSSH
-    private let lock = NSLock()
+    /// Mutable tunnel runtime state, guarded by a single lock. The SSH config
+    /// properties below stay plain vars: they are written once by `start()`
+    /// before any concurrent access begins.
+    private struct State {
+        var group: NIOTSEventLoopGroup?
+        var ownsGroup = true
+        var channel: Channel?
+        var localServer: Channel?
+        var localPort: UInt16 = 0
+        var isRunning = false
+        var mode: TunnelMode = .nioSSH
+    }
+
+    private let state = Mutex(State())
+
+    /// Resources detached from the tunnel in `stop()`, returned while the
+    /// state lock is held so teardown happens outside of it.
+    private struct StoppedTunnel {
+        var localServer: Channel?
+        var channel: Channel?
+        var ownedGroup: NIOTSEventLoopGroup?
+    }
+
+    private(set) var localPort: UInt16 {
+        get { state.withLock { $0.localPort } }
+        set { state.withLock { $0.localPort = newValue } }
+    }
+
+    private(set) var isRunning: Bool {
+        get { state.withLock { $0.isRunning } }
+        set { state.withLock { $0.isRunning = newValue } }
+    }
+
+    private(set) var mode: TunnelMode {
+        get { state.withLock { $0.mode } }
+        set { state.withLock { $0.mode = newValue } }
+    }
 
     // SSH configuration
     private var sshHost: String = ""
@@ -80,61 +110,75 @@ class SSHTunnel: @unchecked Sendable {
         let group: NIOTSEventLoopGroup
         if let eventLoopGroup {
             group = eventLoopGroup
-            ownsGroup = false
+            state.withLock {
+                $0.group = group
+                $0.ownsGroup = false
+            }
         } else {
             group = NIOTSEventLoopGroup(loopCount: 1)
-            ownsGroup = true
+            state.withLock {
+                $0.group = group
+                $0.ownsGroup = true
+            }
         }
-        self.group = group
 
         do {
             AppLogger.info("starting tunnel mode=nioSSH", category: "SSHTunnel")
             // Connect SSH channel
             let sshChannel = try await connectSSHWithRetry(group: group)
-            self.channel = sshChannel
+            state.withLock { $0.channel = sshChannel }
 
             // Start local TCP server
             let localServer = try await startLocalServer(group: group, sshChannel: sshChannel)
-            self.localServer = localServer
+            state.withLock { $0.localServer = localServer }
 
-            self.mode = .nioSSH
-            self.isRunning = true
+            state.withLock {
+                $0.mode = .nioSSH
+                $0.isRunning = true
+            }
             AppLogger.info("tunnel mode=nioSSH ready local=127.0.0.1:\(localPort)", category: "SSHTunnel")
         } catch {
             AppLogger.error("start failed error=\(error)", category: "SSHTunnel")
-            if ownsGroup {
-                try? await group.shutdownGracefully()
+            let ownedGroup = state.withLock { state -> NIOTSEventLoopGroup? in
+                defer { state.group = nil }
+                return state.ownsGroup ? state.group : nil
             }
-            self.group = nil
+            if let ownedGroup {
+                try? await ownedGroup.shutdownGracefully()
+            }
             throw error
         }
     }
 
     func stop() {
-        lock.lock()
-        defer { lock.unlock() }
-
-        isRunning = false
+        let stopped = state.withLock { state -> StoppedTunnel in
+            state.isRunning = false
+            let ownedGroup = state.ownsGroup ? state.group : nil
+            state.group = nil
+            defer {
+                state.localServer = nil
+                state.channel = nil
+            }
+            return StoppedTunnel(
+                localServer: state.localServer,
+                channel: state.channel,
+                ownedGroup: ownedGroup
+            )
+        }
         AppLogger.info("stop tunnel mode=\(mode.rawValue)", category: "SSHTunnel")
 
         // Close local server
-        localServer?.close(promise: nil)
-        localServer = nil
+        stopped.localServer?.close(promise: nil)
 
         // Close SSH channel
-        channel?.close(promise: nil)
-        channel = nil
+        stopped.channel?.close(promise: nil)
 
         // Shutdown event loop group asynchronously to avoid blocking the caller.
         // syncShutdownGracefully() can block the calling thread, which is
         // problematic when called from the main actor or a Task.
-        if let group = group {
-            let groupToShutdown = group
-            self.group = nil
-            if ownsGroup {
-                Task {
-                    try? await groupToShutdown.shutdownGracefully()
-                }
+        if let ownedGroup = stopped.ownedGroup {
+            Task {
+                try? await ownedGroup.shutdownGracefully()
             }
         }
     }
