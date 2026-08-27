@@ -480,6 +480,7 @@ private struct KeyNamespaceList: View {
                 ForEach(tree.namespaces) { namespace in
                     KeyNamespaceNodeView(
                         namespace: namespace,
+                        depth: 0,
                         separator: tree.separator,
                         allKeys: tree.allKeys,
                         selectedKey: $selectedKey,
@@ -502,6 +503,7 @@ private struct KeyNamespaceList: View {
 
 private struct KeyNamespaceNodeView: View {
     let namespace: KeyNamespaceNode
+    let depth: Int
     let separator: String
     let allKeys: [RedisKeyEntry]
     @Binding var selectedKey: RedisKeyEntry?
@@ -516,6 +518,7 @@ private struct KeyNamespaceNodeView: View {
             ForEach(namespace.children) { childNamespace in
                 KeyNamespaceNodeView(
                     namespace: childNamespace,
+                    depth: depth + 1,
                     separator: separator,
                     allKeys: allKeys,
                     selectedKey: $selectedKey,
@@ -531,7 +534,7 @@ private struct KeyNamespaceNodeView: View {
 
             ForEach(displayedKeys) { entry in
                 KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
-                    .fullWidthListRowSeparator()
+                    .fullWidthListRowSeparator(depth: depth + 1)
                     .id(entry.key)
                     .contextMenu {
                         Button("Copy Key") {
@@ -554,12 +557,12 @@ private struct KeyNamespaceNodeView: View {
                     Spacer()
                 }
                 .padding(.vertical, AppSpacing.xSmall)
-                .fullWidthListRowSeparator()
+                .fullWidthListRowSeparator(depth: depth + 1)
             }
         } label: {
             KeyNamespaceRow(namespace: namespace)
         }
-        .fullWidthListRowSeparator()
+        .fullWidthListRowSeparator(depth: depth)
     }
 
     private var namespaceKeys: [RedisKeyEntry] {

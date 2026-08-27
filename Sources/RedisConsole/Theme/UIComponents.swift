@@ -734,9 +734,13 @@ extension View {
     /// horizontal insets on macOS. Aligning the separator guide back to the
     /// pane edge keeps separators connected to the split-view dividers on
     /// both sides.
-    func fullWidthListRowSeparator() -> some View {
+    ///
+    /// `depth` is the `DisclosureGroup` outline level: nested rows are indented
+    /// by `AppSpacing.large` per level, so the separator must be pulled back by
+    /// that amount in addition to the base 8pt content inset.
+    func fullWidthListRowSeparator(depth: Int = 0) -> some View {
         alignmentGuide(.listRowSeparatorLeading) { dimensions in
-            dimensions[.leading] - AppSpacing.small
+            dimensions[.leading] - AppSpacing.small - CGFloat(depth) * AppSpacing.large
         }
     }
 }
