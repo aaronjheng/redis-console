@@ -726,22 +726,35 @@ extension View {
 
 // MARK: - List Row Separator
 
+// MARK: - List Row Separator
+
+enum ListSeparatorSpace {
+    static let name = "listSeparatorSpace"
+}
+
 extension View {
-    /// Stretches the leading end of a `List` row separator to the pane edge.
+    /// Draws a 1pt separator along the bottom of the row that spans the full
+    /// width of the enclosing `List`, connecting to the split-view dividers on
+    /// both sides regardless of per-row indentation (e.g. `DisclosureGroup`
+    /// outline levels in the namespace view).
     ///
-    /// macOS `List` draws row separators with an extra leading inset on top of
-    /// the row's own 8pt content inset, and `listRowInsets` cannot remove the
-    /// horizontal insets on macOS. Aligning the separator guide back to the
-    /// pane edge keeps separators connected to the split-view dividers on
-    /// both sides.
-    ///
-    /// `depth` is the `DisclosureGroup` outline level: nested rows are indented
-    /// by `AppSpacing.large` per level, so the separator must be pulled back by
-    /// that amount in addition to the base 8pt content inset.
-    func fullWidthListRowSeparator(depth: Int = 0) -> some View {
-        alignmentGuide(.listRowSeparatorLeading) { dimensions in
-            dimensions[.leading] - AppSpacing.small - CGFloat(depth) * AppSpacing.large
-        }
+    /// The system row separator can't be stretched to the pane edge: its
+    /// leading inset depends on each row's indentation, and `listRowInsets`
+    /// doesn't remove the horizontal inset on macOS. So we hide it and paint
+    /// our own line, measured against the list's coordinate space so the
+    /// leading edge always lands on the list's left bound.
+    func fullWidthListRowSeparator() -> some View {
+        self
+            .listRowSeparator(.hidden)
+            .background(alignment: .bottom) {
+                GeometryReader { geo in
+                    let frame = geo.frame(in: .named(ListSeparatorSpace.name))
+                    Color(nsColor: .separatorColor)
+                        .frame(width: frame.minX + geo.size.width + 4000, height: 1)
+                        .offset(x: -frame.minX)
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
+            }
     }
 }
 

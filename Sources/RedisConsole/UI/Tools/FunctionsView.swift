@@ -229,6 +229,7 @@ struct FunctionsView: View {
                         }
                     }
                     .listStyle(.plain)
+                    .coordinateSpace(name: ListSeparatorSpace.name)
                 }
             }
 

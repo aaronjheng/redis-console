@@ -440,6 +440,7 @@ private struct KeyFlatList: View {
                 }
             }
             .listStyle(.plain)
+            .coordinateSpace(name: ListSeparatorSpace.name)
             .onAppear {
                 scrollToKey(scrollTargetKey, using: proxy)
             }
@@ -482,7 +483,6 @@ private struct KeyNamespaceList: View {
                         namespace: namespace,
                         depth: 0,
                         separator: tree.separator,
-                        allKeys: tree.allKeys,
                         selectedKey: $selectedKey,
                         expandedNamespaces: $expandedNamespaces,
                         onDeleteKey: onDeleteKey,
@@ -491,6 +491,7 @@ private struct KeyNamespaceList: View {
                 }
             }
             .listStyle(.plain)
+            .coordinateSpace(name: ListSeparatorSpace.name)
             .onAppear {
                 scrollToKey(scrollTargetKey, using: proxy)
             }
@@ -505,36 +506,57 @@ private struct KeyNamespaceNodeView: View {
     let namespace: KeyNamespaceNode
     let depth: Int
     let separator: String
-    let allKeys: [RedisKeyEntry]
     @Binding var selectedKey: RedisKeyEntry?
     @Binding var expandedNamespaces: Set<String>
     let onDeleteKey: (RedisKeyEntry) -> Void
     let onCopyKey: (RedisKeyEntry) -> Void
 
     private let pageSize = 500
+    private var isExpanded: Bool { expandedNamespaces.contains(namespace.id) }
 
     var body: some View {
-        DisclosureGroup(isExpanded: namespaceExpansion) {
-            ForEach(namespace.children) { childNamespace in
-                KeyNamespaceNodeView(
-                    namespace: childNamespace,
-                    depth: depth + 1,
-                    separator: separator,
-                    allKeys: allKeys,
-                    selectedKey: $selectedKey,
-                    expandedNamespaces: $expandedNamespaces,
-                    onDeleteKey: onDeleteKey,
-                    onCopyKey: onCopyKey
-                )
+        Group {
+            folderRow
+            if isExpanded {
+                childrenSection
+                keysSection
             }
+        }
+    }
 
-            let namespaceKeys = self.namespaceKeys
-            let displayedKeys = Array(namespaceKeys.prefix(pageSize))
-            let hasMore = namespaceKeys.count > pageSize
+    private var folderRow: some View {
+        KeyNamespaceRow(namespace: namespace, isExpanded: isExpanded)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: toggleExpansion)
+            .padding(.leading, CGFloat(depth) * AppSpacing.small)
+            .fullWidthListRowSeparator()
+            .id("folder:\(namespace.id)")
+    }
 
+    private var childrenSection: some View {
+        ForEach(namespace.children) { childNamespace in
+            KeyNamespaceNodeView(
+                namespace: childNamespace,
+                depth: depth + 1,
+                separator: separator,
+                selectedKey: $selectedKey,
+                expandedNamespaces: $expandedNamespaces,
+                onDeleteKey: onDeleteKey,
+                onCopyKey: onCopyKey
+            )
+        }
+    }
+
+    private var keysSection: some View {
+        let namespaceKeys = namespace.keys
+        let displayedKeys = Array(namespaceKeys.prefix(pageSize))
+        let hasMore = namespaceKeys.count > pageSize
+        let childIndent = CGFloat(depth + 1) * AppSpacing.small
+        return Group {
             ForEach(displayedKeys) { entry in
                 KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
-                    .fullWidthListRowSeparator(depth: depth + 1)
+                    .padding(.leading, childIndent)
+                    .fullWidthListRowSeparator()
                     .id(entry.key)
                     .contextMenu {
                         Button("Copy Key") {
@@ -557,37 +579,31 @@ private struct KeyNamespaceNodeView: View {
                     Spacer()
                 }
                 .padding(.vertical, AppSpacing.xSmall)
-                .fullWidthListRowSeparator(depth: depth + 1)
+                .padding(.leading, childIndent)
+                .fullWidthListRowSeparator()
+                .id("more:\(namespace.id)")
             }
-        } label: {
-            KeyNamespaceRow(namespace: namespace)
         }
-        .fullWidthListRowSeparator(depth: depth)
     }
 
-    private var namespaceKeys: [RedisKeyEntry] {
-        let prefix = namespace.id.isEmpty ? "" : "\(namespace.id)\(separator)"
-        return allKeys.filter { $0.key.hasPrefix(prefix) || $0.key == namespace.id }
-    }
-
-    private var namespaceExpansion: Binding<Bool> {
-        Binding {
-            expandedNamespaces.contains(namespace.id)
-        } set: { isExpanded in
-            if isExpanded {
-                expandedNamespaces.insert(namespace.id)
-            } else {
-                expandedNamespaces.remove(namespace.id)
-            }
+    private func toggleExpansion() {
+        if isExpanded {
+            expandedNamespaces.remove(namespace.id)
+        } else {
+            expandedNamespaces.insert(namespace.id)
         }
     }
 }
 
 private struct KeyNamespaceRow: View {
     let namespace: KeyNamespaceNode
+    let isExpanded: Bool
 
     var body: some View {
         HStack(spacing: AppSpacing.small) {
+            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                .foregroundStyle(.secondary)
+                .frame(width: 12, alignment: .leading)
             Image(systemName: "folder")
                 .foregroundStyle(.tint)
             Text(namespace.name)
