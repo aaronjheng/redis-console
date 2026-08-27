@@ -113,11 +113,12 @@ struct ServerInfoView: View {
                     selection: $showTopology,
                     first: false,
                     second: true,
-                    firstLabel: { Image(systemName: "list.bullet").help("List view") },
-                    secondLabel: { Image(systemName: "circle.hexagongrid").help("Topology view") }
+                    firstHelp: "List view",
+                    secondHelp: "Topology view",
+                    firstLabel: { Image(systemName: "list.bullet") },
+                    secondLabel: { Image(systemName: "circle.hexagongrid") }
                 )
                 .frame(width: 64)
-                .help("Toggle view mode")
             }
         }
         .padding(.horizontal, AppSpacing.large)

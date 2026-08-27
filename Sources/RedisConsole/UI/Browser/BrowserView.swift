@@ -77,11 +77,12 @@ struct BrowserView: View {
                             ),
                             first: false,
                             second: true,
-                            firstLabel: { Image(systemName: "list.bullet").help("Flat list") },
-                            secondLabel: { Image(systemName: "folder").help("Group by namespace") }
+                            firstHelp: "Flat list",
+                            secondHelp: "Group by namespace",
+                            firstLabel: { Image(systemName: "list.bullet") },
+                            secondLabel: { Image(systemName: "folder") }
                         )
                         .frame(width: 64)
-                        .help("Toggle key list layout")
 
                         Spacer()
 

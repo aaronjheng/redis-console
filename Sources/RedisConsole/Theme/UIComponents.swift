@@ -402,61 +402,70 @@ struct BinaryTogglePicker<Option: Hashable & Sendable, FirstLabel: View, SecondL
     let options: (first: Option, second: Option)
     let firstLabel: FirstLabel
     let secondLabel: SecondLabel
+    let firstHelp: String?
+    let secondHelp: String?
     @Binding var selection: Option
 
     init(
         selection: Binding<Option>,
         first: Option,
         second: Option,
+        firstHelp: String? = nil,
+        secondHelp: String? = nil,
         @ViewBuilder firstLabel: () -> FirstLabel,
         @ViewBuilder secondLabel: () -> SecondLabel
     ) {
         self._selection = selection
         self.options = (first, second)
+        self.firstHelp = firstHelp
+        self.secondHelp = secondHelp
         self.firstLabel = firstLabel()
         self.secondLabel = secondLabel()
     }
 
     var body: some View {
         HStack(spacing: 0) {
-            ToggleButton(isSelected: selection == options.first) {
-                selection = options.first
-            } label: {
-                firstLabel
-            }
-            .clipShape(
-                UnevenRoundedRectangle(
+            ToggleButton(
+                isSelected: selection == options.first,
+                helpText: firstHelp,
+                backgroundShape: UnevenRoundedRectangle(
                     topLeadingRadius: AppRadius.medium,
                     bottomLeadingRadius: AppRadius.medium,
                     bottomTrailingRadius: 0,
                     topTrailingRadius: 0,
                     style: .continuous
                 )
-            )
-
-            ToggleButton(isSelected: selection == options.second) {
-                selection = options.second
+            ) {
+                selection = options.first
             } label: {
-                secondLabel
+                firstLabel
             }
-            .clipShape(
-                UnevenRoundedRectangle(
+
+            ToggleButton(
+                isSelected: selection == options.second,
+                helpText: secondHelp,
+                backgroundShape: UnevenRoundedRectangle(
                     topLeadingRadius: 0,
                     bottomLeadingRadius: 0,
                     bottomTrailingRadius: AppRadius.medium,
                     topTrailingRadius: AppRadius.medium,
                     style: .continuous
                 )
-            )
+            ) {
+                selection = options.second
+            } label: {
+                secondLabel
+            }
         }
         .frame(height: AppSize.refreshControlHeight)
-        .background(.background.secondary)
-        .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+        .background(.background.secondary, in: RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
     }
 }
 
 private struct ToggleButton<Label: View>: View {
     let isSelected: Bool
+    let helpText: String?
+    let backgroundShape: UnevenRoundedRectangle
     let action: () -> Void
     @ViewBuilder let label: Label
 
@@ -468,7 +477,9 @@ private struct ToggleButton<Label: View>: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(isSelected ? .primary : .secondary)
-        .background(isSelected ? Color.primary.opacity(0.12) : Color.clear)
+        .background(isSelected ? Color.primary.opacity(0.12) : Color.clear, in: backgroundShape)
+        .help(helpText ?? "")
+        .accessibilityLabel(helpText ?? "")
     }
 }
 
