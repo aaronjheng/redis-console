@@ -20,7 +20,8 @@ struct KeyRow: View {
                 .truncationMode(.middle)
             Spacer()
         }
-        .padding(.vertical, AppSpacing.small)
+        .padding(.vertical, AppSpacing.medium)
+        .padding(.leading, AppSpacing.small)
         .contentShape(Rectangle())
         .help(entry.key)
         .accessibilityLabel(entry.key)

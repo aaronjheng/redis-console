@@ -756,6 +756,30 @@ extension View {
                 }
             }
     }
+
+    /// Draws the row's selection highlight as a full-width rectangle that spans
+    /// the enclosing list (connecting to the split-view dividers on both sides),
+    /// the same way `fullWidthListRowSeparator()` stretches its line.
+    ///
+    /// The system selection highlight is inset from the row edges, so we paint
+    /// our own using the standard control selection color, measured against the
+    /// list's coordinate space so the leading edge always lands on the list's
+    /// left bound. `selected` is `false` for non-selectable rows (folders,
+    /// "more" placeholders), which draws nothing.
+    func fullWidthSelectionBackground(_ selected: Bool) -> some View {
+        self
+            .background(alignment: .leading) {
+                GeometryReader { geo in
+                    let frame = geo.frame(in: .named(ListSeparatorSpace.name))
+                    let width = frame.minX + geo.size.width + 4000
+                    Color(nsColor: .selectedControlColor)
+                        .frame(width: width, height: geo.size.height)
+                        .opacity(selected ? 1 : 0)
+                        .offset(x: -frame.minX)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                }
+            }
+    }
 }
 
 // MARK: - Inline Text Field

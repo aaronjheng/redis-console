@@ -422,24 +422,27 @@ private struct KeyFlatList: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            List(selection: $selectedKey) {
-                ForEach(keys) { entry in
-                    KeyRow(entry: entry)
-                        .fullWidthListRowSeparator()
-                        .id(entry.key)
-                        .contextMenu {
-                            Button("Copy Key") {
-                                onCopyKey(entry)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(keys) { entry in
+                        KeyRow(entry: entry)
+                            .fullWidthListRowSeparator()
+                            .fullWidthSelectionBackground(selectedKey?.key == entry.key)
+                            .id(entry.key)
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectedKey = entry }
+                            .contextMenu {
+                                Button("Copy Key") {
+                                    onCopyKey(entry)
+                                }
+                                Divider()
+                                Button("Delete", role: .destructive) {
+                                    onDeleteKey(entry)
+                                }
                             }
-                            Divider()
-                            Button("Delete", role: .destructive) {
-                                onDeleteKey(entry)
-                            }
-                        }
-                        .tag(entry)
+                    }
                 }
             }
-            .listStyle(.plain)
             .coordinateSpace(name: ListSeparatorSpace.name)
             .onAppear {
                 scrollToKey(scrollTargetKey, using: proxy)
@@ -461,36 +464,39 @@ private struct KeyNamespaceList: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            List(selection: $selectedKey) {
-                ForEach(tree.rootKeys) { entry in
-                    KeyRow(entry: entry)
-                        .fullWidthListRowSeparator()
-                        .id(entry.key)
-                        .contextMenu {
-                            Button("Copy Key") {
-                                onCopyKey(entry)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(tree.rootKeys) { entry in
+                        KeyRow(entry: entry)
+                            .fullWidthListRowSeparator()
+                            .fullWidthSelectionBackground(selectedKey?.key == entry.key)
+                            .id(entry.key)
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectedKey = entry }
+                            .contextMenu {
+                                Button("Copy Key") {
+                                    onCopyKey(entry)
+                                }
+                                Divider()
+                                Button("Delete", role: .destructive) {
+                                    onDeleteKey(entry)
+                                }
                             }
-                            Divider()
-                            Button("Delete", role: .destructive) {
-                                onDeleteKey(entry)
-                            }
-                        }
-                        .tag(entry)
-                }
+                    }
 
-                ForEach(tree.namespaces) { namespace in
-                    KeyNamespaceNodeView(
-                        namespace: namespace,
-                        depth: 0,
-                        separator: tree.separator,
-                        selectedKey: $selectedKey,
-                        expandedNamespaces: $expandedNamespaces,
-                        onDeleteKey: onDeleteKey,
-                        onCopyKey: onCopyKey
-                    )
+                    ForEach(tree.namespaces) { namespace in
+                        KeyNamespaceNodeView(
+                            namespace: namespace,
+                            depth: 0,
+                            separator: tree.separator,
+                            selectedKey: $selectedKey,
+                            expandedNamespaces: $expandedNamespaces,
+                            onDeleteKey: onDeleteKey,
+                            onCopyKey: onCopyKey
+                        )
+                    }
                 }
             }
-            .listStyle(.plain)
             .coordinateSpace(name: ListSeparatorSpace.name)
             .onAppear {
                 scrollToKey(scrollTargetKey, using: proxy)
@@ -530,6 +536,7 @@ private struct KeyNamespaceNodeView: View {
             .onTapGesture(perform: toggleExpansion)
             .padding(.leading, CGFloat(depth) * AppSpacing.small)
             .fullWidthListRowSeparator()
+            .fullWidthSelectionBackground(false)
             .id("folder:\(namespace.id)")
     }
 
@@ -557,7 +564,10 @@ private struct KeyNamespaceNodeView: View {
                 KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
                     .padding(.leading, childIndent)
                     .fullWidthListRowSeparator()
+                    .fullWidthSelectionBackground(selectedKey?.key == entry.key)
                     .id(entry.key)
+                    .contentShape(Rectangle())
+                    .onTapGesture { selectedKey = entry }
                     .contextMenu {
                         Button("Copy Key") {
                             onCopyKey(entry)
@@ -567,7 +577,6 @@ private struct KeyNamespaceNodeView: View {
                             onDeleteKey(entry)
                         }
                     }
-                    .tag(entry)
             }
 
             if hasMore {
@@ -581,6 +590,7 @@ private struct KeyNamespaceNodeView: View {
                 .padding(.vertical, AppSpacing.xSmall)
                 .padding(.leading, childIndent)
                 .fullWidthListRowSeparator()
+                .fullWidthSelectionBackground(false)
                 .id("more:\(namespace.id)")
             }
         }
@@ -615,7 +625,8 @@ private struct KeyNamespaceRow: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, AppSpacing.small)
+        .padding(.vertical, AppSpacing.medium)
+        .padding(.leading, AppSpacing.small)
         .accessibilityLabel("\(namespace.name), \(namespace.keyCount) keys")
     }
 }
