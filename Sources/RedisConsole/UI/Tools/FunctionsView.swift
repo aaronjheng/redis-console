@@ -193,8 +193,7 @@ struct FunctionsView: View {
     // MARK: Library list
 
     private var libraryList: some View {
-        @Bindable var app = app
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             Group {
                 if filteredLibraries.isEmpty {
                     Spacer()
@@ -205,30 +204,25 @@ struct FunctionsView: View {
                     )
                     Spacer()
                 } else {
-                    List(
-                        selection: Binding<String?>(
-                            get: { app.selectedFunctionLibrary?.name },
-                            set: { selectedName in
-                                app.selectedFunctionLibrary = selectedName.flatMap { name in
-                                    app.functionLibraries.first { $0.name == name }
-                                }
-                            }
-                        )
-                    ) {
-                        ForEach(filteredLibraries) { library in
-                            libraryRow(library)
-                                .fullWidthListRowSeparator()
-                                .tag(library.name)
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        libraryPendingDeletion = library
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(filteredLibraries) { library in
+                                libraryRow(library)
+                                    .fullWidthListRowSeparator()
+                                    .fullWidthSelectionBackground(app.selectedFunctionLibrary?.name == library.name)
+                                    .id(library.name)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { app.selectedFunctionLibrary = library }
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            libraryPendingDeletion = library
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
                                     }
-                                }
+                            }
                         }
                     }
-                    .listStyle(.plain)
                     .coordinateSpace(name: ListSeparatorSpace.name)
                 }
             }
@@ -258,7 +252,8 @@ struct FunctionsView: View {
                 .truncationMode(.middle)
             Spacer()
         }
-        .padding(.vertical, AppSpacing.small)
+        .padding(.vertical, AppSpacing.medium)
+        .padding(.leading, AppSpacing.small)
         .help(library.name)
     }
 
