@@ -426,8 +426,7 @@ private struct KeyFlatList: View {
                 LazyVStack(spacing: 0) {
                     ForEach(keys) { entry in
                         KeyRow(entry: entry)
-                            .fullWidthListRowSeparator()
-                            .fullWidthSelectionBackground(selectedKey?.key == entry.key)
+                            .fullWidthListRow(selected: selectedKey?.key == entry.key)
                             .id(entry.key)
                             .contentShape(Rectangle())
                             .onTapGesture { selectedKey = entry }
@@ -443,7 +442,6 @@ private struct KeyFlatList: View {
                     }
                 }
             }
-            .coordinateSpace(name: ListSeparatorSpace.name)
             .onAppear {
                 scrollToKey(scrollTargetKey, using: proxy)
             }
@@ -468,8 +466,7 @@ private struct KeyNamespaceList: View {
                 LazyVStack(spacing: 0) {
                     ForEach(tree.rootKeys) { entry in
                         KeyRow(entry: entry)
-                            .fullWidthListRowSeparator()
-                            .fullWidthSelectionBackground(selectedKey?.key == entry.key)
+                            .fullWidthListRow(selected: selectedKey?.key == entry.key)
                             .id(entry.key)
                             .contentShape(Rectangle())
                             .onTapGesture { selectedKey = entry }
@@ -497,7 +494,6 @@ private struct KeyNamespaceList: View {
                     }
                 }
             }
-            .coordinateSpace(name: ListSeparatorSpace.name)
             .onAppear {
                 scrollToKey(scrollTargetKey, using: proxy)
             }
@@ -535,8 +531,7 @@ private struct KeyNamespaceNodeView: View {
             .contentShape(Rectangle())
             .onTapGesture(perform: toggleExpansion)
             .padding(.leading, CGFloat(depth) * AppSpacing.small)
-            .fullWidthListRowSeparator()
-            .fullWidthSelectionBackground(false)
+            .fullWidthListRow(selected: false)
             .id("folder:\(namespace.id)")
     }
 
@@ -563,8 +558,7 @@ private struct KeyNamespaceNodeView: View {
             ForEach(displayedKeys) { entry in
                 KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
                     .padding(.leading, childIndent)
-                    .fullWidthListRowSeparator()
-                    .fullWidthSelectionBackground(selectedKey?.key == entry.key)
+                    .fullWidthListRow(selected: selectedKey?.key == entry.key)
                     .id(entry.key)
                     .contentShape(Rectangle())
                     .onTapGesture { selectedKey = entry }
@@ -589,8 +583,7 @@ private struct KeyNamespaceNodeView: View {
                 }
                 .padding(.vertical, AppSpacing.xSmall)
                 .padding(.leading, childIndent)
-                .fullWidthListRowSeparator()
-                .fullWidthSelectionBackground(false)
+                .fullWidthListRow(selected: false)
                 .id("more:\(namespace.id)")
             }
         }

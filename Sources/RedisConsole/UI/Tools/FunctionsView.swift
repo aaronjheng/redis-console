@@ -208,8 +208,7 @@ struct FunctionsView: View {
                         LazyVStack(spacing: 0) {
                             ForEach(filteredLibraries) { library in
                                 libraryRow(library)
-                                    .fullWidthListRowSeparator()
-                                    .fullWidthSelectionBackground(app.selectedFunctionLibrary?.name == library.name)
+                                    .fullWidthListRow(selected: app.selectedFunctionLibrary?.name == library.name)
                                     .id(library.name)
                                     .contentShape(Rectangle())
                                     .onTapGesture { app.selectedFunctionLibrary = library }
@@ -223,7 +222,6 @@ struct FunctionsView: View {
                             }
                         }
                     }
-                    .coordinateSpace(name: ListSeparatorSpace.name)
                 }
             }
 

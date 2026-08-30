@@ -724,60 +724,38 @@ extension View {
     }
 }
 
-// MARK: - List Row Separator
-
-// MARK: - List Row Separator
-
-enum ListSeparatorSpace {
-    static let name = "listSeparatorSpace"
-}
+// MARK: - Full-Width List Row
 
 extension View {
-    /// Draws a 1pt separator along the bottom of the row that spans the full
-    /// width of the enclosing `List`, connecting to the split-view dividers on
-    /// both sides regardless of per-row indentation (e.g. `DisclosureGroup`
-    /// outline levels in the namespace view).
+    /// Draws the chrome of a full-width list row: the selection highlight and
+    /// a 1pt bottom separator, both spanning the enclosing scroll container
+    /// edge to edge (connecting to the split-view dividers on both sides).
     ///
-    /// The system row separator can't be stretched to the pane edge: its
-    /// leading inset depends on each row's indentation, and `listRowInsets`
-    /// doesn't remove the horizontal inset on macOS. So we hide it and paint
-    /// our own line, measured against the list's coordinate space so the
-    /// leading edge always lands on the list's left bound.
-    func fullWidthListRowSeparator() -> some View {
+    /// Neither can be left to the system: the row separator's leading inset
+    /// follows row indentation and `listRowInsets` can't remove it on macOS,
+    /// and the selection highlight is inset from the row edges. So we hide the
+    /// system separator and paint both ourselves, sized to the container's
+    /// width with `containerRelativeFrame`. This assumes the row fills the
+    /// container's width, which plain `LazyVStack` rows do (namespace tree
+    /// depth is drawn as internal padding).
+    ///
+    /// The separator is drawn as an overlay so it stays visible on top of the
+    /// selection highlight, and it switches to a primary-tinted line there:
+    /// `separatorColor` is a ~10% alpha tint meant for plain backgrounds and
+    /// all but disappears over the opaque selection color.
+    func fullWidthListRow(selected: Bool) -> some View {
         self
             .listRowSeparator(.hidden)
-            .background(alignment: .bottom) {
-                GeometryReader { geo in
-                    let frame = geo.frame(in: .named(ListSeparatorSpace.name))
-                    Color(nsColor: .separatorColor)
-                        .frame(width: frame.minX + geo.size.width + 4000, height: 1)
-                        .offset(x: -frame.minX)
-                        .frame(maxHeight: .infinity, alignment: .bottom)
-                }
+            .background {
+                Color(nsColor: .selectedControlColor)
+                    .containerRelativeFrame(.horizontal)
+                    .opacity(selected ? 1 : 0)
             }
-    }
-
-    /// Draws the row's selection highlight as a full-width rectangle that spans
-    /// the enclosing list (connecting to the split-view dividers on both sides),
-    /// the same way `fullWidthListRowSeparator()` stretches its line.
-    ///
-    /// The system selection highlight is inset from the row edges, so we paint
-    /// our own using the standard control selection color, measured against the
-    /// list's coordinate space so the leading edge always lands on the list's
-    /// left bound. `selected` is `false` for non-selectable rows (folders,
-    /// "more" placeholders), which draws nothing.
-    func fullWidthSelectionBackground(_ selected: Bool) -> some View {
-        self
-            .background(alignment: .leading) {
-                GeometryReader { geo in
-                    let frame = geo.frame(in: .named(ListSeparatorSpace.name))
-                    let width = frame.minX + geo.size.width + 4000
-                    Color(nsColor: .selectedControlColor)
-                        .frame(width: width, height: geo.size.height)
-                        .opacity(selected ? 1 : 0)
-                        .offset(x: -frame.minX)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                }
+            .overlay(alignment: .bottom) {
+                let lineColor = selected ? Color.primary.opacity(0.2) : Color(nsColor: .separatorColor)
+                lineColor
+                    .frame(height: 1)
+                    .containerRelativeFrame(.horizontal)
             }
     }
 }
