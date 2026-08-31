@@ -726,6 +726,19 @@ extension View {
 
 // MARK: - Full-Width List Row
 
+private struct ListRowIsSelectedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether the enclosing full-width list row is painted with the emphasized
+    /// selection highlight, so row content can flip to legible on-selection colors.
+    var listRowIsSelected: Bool {
+        get { self[ListRowIsSelectedKey.self] }
+        set { self[ListRowIsSelectedKey.self] = newValue }
+    }
+}
+
 extension View {
     /// Draws the chrome of a full-width list row: the selection highlight and
     /// a 1pt bottom separator, both spanning the enclosing scroll container
@@ -739,6 +752,14 @@ extension View {
     /// container's width, which plain `LazyVStack` rows do (namespace tree
     /// depth is drawn as internal padding).
     ///
+    /// The highlight uses `selectedContentBackgroundColor`, the same emphasized
+    /// selection color the system paints list rows with: it follows the accent
+    /// color and stays vivid in dark mode, unlike `selectedControlColor`, which
+    /// is a control-face color that resolves to a desaturated slate blue there.
+    /// That fill is strong in both appearances, so the selected state is also
+    /// published through the `listRowIsSelected` environment value, letting row
+    /// content flip to on-selection foreground colors (white) like native lists.
+    ///
     /// The separator is drawn as an overlay, except on the selected row where
     /// it is hidden: the selection highlight already marks the row boundary,
     /// and a line painted over the opaque selection color would read much
@@ -747,8 +768,9 @@ extension View {
     func fullWidthListRow(selected: Bool) -> some View {
         self
             .listRowSeparator(.hidden)
+            .environment(\.listRowIsSelected, selected)
             .background {
-                Color(nsColor: .selectedControlColor)
+                Color(nsColor: .selectedContentBackgroundColor)
                     .containerRelativeFrame(.horizontal)
                     .opacity(selected ? 1 : 0)
             }

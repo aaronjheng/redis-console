@@ -26,6 +26,17 @@ enum AppColor {
     /// Highlight background for selected rows/items in lists and tables.
     static let selectionBackground: Color = Color.accentColor.opacity(0.14)
 
+    // MARK: - Selection content
+
+    /// Foreground for primary text drawn on the emphasized selection highlight.
+    static let onSelection: Color = .white
+
+    /// Foreground for secondary text (badges, metadata) on the selection highlight.
+    static let onSelectionSecondary: Color = .white.opacity(0.8)
+
+    /// Translucent badge background that stays legible on the selection highlight.
+    static let selectionBadgeBackground: Color = .white.opacity(0.18)
+
     // MARK: - Redis type chart colors
 
     static let chartString: Color = .blue

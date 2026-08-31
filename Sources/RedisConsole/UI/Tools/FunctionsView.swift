@@ -207,7 +207,7 @@ struct FunctionsView: View {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(filteredLibraries) { library in
-                                libraryRow(library)
+                                LibraryRow(library: library)
                                     .fullWidthListRow(selected: app.selectedFunctionLibrary?.name == library.name)
                                     .id(library.name)
                                     .contentShape(Rectangle())
@@ -234,27 +234,6 @@ struct FunctionsView: View {
         }
     }
 
-    private func libraryRow(_ library: RedisFunctionLibrary) -> some View {
-        HStack(spacing: AppSpacing.small) {
-            Text(library.engine)
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .frame(width: AppSize.typeBadgeWidth, alignment: .center)
-                .padding(.vertical, AppSpacing.xxSmall)
-                .background(AppColor.subtleBackground)
-                .clipShape(RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous))
-            Text(library.name)
-                .font(.body)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer()
-        }
-        .padding(.vertical, AppSpacing.medium)
-        .padding(.leading, AppSpacing.small)
-        .help(library.name)
-    }
-
     // MARK: Helpers
 
     private var footerText: String {
@@ -278,5 +257,32 @@ struct FunctionsView: View {
             ContentUnavailableView(title, systemImage: "curlybraces", description: Text(description))
             Spacer()
         }
+    }
+}
+
+private struct LibraryRow: View {
+    let library: RedisFunctionLibrary
+    @Environment(\.listRowIsSelected) private var isSelected
+
+    var body: some View {
+        HStack(spacing: AppSpacing.small) {
+            Text(library.engine)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(isSelected ? AppColor.onSelectionSecondary : .secondary)
+                .lineLimit(1)
+                .frame(width: AppSize.typeBadgeWidth, alignment: .center)
+                .padding(.vertical, AppSpacing.xxSmall)
+                .background(isSelected ? AppColor.selectionBadgeBackground : AppColor.subtleBackground)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous))
+            Text(library.name)
+                .font(.body)
+                .foregroundStyle(isSelected ? AppColor.onSelection : .primary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+        }
+        .padding(.vertical, AppSpacing.medium)
+        .padding(.leading, AppSpacing.small)
+        .help(library.name)
     }
 }
