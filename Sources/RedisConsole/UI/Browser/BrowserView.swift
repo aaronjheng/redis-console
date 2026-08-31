@@ -619,7 +619,7 @@ private struct KeyNamespaceRow: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, AppSpacing.medium)
-        .padding(.leading, AppSpacing.small)
+        .padding(.horizontal, AppSpacing.small)
         .accessibilityLabel("\(namespace.name), \(namespace.keyCount) keys")
     }
 }
