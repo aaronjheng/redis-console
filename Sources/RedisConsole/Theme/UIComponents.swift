@@ -739,10 +739,11 @@ extension View {
     /// container's width, which plain `LazyVStack` rows do (namespace tree
     /// depth is drawn as internal padding).
     ///
-    /// The separator is drawn as an overlay so it stays visible on top of the
-    /// selection highlight, and it switches to a primary-tinted line there:
-    /// `separatorColor` is a ~10% alpha tint meant for plain backgrounds and
-    /// all but disappears over the opaque selection color.
+    /// The separator is drawn as an overlay, except on the selected row where
+    /// it is hidden: the selection highlight already marks the row boundary,
+    /// and a line painted over the opaque selection color would read much
+    /// heavier than the neighboring separators. Hiding it matches native
+    /// table behavior, where no separator is drawn at the selection edge.
     func fullWidthListRow(selected: Bool) -> some View {
         self
             .listRowSeparator(.hidden)
@@ -752,10 +753,10 @@ extension View {
                     .opacity(selected ? 1 : 0)
             }
             .overlay(alignment: .bottom) {
-                let lineColor = selected ? Color.primary.opacity(0.2) : Color(nsColor: .separatorColor)
-                lineColor
+                Color(nsColor: .separatorColor)
                     .frame(height: 1)
                     .containerRelativeFrame(.horizontal)
+                    .opacity(selected ? 0 : 1)
             }
     }
 }
