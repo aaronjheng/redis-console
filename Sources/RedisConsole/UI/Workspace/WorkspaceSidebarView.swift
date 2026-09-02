@@ -54,6 +54,7 @@ struct WorkspaceSidebarView: View {
                 }
             }
             .listStyle(.sidebar)
+            .flatSidebarBackground()
 
             Divider()
 

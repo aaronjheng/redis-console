@@ -1,6 +1,25 @@
 import AppKit
 import SwiftUI
 
+// MARK: - Sidebar Background
+
+extension View {
+    /// Gives a `.listStyle(.sidebar)` list a flat, opaque background with a slight tint
+    /// so the sidebar stays visually distinct from the content area.
+    ///
+    /// Outside a navigation container (e.g. inside a plain `HSplitView`), a sidebar-styled
+    /// list is backed by an `NSVisualEffectView` that blends with whatever is behind the
+    /// window, so the sidebar turns translucent in windowed mode and only looks right in
+    /// fullscreen. Hiding the list's scroll background and painting an opaque color instead
+    /// keeps the sidebar flat in every window state; the light tint on top reproduces the
+    /// subtle sidebar/content contrast the system material used to provide.
+    func flatSidebarBackground() -> some View {
+        scrollContentBackground(.hidden)
+            .background(Color.primary.opacity(0.05))
+            .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
+
 struct WorkspaceFooterBar<Content: View>: View {
     @ViewBuilder let content: Content
 

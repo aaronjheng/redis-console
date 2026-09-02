@@ -102,6 +102,7 @@ struct ConnectionHubSidebarView: View {
                 }
             }
             .listStyle(.sidebar)
+            .flatSidebarBackground()
         }
         .confirmationDialog(
             "Delete Connection?",
