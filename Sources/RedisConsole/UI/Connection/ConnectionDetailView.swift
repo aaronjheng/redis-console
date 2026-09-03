@@ -114,6 +114,16 @@ struct ConnectionDetailView: View {
                     Section("SSH Tunnel") {
                         Toggle("Enable SSH Tunnel", isOn: $ssh.enabled)
                         if ssh.enabled {
+                            HStack {
+                                Text("Mode")
+                                Spacer()
+                                OptionsPicker(
+                                    "SSH mode",
+                                    selection: $ssh.mode,
+                                    options: SSHTunnelMode.allCases,
+                                    label: \.title
+                                )
+                            }
                             TextField("Host", text: $ssh.host)
                             HStack {
                                 Text("Port")
@@ -132,11 +142,22 @@ struct ConnectionDetailView: View {
                                 .frame(width: AppSize.formFieldWidth)
                             }
                             TextField("User (optional)", text: $ssh.user)
-                            SecureField("Password (optional)", text: $ssh.password)
-                            TextField("Private Key Path (optional)", text: $ssh.privateKeyPath)
-                            Text("Provide a password or a private key file path")
+                            if ssh.mode == .builtIn {
+                                SecureField("Password (optional)", text: $ssh.password)
+                                TextField("Private Key Path (optional)", text: $ssh.privateKeyPath)
+                                Text("Provide a password or a private key file path")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                TextField("Private Key Path (optional)", text: $ssh.privateKeyPath)
+                                Text(
+                                    "Uses /usr/bin/ssh with ~/.ssh/config, keys and ssh-agent "
+                                        + "(ProxyJump supported). Tunnels to the same host share one connection. "
+                                        + "Password is ignored — use ssh-agent for passphrases."
+                                )
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                            }
                         }
                     }
 
@@ -341,11 +362,12 @@ struct ConnectionDetailView: View {
                         try await createdTunnel.start(
                             sshHost: trimmedSSHHost,
                             sshPort: ssh.port,
-                            sshUser: effectiveSSHUser,
+                            sshUser: trimmedSSHUser,
                             sshPassword: ssh.password.isEmpty ? nil : ssh.password,
                             privateKeyPath: ssh.privateKeyPath.isEmpty ? nil : ssh.privateKeyPath,
                             remoteHost: host,
-                            remotePort: port
+                            remotePort: port,
+                            mode: ssh.mode
                         )
                     }
                     connectHost = "127.0.0.1"

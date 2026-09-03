@@ -5,7 +5,7 @@ Native macOS Redis GUI client built with Swift and SwiftUI.
 ## Features
 
 - **Standalone & Cluster** — full support for both deployment modes with automatic topology discovery, hash-slot routing, and MOVED/ASK redirect handling
-- **SSH Tunneling** — connect to Redis instances behind firewalls via SSH (password or key-based auth, Ed25519/ECDSA)
+- **SSH Tunneling** — connect to Redis instances behind firewalls via SSH: built-in mode (password or key-based auth, Ed25519/ECDSA) or system-SSH mode that drives local `ssh(1)`, reusing `~/.ssh/config`, agents, ProxyJump and certificates with multiplexed connection sharing
 - **TLS / mTLS** — secure connections with optional CA, client cert, and client key
 - **Key Browser** — scan, filter, and manage keys with flat list or namespace tree views; inline TTL editing and deletion
 - **Type-Aware Value Editor** — dedicated viewers for strings (with JSON/hex/base64/gzip formatting), hashes, lists, sets, and sorted sets; inline editing and batch operations

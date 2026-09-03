@@ -10,6 +10,7 @@ import Synchronization
 class SSHTunnel: @unchecked Sendable {
     enum TunnelMode: String {
         case nioSSH
+        case systemSSH
     }
 
     // Configurable timeout settings
@@ -31,6 +32,7 @@ class SSHTunnel: @unchecked Sendable {
         var ownsGroup = true
         var channel: Channel?
         var localServer: Channel?
+        var systemTunnel: SystemSSHTunnel?
         var localPort: UInt16 = 0
         var isRunning = false
         var mode: TunnelMode = .nioSSH
@@ -44,6 +46,7 @@ class SSHTunnel: @unchecked Sendable {
         var localServer: Channel?
         var channel: Channel?
         var ownedGroup: NIOTSEventLoopGroup?
+        var systemTunnel: SystemSSHTunnel?
     }
 
     private(set) var localPort: UInt16 {
@@ -87,6 +90,7 @@ class SSHTunnel: @unchecked Sendable {
         privateKeyPath: String?,
         remoteHost: String,
         remotePort: UInt16,
+        mode: SSHTunnelMode = .builtIn,
         eventLoopGroup: NIOTSEventLoopGroup? = nil
     ) async throws {
         let effectiveUser = sshUser.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? NSUserName() : sshUser
@@ -102,6 +106,13 @@ class SSHTunnel: @unchecked Sendable {
         self.privateKeyPath = privateKeyPath
         self.remoteHost = remoteHost
         self.remotePort = remotePort
+
+        // External mode delegates to the local ssh(1) binary (agent,
+        // ~/.ssh/config, ProxyJump, multiplexed master) instead of NIOSSH.
+        if mode == .external {
+            try await startViaSystemSSH()
+            return
+        }
 
         // Find available local port
         self.localPort = findAvailablePort()
@@ -155,6 +166,8 @@ class SSHTunnel: @unchecked Sendable {
             state.isRunning = false
             let ownedGroup = state.ownsGroup ? state.group : nil
             state.group = nil
+            let systemTunnel = state.systemTunnel
+            state.systemTunnel = nil
             defer {
                 state.localServer = nil
                 state.channel = nil
@@ -162,10 +175,15 @@ class SSHTunnel: @unchecked Sendable {
             return StoppedTunnel(
                 localServer: state.localServer,
                 channel: state.channel,
-                ownedGroup: ownedGroup
+                ownedGroup: ownedGroup,
+                systemTunnel: systemTunnel
             )
         }
         AppLogger.info("stop tunnel mode=\(mode.rawValue)", category: "SSHTunnel")
+
+        // Release the system-ssh forwarding (the shared master survives
+        // while other tunnels still use it).
+        stopped.systemTunnel?.stop()
 
         // Close local server
         stopped.localServer?.close(promise: nil)
@@ -184,6 +202,40 @@ class SSHTunnel: @unchecked Sendable {
     }
 
     // MARK: - SSH Connection
+
+    /// External-mode entry point: one `-O forward` lease on the shared
+    /// system-ssh master connection (see `SystemSSHConnectionPool`).
+    ///
+    /// The raw `sshUser` is passed through (not `effectiveSSHUser`): an empty
+    /// user lets `~/.ssh/config` supply `User`, exactly like in Terminal.
+    private func startViaSystemSSH() async throws {
+        // Publish the mode first so stop()/logs report correctly even when
+        // the attempt below fails.
+        state.withLock { $0.mode = .systemSSH }
+        let systemTunnel = SystemSSHTunnel()
+        systemTunnel.setupTimeoutSeconds = setupTimeoutSeconds
+        do {
+            try await systemTunnel.start(
+                sshHost: sshHost,
+                sshPort: sshPort,
+                sshUser: sshUser,
+                sshPassword: sshPassword,
+                privateKeyPath: privateKeyPath,
+                remoteHost: remoteHost,
+                remotePort: remotePort
+            )
+        } catch {
+            AppLogger.error("start via system ssh failed error=\(error)", category: "SSHTunnel")
+            throw error
+        }
+        state.withLock {
+            $0.systemTunnel = systemTunnel
+            $0.localPort = systemTunnel.localPort
+            $0.mode = .systemSSH
+            $0.isRunning = true
+        }
+        AppLogger.info("tunnel mode=systemSSH ready local=127.0.0.1:\(systemTunnel.localPort)", category: "SSHTunnel")
+    }
 
     private func connectSSHWithRetry(group: NIOTSEventLoopGroup) async throws -> Channel {
         var lastError: Error?

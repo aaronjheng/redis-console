@@ -33,11 +33,12 @@ extension ConnectionState {
                     try await tunnel.start(
                         sshHost: config.ssh.host,
                         sshPort: config.ssh.port,
-                        sshUser: config.ssh.user.isEmpty ? NSUserName() : config.ssh.user,
+                        sshUser: config.ssh.user,
                         sshPassword: config.ssh.password.isEmpty ? nil : config.ssh.password,
                         privateKeyPath: config.ssh.privateKeyPath.isEmpty ? nil : config.ssh.privateKeyPath,
                         remoteHost: config.host,
-                        remotePort: config.port
+                        remotePort: config.port,
+                        mode: config.ssh.mode
                     )
                     sshTunnel = tunnel
                     connectHost = "127.0.0.1"

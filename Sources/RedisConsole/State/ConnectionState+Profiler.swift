@@ -306,8 +306,6 @@ extension ConnectionState {
         remotePort: UInt16
     ) async throws -> SSHTunnel {
         let sshHost = config.ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
-        let sshUser = config.ssh.user.trimmingCharacters(in: .whitespacesAndNewlines)
-        let effectiveSSHUser = sshUser.isEmpty ? NSUserName() : sshUser
         guard !sshHost.isEmpty else {
             throw SSHTunnelError.connectionFailed("SSH host is required")
         }
@@ -322,11 +320,12 @@ extension ConnectionState {
                 try await tunnel.start(
                     sshHost: sshHost,
                     sshPort: config.ssh.port,
-                    sshUser: effectiveSSHUser,
+                    sshUser: config.ssh.user,
                     sshPassword: config.ssh.password.isEmpty ? nil : config.ssh.password,
                     privateKeyPath: config.ssh.privateKeyPath.isEmpty ? nil : config.ssh.privateKeyPath,
                     remoteHost: remoteHost,
-                    remotePort: remotePort
+                    remotePort: remotePort,
+                    mode: config.ssh.mode
                 )
             }
             return tunnel

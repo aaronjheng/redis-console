@@ -29,10 +29,33 @@ enum ConnectionEnvironment: String, Codable, CaseIterable {
     var badgeBackgroundColor: Color { AppColor.badgeBackground(color) }
 }
 
-// MARK: - Connection Config
+// MARK: - SSH Tunnel Mode
+
+/// How the SSH tunnel is established.
+///
+/// - `builtIn`: NIO-based SSH implementation inside the app. Supports
+///   password and (unencrypted) Ed25519/ECDSA keys, but ignores the local
+///   SSH infrastructure (`~/.ssh/config`, agents, ProxyJump, certificates).
+/// - `external`: delegates to the local `/usr/bin/ssh`, so agent identities,
+///   `~/.ssh/config` (including ProxyJump), `known_hosts` and certificates
+///   work exactly like in Terminal. Tunnels to the same SSH destination
+///   share one multiplexed master connection. Passwords are ignored in this
+///   mode — use `ssh-agent` for passphrases.
+enum SSHTunnelMode: String, Codable, Hashable, Sendable, CaseIterable {
+    case builtIn
+    case external
+
+    var title: String {
+        switch self {
+        case .builtIn: return "Built-in"
+        case .external: return "System SSH"
+        }
+    }
+}
 
 struct SSHConfig: Codable, Hashable {
     var enabled: Bool = false
+    var mode: SSHTunnelMode = .builtIn
     var host: String = ""
     var port: UInt16 = 22
     var user: String = ""
@@ -45,6 +68,67 @@ struct SSHConfig: Codable, Hashable {
     var connectionAttemptTimeout: TimeInterval = 5
     var maxConnectionAttempts: Int = 4
     var authTimeout: TimeInterval = 10
+
+    enum CodingKeys: String, CodingKey {
+        case enabled
+        case mode
+        case host
+        case port
+        case user
+        case password
+        case privateKeyPath
+        case privateKeyPassphrase
+        case setupTimeout
+        case connectionAttemptTimeout
+        case maxConnectionAttempts
+        case authTimeout
+    }
+
+    init(
+        enabled: Bool = false,
+        mode: SSHTunnelMode = .builtIn,
+        host: String = "",
+        port: UInt16 = 22,
+        user: String = "",
+        password: String = "",
+        privateKeyPath: String = "",
+        privateKeyPassphrase: String = "",
+        setupTimeout: TimeInterval = 30,
+        connectionAttemptTimeout: TimeInterval = 5,
+        maxConnectionAttempts: Int = 4,
+        authTimeout: TimeInterval = 10
+    ) {
+        self.enabled = enabled
+        self.mode = mode
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
+        self.privateKeyPath = privateKeyPath
+        self.privateKeyPassphrase = privateKeyPassphrase
+        self.setupTimeout = setupTimeout
+        self.connectionAttemptTimeout = connectionAttemptTimeout
+        self.maxConnectionAttempts = maxConnectionAttempts
+        self.authTimeout = authTimeout
+    }
+
+    // Custom decoding with `decodeIfPresent` everywhere so connections saved
+    // before a field existed (e.g. `mode`) still load with sane defaults.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? false
+        mode = try container.decodeIfPresent(SSHTunnelMode.self, forKey: .mode) ?? .builtIn
+        host = try container.decodeIfPresent(String.self, forKey: .host) ?? ""
+        port = try container.decodeIfPresent(UInt16.self, forKey: .port) ?? 22
+        user = try container.decodeIfPresent(String.self, forKey: .user) ?? ""
+        password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
+        privateKeyPath = try container.decodeIfPresent(String.self, forKey: .privateKeyPath) ?? ""
+        privateKeyPassphrase = try container.decodeIfPresent(String.self, forKey: .privateKeyPassphrase) ?? ""
+        setupTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .setupTimeout) ?? 30
+        connectionAttemptTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .connectionAttemptTimeout) ?? 5
+        maxConnectionAttempts = try container.decodeIfPresent(Int.self, forKey: .maxConnectionAttempts) ?? 4
+        authTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .authTimeout) ?? 10
+    }
 }
 
 struct TLSConfig: Codable, Hashable {

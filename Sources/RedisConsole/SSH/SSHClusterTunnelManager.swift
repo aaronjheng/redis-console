@@ -7,6 +7,7 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
     private let sshUser: String
     private let sshPassword: String?
     private let privateKeyPath: String?
+    private let sshMode: SSHTunnelMode
     private let setupTimeout: TimeInterval
     private var tunnels: [RedisEndpoint: SSHTunnel] = [:]
     private var generation = 0
@@ -16,10 +17,12 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
         sshHost = ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
         sshPort = ssh.port
 
-        let trimmedUser = ssh.user.trimmingCharacters(in: .whitespacesAndNewlines)
-        sshUser = trimmedUser.isEmpty ? NSUserName() : trimmedUser
+        // Raw user on purpose: an empty user lets ~/.ssh/config supply `User`
+        // in external mode. The built-in path still defaults internally.
+        sshUser = ssh.user.trimmingCharacters(in: .whitespacesAndNewlines)
         sshPassword = ssh.password.isEmpty ? nil : ssh.password
         privateKeyPath = ssh.privateKeyPath.isEmpty ? nil : ssh.privateKeyPath
+        sshMode = ssh.mode
         setupTimeout = ssh.setupTimeout
         sharedGroup = NIOTSEventLoopGroup(
             loopCount: max(2, min(ProcessInfo.processInfo.activeProcessorCount, 4))
@@ -43,9 +46,10 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
         let configuredSSHUser = sshUser
         let configuredSSHPassword = sshPassword
         let configuredPrivateKeyPath = privateKeyPath
+        let configuredMode = sshMode
         AppLogger.info(
-            "starting cluster ssh tunnel ssh=\(configuredSSHHost):\(configuredSSHPort) "
-                + "user=\(configuredSSHUser) remote=\(endpoint.address)",
+            "starting cluster ssh tunnel mode=\(configuredMode) ssh=\(configuredSSHHost):\(configuredSSHPort) "
+                + "user=\(configuredSSHUser.isEmpty ? "(from ssh config)" : configuredSSHUser) remote=\(endpoint.address)",
             category: "SSHTunnel"
         )
 
@@ -59,6 +63,7 @@ actor SSHClusterTunnelManager: RedisClusterEndpointResolver {
                     privateKeyPath: configuredPrivateKeyPath,
                     remoteHost: endpoint.host,
                     remotePort: endpoint.port,
+                    mode: configuredMode,
                     eventLoopGroup: self.sharedGroup
                 )
             }

@@ -10,6 +10,42 @@
 	<string>77</string>
 	<key>objects</key>
 	<dict>
+		<key>B60C092119559FDE6486EF9A</key>
+		<dict>
+			<key>fileRef</key>
+			<string>267D2F4CF9A0B7C084E47895</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>267D2F4CF9A0B7C084E47895</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>SSH/SystemSSHConnectionPool.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>576C406DE854B779E17C976D</key>
+		<dict>
+			<key>fileRef</key>
+			<string>84DC0443A8C1E35C6C905DDE</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>84DC0443A8C1E35C6C905DDE</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>SSH/SystemSSHTunnel.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>0059138E5AC64EA499317333</key>
 		<dict>
 			<key>isa</key>
@@ -207,7 +243,9 @@
 				<string>E7B2C4D6E8F0A1B2C3D4E5F6</string>
 				<string>DDAEA26E1EB44856A4E40CE9</string>
 				<string>E7DAE39125644185BA5CBBCC</string>
-			</array>
+			
+				<string>267D2F4CF9A0B7C084E47895</string>
+				<string>84DC0443A8C1E35C6C905DDE</string></array>
 			<key>isa</key>
 			<string>PBXGroup</string>
 			<key>path</key>
@@ -961,7 +999,9 @@
 				<string>4E304EC41AB84507A2093DF2</string>
 			<string>B5F373F3E06145DE91F62466</string>
 			<string>F1E2D3C4B5A6978679485A6B</string>
-		</array>
+		
+				<string>B60C092119559FDE6486EF9A</string>
+				<string>576C406DE854B779E17C976D</string></array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
 			<key>runOnlyForDeploymentPostprocessing</key>
