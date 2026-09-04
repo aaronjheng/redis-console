@@ -107,7 +107,7 @@ actor SystemSSHConnectionPool {
             while true {
                 try Task.checkCancellation()
                 if connections[key] == nil {
-                    try launchSharedConnection(key: key)
+                    try launchSharedConnection(key: key, setupTimeout: setupTimeout)
                 }
                 if try await waitUntilConnectionReady(key: key, deadline: deadline) {
                     connectionID = connections[key]?.id ?? connectionID
@@ -197,7 +197,7 @@ actor SystemSSHConnectionPool {
 
     // MARK: - Master lifecycle
 
-    private func launchSharedConnection(key: Key) throws {
+    private func launchSharedConnection(key: Key, setupTimeout: TimeInterval) throws {
         let destination = key.user.isEmpty ? key.host : "\(key.user)@\(key.host)"
         let paths = try controlPaths(key: key)
         let controlPath = paths.socket
@@ -218,7 +218,13 @@ actor SystemSSHConnectionPool {
             // pool tracks the foreground process, and a forked-away parent
             // exits 0, which looks exactly like a silent instant death.
             "-o", "ForkAfterAuthentication=no",
-            "-o", "ConnectTimeout=10",
+            // ConnectTimeout arms both the TCP connect and the banner
+            // exchange. With stdio proxies (ProxyJump, `tsh proxy ssh`) the
+            // TCP leg opens instantly, then the proxy may run an interactive
+            // flow (browser login) before the banner arrives — so the value
+            // must cover the whole setup budget instead of a short fixed
+            // constant. The pool-level deadline matches `setupTimeout` too.
+            "-o", "ConnectTimeout=\(Int(max(1, setupTimeout)))",
             "-o", "ServerAliveInterval=30",
             "-o", "ServerAliveCountMax=3",
             "-o", "TCPKeepAlive=yes",

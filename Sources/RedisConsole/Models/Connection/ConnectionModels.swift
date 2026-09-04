@@ -63,9 +63,14 @@ struct SSHConfig: Codable, Hashable {
     var privateKeyPath: String = ""
     var privateKeyPassphrase: String = ""
 
-    // Timeout settings (in seconds)
-    var setupTimeout: TimeInterval = 30
-    var connectionAttemptTimeout: TimeInterval = 5
+    // Timeout settings (in seconds). Deliberately not persisted — there is no
+    // UI to edit them, so stored values would freeze old defaults forever and
+    // shipped fixes could never reach existing connections.
+    // `setupTimeout` bounds the whole tunnel setup; it must be generous
+    // because System SSH may run interactive flows (e.g. `tsh proxy` opening
+    // a browser for login) that legitimately take minutes.
+    var setupTimeout: TimeInterval = 180
+    var connectionAttemptTimeout: TimeInterval = 10
     var maxConnectionAttempts: Int = 4
     var authTimeout: TimeInterval = 10
 
@@ -78,10 +83,6 @@ struct SSHConfig: Codable, Hashable {
         case password
         case privateKeyPath
         case privateKeyPassphrase
-        case setupTimeout
-        case connectionAttemptTimeout
-        case maxConnectionAttempts
-        case authTimeout
     }
 
     init(
@@ -93,8 +94,8 @@ struct SSHConfig: Codable, Hashable {
         password: String = "",
         privateKeyPath: String = "",
         privateKeyPassphrase: String = "",
-        setupTimeout: TimeInterval = 30,
-        connectionAttemptTimeout: TimeInterval = 5,
+        setupTimeout: TimeInterval = 180,
+        connectionAttemptTimeout: TimeInterval = 10,
         maxConnectionAttempts: Int = 4,
         authTimeout: TimeInterval = 10
     ) {
@@ -124,10 +125,6 @@ struct SSHConfig: Codable, Hashable {
         password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
         privateKeyPath = try container.decodeIfPresent(String.self, forKey: .privateKeyPath) ?? ""
         privateKeyPassphrase = try container.decodeIfPresent(String.self, forKey: .privateKeyPassphrase) ?? ""
-        setupTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .setupTimeout) ?? 30
-        connectionAttemptTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .connectionAttemptTimeout) ?? 5
-        maxConnectionAttempts = try container.decodeIfPresent(Int.self, forKey: .maxConnectionAttempts) ?? 4
-        authTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .authTimeout) ?? 10
     }
 }
 

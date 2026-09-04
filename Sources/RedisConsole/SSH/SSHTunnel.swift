@@ -15,7 +15,7 @@ class SSHTunnel: @unchecked Sendable {
 
     // Configurable timeout settings
     var setupTimeoutSeconds: TimeInterval = 30
-    var connectionAttemptTimeout: TimeAmount = .seconds(5)
+    var connectionAttemptTimeout: TimeAmount = .seconds(10)
     var maxConnectionAttempts = 4
     var authTimeoutSeconds: TimeInterval = 10
     private var connectionRetryDelaysNanoseconds: [UInt64] = [
