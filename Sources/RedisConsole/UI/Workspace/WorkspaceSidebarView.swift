@@ -5,6 +5,11 @@ import SwiftUI
 struct WorkspaceSidebarView: View {
     @Environment(ConnectionState.self) private var conn
 
+    /// Functions requires Redis 7.0+, so the entry is hidden on older servers.
+    private var visibleViews: [AppView] {
+        AppView.allCases.filter { $0 != .functions || conn.supportsFunctions }
+    }
+
     var body: some View {
         @Bindable var conn = conn
 
@@ -48,13 +53,18 @@ struct WorkspaceSidebarView: View {
             Divider()
 
             List(selection: $conn.currentView) {
-                ForEach(AppView.allCases, id: \.self) { view in
+                ForEach(visibleViews, id: \.self) { view in
                     Label(view.rawValue, systemImage: view.icon)
                         .tag(view)
                 }
             }
             .listStyle(.sidebar)
             .flatSidebarBackground()
+            .onChange(of: conn.supportsFunctions) { _, supportsFunctions in
+                if !supportsFunctions && conn.currentView == .functions {
+                    conn.currentView = .browser
+                }
+            }
 
             Divider()
 
