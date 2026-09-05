@@ -158,10 +158,9 @@ struct FunctionsView: View {
         if app.activeClient?.isConnected != true {
             emptyState("Not connected", "Connect to a Redis server to manage functions")
         } else if !app.supportsFunctions {
-            ContentUnavailableView(
+            emptyState(
                 "Redis 7.0+ required",
-                systemImage: "curlybraces",
-                description: Text("Redis Functions are available in Redis 7.0 and later.")
+                "Redis Functions are available in Redis 7.0 and later."
             )
         } else if app.isLoadingFunctions && app.functionLibraries.isEmpty {
             Spacer()
