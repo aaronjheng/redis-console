@@ -1,6 +1,6 @@
 import Foundation
-import Security
 import Network
+import Security
 
 /// A client identity loaded from a certificate + private key pair, ready to be
 /// handed to `sec_protocol_options_set_local_identity`.
@@ -51,35 +51,47 @@ func loadClientIdentity(certificatePath: String, keyPath: String) throws -> Load
     let certURL = URL(fileURLWithPath: certPath)
     let keyURL = URL(fileURLWithPath: keyPathTrimmed)
 
-    if certURL.pathExtension.lowercased() == "p12" || certURL.pathExtension.lowercased() == "pfx"
-        || keyURL.pathExtension.lowercased() == "p12" || keyURL.pathExtension.lowercased() == "pfx" {
-        return try loadPKCS12(at: certURL)
+    let certIsPKCS12 = ["p12", "pfx"].contains(certURL.pathExtension.lowercased())
+    let keyIsPKCS12 = ["p12", "pfx"].contains(keyURL.pathExtension.lowercased())
+    if certIsPKCS12 || keyIsPKCS12 {
+        return try loadPKCS12(at: certIsPKCS12 ? certURL : keyURL)
     }
 
     // Separate PEM cert + key: `SecIdentityCreateWithCertificate` only finds the
     // private key when it already lives in a keychain, so import both into a
     // throwaway keychain and assemble the identity from there.
-    let keychain = try createTemporaryKeychain()
-    try importItem(at: keyURL, into: keychain, format: SecExternalFormat.formatPEMSequence)
-    try importItem(at: certURL, into: keychain, format: SecExternalFormat.formatPEMSequence)
+    let (keychain, keychainPath) = try createTemporaryKeychain()
 
-    guard let certData = try? Data(contentsOf: certURL),
-          let cert = SecCertificateCreateWithData(nil, certData as CFData) else {
-        throw ClientIdentityLoaderError.certificateUnreadable
-    }
+    do {
+        try importItem(at: keyURL, into: keychain, format: SecExternalFormat.formatPEMSequence)
+        try importItem(at: certURL, into: keychain, format: SecExternalFormat.formatPEMSequence)
 
-    var identity: SecIdentity?
-    let status = SecIdentityCreateWithCertificate(keychain as CFTypeRef?, cert, &identity)
-    guard status == errSecSuccess, let identity else {
-        throw ClientIdentityLoaderError.identityCreationFailed(status)
+        let certData: Data
+        do {
+            certData = try Data(contentsOf: certURL)
+        } catch {
+            throw ClientIdentityLoaderError.certificateUnreadable
+        }
+        guard let cert = SecCertificateCreateWithData(nil, certData as CFData) else {
+            throw ClientIdentityLoaderError.certificateUnreadable
+        }
+
+        var identity: SecIdentity?
+        let status = SecIdentityCreateWithCertificate(keychain as CFTypeRef?, cert, &identity)
+        guard status == errSecSuccess, let identity else {
+            throw ClientIdentityLoaderError.identityCreationFailed(status)
+        }
+        guard let secIdentity = sec_identity_create(identity) else {
+            throw ClientIdentityLoaderError.identityCreationFailed(status)
+        }
+        return LoadedClientIdentity(secIdentity: secIdentity, keychain: keychain)
+    } catch {
+        deleteKeychainFile(at: keychainPath)
+        throw error
     }
-    guard let secIdentity = sec_identity_create(identity) else {
-        throw ClientIdentityLoaderError.identityCreationFailed(status)
-    }
-    return LoadedClientIdentity(secIdentity: secIdentity, keychain: keychain)
 }
 
-private func createTemporaryKeychain() throws -> SecKeychain {
+private func createTemporaryKeychain() throws -> (SecKeychain, String) {
     let directory = NSTemporaryDirectory()
     let fileName = "redis-console-tls-\(UUID().uuidString).keychain"
     let path = (directory as NSString).appendingPathComponent(fileName)
@@ -97,11 +109,16 @@ private func createTemporaryKeychain() throws -> SecKeychain {
     guard status == errSecSuccess, let keychain else {
         throw ClientIdentityLoaderError.keychainCreateFailed(status)
     }
-    return keychain
+    return (keychain, path)
 }
 
 private func importItem(at url: URL, into keychain: SecKeychain, format: SecExternalFormat) throws -> CFArray? {
-    let data = try Data(contentsOf: url)
+    let data: Data
+    do {
+        data = try Data(contentsOf: url)
+    } catch {
+        throw ClientIdentityLoaderError.certificateUnreadable
+    }
     var format = format
     var items: CFArray?
     let status = SecItemImport(
@@ -121,22 +138,38 @@ private func importItem(at url: URL, into keychain: SecKeychain, format: SecExte
 }
 
 private func loadPKCS12(at url: URL) throws -> LoadedClientIdentity {
-    let keychain = try createTemporaryKeychain()
-    // Unencrypted PKCS#12: no passphrase, so keyParams is nil. Encrypted archives
-    // fail the import and surface a clear error instead of being silently ignored.
-    guard let items = try importItem(at: url, into: keychain, format: SecExternalFormat.formatPKCS12) else {
-        throw ClientIdentityLoaderError.importFailed(errSecInternalComponent)
+    let (keychain, keychainPath) = try createTemporaryKeychain()
+    do {
+        // Unencrypted PKCS#12: no passphrase, so keyParams is nil. Encrypted archives
+        // fail the import and surface a clear error instead of being silently ignored.
+        guard let items = try importItem(at: url, into: keychain, format: SecExternalFormat.formatPKCS12) else {
+            throw ClientIdentityLoaderError.importFailed(errSecInternalComponent)
+        }
+        let array = items as NSArray
+        guard let dict = array.firstObject as? NSDictionary else {
+            throw ClientIdentityLoaderError.identityCreationFailed(errSecInternalComponent)
+        }
+        guard let rawIdentity = dict[kSecImportItemIdentity] else {
+            throw ClientIdentityLoaderError.identityCreationFailed(errSecInternalComponent)
+        }
+        // CF types bridge unconditionally; the guard above already proves the
+        // p12 contains an identity, so the cast is safe here.
+        // swiftlint:disable:next force_cast
+        let identity = rawIdentity as! SecIdentity
+        guard let secIdentity = sec_identity_create(identity) else {
+            throw ClientIdentityLoaderError.identityCreationFailed(errSecInternalComponent)
+        }
+        // The identity (cert + key) lives in the temporary keychain, so it is valid
+        // for the connection lifetime and cleaned up on disconnect via `keychain`.
+        return LoadedClientIdentity(secIdentity: secIdentity, keychain: keychain)
+    } catch {
+        deleteKeychainFile(at: keychainPath)
+        throw error
     }
-    let array = items as NSArray
-    guard let dict = array.firstObject as? NSDictionary else {
-        throw ClientIdentityLoaderError.identityCreationFailed(errSecInternalComponent)
-    }
-    // swiftlint:disable:next force_cast
-    let identity = dict[kSecImportItemIdentity] as! SecIdentity
-    guard let secIdentity = sec_identity_create(identity) else {
-        throw ClientIdentityLoaderError.identityCreationFailed(errSecInternalComponent)
-    }
-    // The identity (cert + key) lives in the temporary keychain, so it is valid
-    // for the connection lifetime and cleaned up on disconnect via `keychain`.
-    return LoadedClientIdentity(secIdentity: secIdentity, keychain: keychain)
+}
+
+/// Removes the temporary keychain file. Called on every failure path so failed
+/// TLS setups never leave files behind in the temporary directory.
+private func deleteKeychainFile(at path: String) {
+    try? FileManager.default.removeItem(atPath: path)
 }

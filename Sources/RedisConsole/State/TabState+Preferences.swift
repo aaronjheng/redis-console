@@ -2,16 +2,26 @@ import Foundation
 
 extension TabState {
     private struct BrowserPreferences: Codable {
+        var version: Int
         var keyTypeFilter: String
         var isNamespaceGroupingEnabled: Bool
         var stringValueFormat: StringValueFormat
+        var namespaceSeparator: String
     }
 
+    private static let browserPreferencesVersion = 2
+
     func loadBrowserPreferences() {
-        guard
-            let data = UserDefaults.standard.data(forKey: Self.browserPreferencesKey),
-            let preferences = try? JSONDecoder().decode(BrowserPreferences.self, from: data)
-        else {
+        guard let data = UserDefaults.standard.data(forKey: Self.browserPreferencesKey) else { return }
+
+        // Corrupted data must not silently reset preferences on every launch:
+        // drop the broken blob once so it can be re-saved cleanly.
+        guard let preferences = try? JSONDecoder().decode(BrowserPreferences.self, from: data) else {
+            UserDefaults.standard.removeObject(forKey: Self.browserPreferencesKey)
+            return
+        }
+        guard preferences.version <= Self.browserPreferencesVersion else {
+            UserDefaults.standard.removeObject(forKey: Self.browserPreferencesKey)
             return
         }
 
@@ -20,13 +30,16 @@ extension TabState {
         keyTypeFilter = preferences.keyTypeFilter
         isNamespaceGroupingEnabled = preferences.isNamespaceGroupingEnabled
         stringValueFormat = preferences.stringValueFormat
+        namespaceSeparator = preferences.namespaceSeparator
     }
 
     func saveBrowserPreferences() {
         let preferences = BrowserPreferences(
+            version: Self.browserPreferencesVersion,
             keyTypeFilter: keyTypeFilter,
             isNamespaceGroupingEnabled: isNamespaceGroupingEnabled,
-            stringValueFormat: stringValueFormat
+            stringValueFormat: stringValueFormat,
+            namespaceSeparator: namespaceSeparator
         )
         guard let data = try? JSONEncoder().encode(preferences) else { return }
         UserDefaults.standard.set(data, forKey: Self.browserPreferencesKey)
@@ -47,6 +60,7 @@ extension TabState {
 
     func loadShellHistory(for connection: RedisConnectionConfig) async {
         shellHistory = await ShellHistoryStore.shared.load(connectionID: connection.id, limit: shellHistoryLimit)
+        shellHistoryConnectionID = connection.id
         if shellHistory.isEmpty {
             await migrateLegacyJSONFile(for: connection)
         }
@@ -71,8 +85,7 @@ extension TabState {
         if shellHistory.count > shellHistoryLimit {
             shellHistory.removeFirst(shellHistory.count - shellHistoryLimit)
         }
-        guard let selectedConnection else { return }
-        let connectionID = selectedConnection.id
+        guard let connectionID = shellHistoryConnectionID else { return }
         let limit = shellHistoryLimit
         Task {
             await ShellHistoryStore.shared.append(entry, connectionID: connectionID, limit: limit)
@@ -81,8 +94,7 @@ extension TabState {
 
     func deleteShellHistoryEntry(_ entry: ShellHistoryEntry) {
         shellHistory.removeAll { $0.id == entry.id }
-        guard let selectedConnection else { return }
-        let connectionID = selectedConnection.id
+        guard let connectionID = shellHistoryConnectionID else { return }
         Task {
             await ShellHistoryStore.shared.delete(id: entry.id, connectionID: connectionID)
         }
@@ -90,8 +102,7 @@ extension TabState {
 
     func clearShellHistory() {
         shellHistory = []
-        guard let selectedConnection else { return }
-        let connectionID = selectedConnection.id
+        guard let connectionID = shellHistoryConnectionID else { return }
         Task {
             await ShellHistoryStore.shared.clear(connectionID: connectionID)
         }

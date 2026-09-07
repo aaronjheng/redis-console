@@ -128,7 +128,7 @@ struct BrowserView: View {
                         Group {
                             if tab.isNamespaceGroupingEnabled {
                                 KeyNamespaceList(
-                                    tree: KeyNamespaceTree(entries: displayedKeys, separator: tab.namespaceSeparator),
+                                    tree: tab.namespaceTree(for: displayedKeys),
                                     selectedKey: $tab.selectedKey,
                                     expandedNamespaces: $expandedNamespaces,
                                     scrollTargetKey: keyListScrollTarget,

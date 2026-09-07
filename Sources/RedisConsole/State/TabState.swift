@@ -33,7 +33,14 @@ class TabState {
     var selectedConnection: RedisConnectionConfig?
     var pendingConnection: RedisConnectionConfig?
 
-    var keys: [RedisKeyEntry] = []
+    var keys: [RedisKeyEntry] = [] {
+        didSet { keyNamespaceTreeCache = nil }
+    }
+    /// Memoized namespace tree for the current keys + filter + separator.
+    /// Invalidation happens through the `didSet` hooks above; without it,
+    /// every selection change rebuilt the tree O(n log n) in the view body.
+    @ObservationIgnored
+    var keyNamespaceTreeCache: KeyNamespaceTree?
     var selectedKey: RedisKeyEntry?
     /// Monotonic token bumped whenever a fresh key-detail load begins (select,
     /// search, ordering change). In-flight loads capture it and discard their
@@ -50,6 +57,9 @@ class TabState {
     var keyDetailCursor: String = "0"
     var keyDetailHasMoreRows = false
     var keyDetailSearchText = ""
+    /// True when the displayed string value was truncated via GETRANGE because
+    /// it exceeded `stringDetailTruncationLimit` bytes.
+    var keyDetailTruncated = false
     var keyDetailZSetOrder: KeyDetailZSetOrder = .ascending
     var isLoadingKeys = false
     var isLoadingDetail = false
@@ -63,6 +73,7 @@ class TabState {
     var keyTypeFilter: String = "" {
         didSet {
             guard !isRestoringPreferences else { return }
+            keyNamespaceTreeCache = nil
             saveBrowserPreferences()
         }
     }
@@ -77,7 +88,9 @@ class TabState {
             saveBrowserPreferences()
         }
     }
-    var namespaceSeparator = ":"
+    var namespaceSeparator = ":" {
+        didSet { keyNamespaceTreeCache = nil }
+    }
     var stringValueFormat: StringValueFormat = .json {
         didSet {
             guard !isRestoringPreferences else { return }
@@ -87,6 +100,10 @@ class TabState {
     var keyDetailLastRefreshedAt: Date?
 
     var shellHistory: [ShellHistoryEntry] = []
+    /// Connection whose history `shellHistory` was loaded from. Writebacks use
+    /// this id so a mid-flight connection switch can never store under the
+    /// wrong connection key.
+    var shellHistoryConnectionID: UUID?
     var shellInput: String = ""
     var shellSession: (any RedisSession)?
 
@@ -100,6 +117,9 @@ class TabState {
     var isLoadingAnalysis = false
     var analysisError: String?
     var analysisTaskHandle: Task<Void, Never>?
+    /// Monotonic token invalidating in-flight analysis when the connection
+    /// changes, so stale results can never be written back.
+    var analysisGeneration = 0
     /// The off-main-actor worker that performs the actual analysis work. Held
     /// separately so cancellation (via `cancelAnalysis()`) reaches the worker's
     /// `try Task.checkCancellation()` checkpoints.
@@ -131,10 +151,19 @@ class TabState {
     var connectionPanel: ConnectionPanel = .welcome
 
     var connectTask: Task<Void, Never>?
+    /// Monotonic token bumped on every `connect()`. Stale connect tasks compare
+    /// their captured generation against this before touching shared resources,
+    /// so a cancelled/superseded connect can never kill a newer connection.
+    var connectGeneration = 0
     var sshTunnel: SSHTunnel?
+    /// Tunnel created specifically for the shell session when the main
+    /// connection has none (kept separate so it never clobbers the main slot).
+    var shellSSHTunnel: SSHTunnel?
     var sshClusterTunnelManager: SSHClusterTunnelManager?
     var isScanningKeysRequest = false
     var pendingResetScan = false
+    /// A non-reset "load more" that arrived while a scan was in flight.
+    var pendingLoadMore = false
     var profilerTask: Task<Void, Never>?
     var profilerMonitorClients: [RedisMonitorClient] = []
     var profilerMonitorTasks: RedisProfilerTaskBag?
@@ -144,6 +173,7 @@ class TabState {
     let profilerMaxEntries = 2_000
     let keyMetadataPipelineBatchSize = 50
     let keyDetailPageSize = 100
+    let stringDetailTruncationLimit = 1_000_000
     let keyPatternScanIterationLimit = 1_000
     let shellHistoryLimit = 200
     static let browserPreferencesKey = "com.redisconsole.browserPreferences"

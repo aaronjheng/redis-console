@@ -135,9 +135,29 @@ enum RESPMessage: Sendable {
     case push(RESPValue)
 }
 
+/// A hard protocol violation: the buffered bytes can never form a valid RESP
+/// value, so waiting for more data would hang forever. The connection must be
+/// treated as desynchronized.
+enum RESPParseError: Error, Sendable {
+    case protocolViolation(String)
+}
+
 struct RESPParser: Sendable {
     private var buffer = Data()
     private var readIndex: Data.Index = 0
+    let maxBulkBytes: Int
+    let maxAggregateCount: Int
+    let maxDepth: Int
+
+    init(
+        maxBulkBytes: Int = 512 * 1024 * 1024,
+        maxAggregateCount: Int = 1_000_000,
+        maxDepth: Int = 64
+    ) {
+        self.maxBulkBytes = maxBulkBytes
+        self.maxAggregateCount = maxAggregateCount
+        self.maxDepth = maxDepth
+    }
 
     mutating func append(_ data: Data) {
         buffer.append(data)
@@ -154,9 +174,9 @@ struct RESPParser: Sendable {
     /// Parse a single complete top-level RESP value, if one is fully buffered.
     ///
     /// Returns `nil` when the buffered data does not yet contain a complete
-    /// value. On failure nothing is consumed, so additional data can be appended
-    /// and parsing retried without re-scanning already-processed bytes.
-    mutating func parse() -> RESPMessage? {
+    /// value. Throws `RESPParseError` when the buffered data is malformed —
+    /// the caller must not keep waiting, since more bytes can never fix it.
+    mutating func parse() throws -> RESPMessage? {
         guard readIndex < buffer.endIndex else { return nil }
         let start = readIndex
         let firstByte = buffer[readIndex]
@@ -164,68 +184,78 @@ struct RESPParser: Sendable {
         // RESP3 push frames ('>') are unsolicited and must not be matched
         // against an in-flight request, so they are surfaced separately.
         if firstByte == 0x3E {
-            guard let value = parseValue() else {
+            guard let value = try parseValue(depth: 0) else {
                 readIndex = start
                 return nil
             }
             return .push(value)
         }
 
-        guard let value = parseValue() else {
+        guard let value = try parseValue(depth: 0) else {
             readIndex = start
             return nil
         }
         return .response(value)
     }
 
-    private mutating func parseValue() -> RESPValue? {
+    private mutating func parseValue(depth: Int) throws -> RESPValue? {
         guard readIndex < buffer.endIndex else { return nil }
+        guard depth <= maxDepth else {
+            throw RESPParseError.protocolViolation("RESP nesting exceeds maximum depth \(maxDepth)")
+        }
 
         let firstByte = buffer[readIndex]
         switch firstByte {
         case 0x2B:  // '+'
-            return parseSimpleString()
+            return try parseSimpleString()
         case 0x2D:  // '-'
-            return parseError()
+            return try parseError()
         case 0x3A:  // ':'
-            return parseInteger()
+            return try parseInteger()
         case 0x24:  // '$'
-            return parseBulkString()
+            return try parseBulkString()
         case 0x2A:  // '*'
-            return parseArray()
+            return try parseArray(depth: depth)
         case 0x5F:  // '_'
-            return parseNull()
+            return try parseNull()
         case 0x23:  // '#'
-            return parseBoolean()
+            return try parseBoolean()
         case 0x2C:  // ','
-            return parseDouble()
+            return try parseDouble()
         case 0x28:  // '('
-            return parseBigNumber()
+            return try parseBigNumber()
         case 0x21:  // '!'
-            return parseBlobError()
+            return try parseBlobError()
         case 0x3D:  // '='
-            return parseVerbatimString()
+            return try parseVerbatimString()
         case 0x25:  // '%'
-            return parseMap()
+            return try parseMap(depth: depth)
         case 0x7E:  // '~'
-            return parseSet()
+            return try parseSet(depth: depth)
         case 0x3E:  // '>'
-            return parsePush()
+            return try parsePush(depth: depth)
         case 0x7C:  // '|'
-            return parseAttribute()
+            return try parseAttribute(depth: depth)
         default:
-            return nil
+            throw RESPParseError.protocolViolation("Unknown RESP type byte 0x\(String(firstByte, radix: 16))")
         }
     }
 
-    private mutating func readLine() -> String? {
+    private mutating func readLine() throws -> String? {
         var search = readIndex
         while search < buffer.endIndex {
             if buffer[search] == 0x0D {
                 let lineFeedIndex = buffer.index(after: search)
-                guard lineFeedIndex < buffer.endIndex, buffer[lineFeedIndex] == 0x0A else { return nil }
+                if lineFeedIndex >= buffer.endIndex {
+                    return nil  // CRLF may still be split across chunks
+                }
+                guard buffer[lineFeedIndex] == 0x0A else {
+                    throw RESPParseError.protocolViolation("Line terminator is not CRLF")
+                }
                 let lineData = buffer[readIndex..<search]
-                guard let line = String(data: lineData, encoding: .utf8) else { return nil }
+                guard let line = String(data: lineData, encoding: .utf8) else {
+                    throw RESPParseError.protocolViolation("Header line is not valid UTF-8")
+                }
                 readIndex = buffer.index(after: lineFeedIndex)
                 return line
             }
@@ -234,95 +264,110 @@ struct RESPParser: Sendable {
         return nil
     }
 
-    private mutating func parseSimpleString() -> RESPValue? {
+    private mutating func parseSimpleString() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '+'
-        guard let line = readLine() else { return nil }
+        guard let line = try readLine() else { return nil }
         return .simpleString(line)
     }
 
-    private mutating func parseError() -> RESPValue? {
+    private mutating func parseError() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '-'
-        guard let line = readLine() else { return nil }
+        guard let line = try readLine() else { return nil }
         return .error(line)
     }
 
-    private mutating func parseInteger() -> RESPValue? {
+    private mutating func parseInteger() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove ':'
-        guard let line = readLine(), let val = Int(line) else { return nil }
+        guard let line = try readLine() else { return nil }
+        guard let val = Int(line) else {
+            throw RESPParseError.protocolViolation("Invalid integer line \(line)")
+        }
         return .integer(val)
     }
 
-    private mutating func parseBulkString() -> RESPValue? {
+    private mutating func parseBulkString() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '$'
-        guard let line = readLine(), let len = Int(line) else { return nil }
+        guard let line = try readLine(), let len = Int(line) else { return nil }
         if len == -1 { return .bulkString(nil) }
-        guard let string = readPayload(length: len) else { return nil }
+        guard let string = try readPayload(length: len) else { return nil }
         return .bulkString(string)
     }
 
-    private mutating func parseArray() -> RESPValue? {
-        guard let items = parseAggregateItems() else { return nil }
+    private mutating func parseArray(depth: Int) throws -> RESPValue? {
+        guard let items = try parseAggregateItems(depth: depth) else { return nil }
         return .array(items)
     }
 
-    private mutating func parseNull() -> RESPValue? {
+    private mutating func parseNull() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '_'
-        guard readLine() == "" else { return nil }
+        guard try readLine() == "" else {
+            throw RESPParseError.protocolViolation("Malformed null frame")
+        }
         return .null
     }
 
-    private mutating func parseBoolean() -> RESPValue? {
+    private mutating func parseBoolean() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '#'
-        guard let line = readLine() else { return nil }
+        guard let line = try readLine() else { return nil }
         switch line {
         case "t": return .boolean(true)
         case "f": return .boolean(false)
-        default: return nil
+        default:
+            throw RESPParseError.protocolViolation("Invalid boolean value \(line)")
         }
     }
 
-    private mutating func parseDouble() -> RESPValue? {
+    private mutating func parseDouble() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove ','
-        guard let line = readLine() else { return nil }
+        guard let line = try readLine() else { return nil }
         switch line.lowercased() {
         case "inf": return .double(.infinity)
         case "-inf": return .double(-.infinity)
         case "nan": return .double(.nan)
         default:
-            guard let value = Double(line) else { return nil }
+            guard let value = Double(line) else {
+                throw RESPParseError.protocolViolation("Invalid double value \(line)")
+            }
             return .double(value)
         }
     }
 
-    private mutating func parseBigNumber() -> RESPValue? {
+    private mutating func parseBigNumber() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '('
-        guard let line = readLine() else { return nil }
+        guard let line = try readLine() else { return nil }
         return .bulkString(line)
     }
 
-    private mutating func parseBlobError() -> RESPValue? {
+    private mutating func parseBlobError() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '!'
-        guard let line = readLine(), let len = Int(line), let message = readPayload(length: len) else { return nil }
+        guard let line = try readLine(), let len = Int(line) else { return nil }
+        guard let message = try readPayload(length: len) else { return nil }
         return .error(message)
     }
 
-    private mutating func parseVerbatimString() -> RESPValue? {
+    private mutating func parseVerbatimString() throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '='
-        guard let line = readLine(), let len = Int(line), let string = readPayload(length: len) else { return nil }
+        guard let line = try readLine(), let len = Int(line) else { return nil }
+        guard let string = try readPayload(length: len) else { return nil }
         guard string.count >= 4 else { return .bulkString(string) }
         return .bulkString(String(string.dropFirst(4)))
     }
 
-    private mutating func parseMap() -> RESPValue? {
+    private mutating func parseMap(depth: Int) throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '%'
-        guard let line = readLine(), let count = Int(line) else { return nil }
+        guard let line = try readLine(), let count = Int(line) else { return nil }
         if count == -1 { return .null }
         if count == 0 { return .map([]) }
-        guard count > 0 else { return nil }
+        guard count > 0 else {
+            throw RESPParseError.protocolViolation("Invalid map count \(count)")
+        }
+        guard count <= maxAggregateCount else {
+            throw RESPParseError.protocolViolation("Map size \(count) exceeds limit \(maxAggregateCount)")
+        }
         var entries: [RESPMapEntry] = []
         entries.reserveCapacity(count)
         for _ in 0..<count {
-            guard let key = parseValue(), let value = parseValue() else {
+            guard let key = try parseValue(depth: depth + 1), let value = try parseValue(depth: depth + 1) else {
                 return nil
             }
             entries.append(RESPMapEntry(key: key, value: value))
@@ -330,13 +375,13 @@ struct RESPParser: Sendable {
         return .map(entries)
     }
 
-    private mutating func parseSet() -> RESPValue? {
-        guard let items = parseAggregateItems() else { return nil }
+    private mutating func parseSet(depth: Int) throws -> RESPValue? {
+        guard let items = try parseAggregateItems(depth: depth) else { return nil }
         return .array(items)
     }
 
-    private mutating func parsePush() -> RESPValue? {
-        guard let items = parseAggregateItems() else { return nil }
+    private mutating func parsePush(depth: Int) throws -> RESPValue? {
+        guard let items = try parseAggregateItems(depth: depth) else { return nil }
         return .array(items)
     }
 
@@ -346,49 +391,65 @@ struct RESPParser: Sendable {
     /// value. The current implementation skips the attribute key/value pairs
     /// and returns the next value. A future improvement could surface the
     /// attribute data as part of the RESPValue type.
-    private mutating func parseAttribute() -> RESPValue? {
+    private mutating func parseAttribute(depth: Int) throws -> RESPValue? {
         readIndex = buffer.index(after: readIndex)  // remove '|'
-        guard let line = readLine(), let count = Int(line), count >= 0 else { return nil }
+        guard let line = try readLine(), let count = Int(line), count >= 0 else {
+            throw RESPParseError.protocolViolation("Invalid attribute count")
+        }
+        guard count <= maxAggregateCount else {
+            throw RESPParseError.protocolViolation("Attribute size \(count) exceeds limit \(maxAggregateCount)")
+        }
         for _ in 0..<count {
-            guard parseValue() != nil, parseValue() != nil else {
+            guard try parseValue(depth: depth + 1) != nil, try parseValue(depth: depth + 1) != nil else {
                 return nil
             }
         }
         // Return the next value (the one the attribute annotates)
-        return parseValue()
+        return try parseValue(depth: depth)
     }
 
-    private mutating func parseAggregateItems() -> [RESPValue?]? {
+    private mutating func parseAggregateItems(depth: Int) throws -> [RESPValue?]? {
         readIndex = buffer.index(after: readIndex)  // remove prefix byte
-        guard let line = readLine(), let count = Int(line), count >= -1 else { return nil }
+        guard let line = try readLine(), let count = Int(line), count >= -1 else {
+            throw RESPParseError.protocolViolation("Invalid aggregate count")
+        }
         if count == -1 { return [] }
         if count == 0 { return [] }
+        guard count <= maxAggregateCount else {
+            throw RESPParseError.protocolViolation("Aggregate size \(count) exceeds limit \(maxAggregateCount)")
+        }
         var items: [RESPValue?] = []
         items.reserveCapacity(count)
         for _ in 0..<count {
-            if let val = parseValue() {
-                items.append(val)
-            } else {
+            guard let val = try parseValue(depth: depth + 1) else {
                 return nil
             }
+            items.append(val)
         }
         return items
     }
 
-    private mutating func readPayload(length: Int) -> String? {
-        guard length >= 0 else { return nil }
+    private mutating func readPayload(length: Int) throws -> String? {
+        guard length >= 0 else {
+            throw RESPParseError.protocolViolation("Invalid bulk length \(length)")
+        }
+        guard length <= maxBulkBytes else {
+            throw RESPParseError.protocolViolation("Bulk length \(length) exceeds limit \(maxBulkBytes)")
+        }
         let remaining = buffer.distance(from: readIndex, to: buffer.endIndex)
         guard remaining >= length + 2 else { return nil }
 
         let payloadEndIndex = buffer.index(readIndex, offsetBy: length)
         let lineFeedIndex = buffer.index(after: payloadEndIndex)
         guard buffer[payloadEndIndex] == 0x0D, buffer[lineFeedIndex] == 0x0A else {
-            return nil
+            throw RESPParseError.protocolViolation("Bulk payload is not terminated by CRLF")
         }
 
         let payloadData = buffer[readIndex..<payloadEndIndex]
         readIndex = buffer.index(after: lineFeedIndex)
-        return String(data: payloadData, encoding: .utf8) ?? ""
+        // Lossy decode keeps binary values inspectable instead of silently
+        // collapsing them to an empty string; invalid bytes become U+FFFD.
+        return String(decoding: payloadData, as: UTF8.self)  // swiftlint:disable:this optional_data_string_conversion
     }
 }
 

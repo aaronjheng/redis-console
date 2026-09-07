@@ -488,6 +488,14 @@ struct KeyDetailView: View {
                         }
                         .foregroundStyle(.secondary)
                     }
+                    if tab.keyDetailTruncated {
+                        Label(
+                            "Showing first \(tab.stringDetailTruncationLimit) bytes",
+                            systemImage: "doc.badge.ellipsis"
+                        )
+                        .foregroundStyle(AppColor.warning)
+                        .help("The full value is not loaded into memory")
+                    }
                     if let size = tab.valueSize ?? key.size {
                         HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "memorychip")

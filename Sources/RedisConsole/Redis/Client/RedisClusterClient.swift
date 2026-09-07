@@ -92,9 +92,9 @@ final class RedisClusterClient: RedisSession {
         var forcedEndpoint: RedisEndpoint?
         var shouldSendAsking = false
         var attempt = 0
-        let maxRedirects = 5
+        let maxAttempts = 5
 
-        while attempt <= maxRedirects {
+        while attempt < maxAttempts {
             let endpoint: RedisEndpoint
             if let forcedEndpoint {
                 endpoint = forcedEndpoint
@@ -104,6 +104,13 @@ final class RedisClusterClient: RedisSession {
             let response = try await sendDirect(args, to: endpoint, asking: shouldSendAsking)
 
             if case .error(let message) = response {
+                // Transient cluster states: retry with backoff instead of
+                // failing the caller's command.
+                if RedisClusterRetryableError.isRetryable(message) {
+                    attempt += 1
+                    try await Task.sleep(for: .milliseconds(50 * attempt))
+                    continue
+                }
                 if let redirect = RedisClusterRedirect(message: message, fallbackHost: endpoint.host) {
                     attempt += 1
                     switch redirect.kind {
@@ -191,6 +198,7 @@ final class RedisClusterClient: RedisSession {
 
     func scan(cursor: String, match: String, count: Int) async throws -> RedisScanResult {
         let primaries = try await primaryEndpointsForCommand()
+        let count = min(max(count, 1), 10_000)
         var scanCursor = RedisClusterScanCursor.parse(cursor)
         if scanCursor.nodeIndex >= primaries.count {
             scanCursor = RedisClusterScanCursor(nodeIndex: 0, nodeCursor: "0")
@@ -216,7 +224,7 @@ final class RedisClusterClient: RedisSession {
 
             let result = try RedisScanResult(response: response, scannedCount: count)
             keys.append(contentsOf: result.keys)
-            scannedCount += result.scannedCount
+            scannedCount += result.keys.count
 
             if result.nextCursor == "0" {
                 scanCursor = RedisClusterScanCursor(nodeIndex: scanCursor.nodeIndex + 1, nodeCursor: "0")
@@ -401,13 +409,22 @@ final class RedisClusterClient: RedisSession {
                 let end = entry[1]?.intValue,
                 let primaryNode = entry[2]?.arrayValues
             else {
+                AppLogger.error("Skipping malformed CLUSTER SLOTS entry", category: "Cluster")
                 continue
             }
 
             let primary = try parseNodeEndpoint(primaryNode, fallbackHost: fallbackHost)
-            let replicas = entry.dropFirst(3).compactMap { node -> RedisEndpoint? in
-                guard let values = node?.arrayValues else { return nil }
-                return try? parseNodeEndpoint(values, fallbackHost: fallbackHost)
+            var replicas: [RedisEndpoint] = []
+            for node in entry.dropFirst(3) {
+                guard let values = node?.arrayValues else {
+                    AppLogger.error("Skipping malformed replica entry in CLUSTER SLOTS", category: "Cluster")
+                    continue
+                }
+                if let replica = try? parseNodeEndpoint(values, fallbackHost: fallbackHost) {
+                    replicas.append(replica)
+                } else {
+                    AppLogger.error("Skipping unparseable replica endpoint in CLUSTER SLOTS", category: "Cluster")
+                }
             }
             ranges.append(RedisClusterSlotRange(start: start, end: end, primary: primary, replicas: replicas))
         }
@@ -740,24 +757,24 @@ private enum RedisClusterCommandKeys {
     ]
 
     private static let firstKeyCommands: Set<String> = [
-        "APPEND", "BITCOUNT", "BITFIELD", "BITOP", "BITPOS", "DECR", "DECRBY", "DUMP",
+        "APPEND", "BITCOUNT", "BITFIELD", "BITPOS", "DECR", "DECRBY", "DUMP",
         "EXPIRE", "EXPIREAT", "GET", "GETBIT", "GETDEL", "GETEX", "GETRANGE", "GETSET",
         "HDEL", "HEXISTS", "HGET", "HGETALL", "HINCRBY", "HINCRBYFLOAT", "HKEYS", "HLEN",
         "HMGET", "HMSET", "HRANDFIELD", "HSCAN", "HSET", "HSETNX", "HSTRLEN", "HVALS",
         "INCR", "INCRBY", "INCRBYFLOAT", "LINDEX", "LINSERT", "LLEN", "LMOVE", "LPOP",
         "LPOS", "LPUSH", "LPUSHX", "LRANGE", "LREM", "LSET", "LTRIM", "OBJECT", "PERSIST",
         "PEXPIRE", "PEXPIREAT", "PFADD", "PFCOUNT", "PFMERGE", "PSETEX", "PTTL", "RESTORE",
-        "RPOP", "RPOPLPUSH", "RPUSH", "RPUSHX", "SADD", "SCARD", "SDIFF", "SINTER",
-        "SISMEMBER", "SMEMBERS", "SMISMEMBER", "SMOVE", "SORT", "SPOP", "SRANDMEMBER",
-        "SREM", "SSCAN", "STRLEN", "TOUCH", "TTL", "TYPE", "UNLINK", "WATCH", "ZADD",
-        "ZCARD", "ZCOUNT", "ZINCRBY", "ZLEXCOUNT", "ZPOPMAX", "ZPOPMIN", "ZRANDMEMBER",
-        "ZRANGE", "ZRANGEBYLEX", "ZRANGEBYSCORE", "ZRANGESTORE", "ZRANK", "ZREM",
-        "ZREMRANGEBYLEX", "ZREMRANGEBYRANK", "ZREMRANGEBYSCORE", "ZREVRANGE",
+        "RPOP", "RPOPLPUSH", "RPUSH", "RPUSHX", "SADD", "SCARD", "SDIFF", "SET", "SETBIT",
+        "SETEX", "SETNX", "SETRANGE", "SINTER", "SISMEMBER", "SMEMBERS", "SMISMEMBER",
+        "SMOVE", "SORT", "SPOP", "SRANDMEMBER", "SREM", "SSCAN", "STRLEN", "TTL", "TYPE",
+        "WATCH", "ZADD", "ZCARD", "ZCOUNT", "ZINCRBY", "ZLEXCOUNT", "ZPOPMAX", "ZPOPMIN",
+        "ZRANDMEMBER", "ZRANGE", "ZRANGEBYLEX", "ZRANGEBYSCORE", "ZRANGESTORE", "ZRANK",
+        "ZREM", "ZREMRANGEBYLEX", "ZREMRANGEBYRANK", "ZREMRANGEBYSCORE", "ZREVRANGE",
         "ZREVRANGEBYLEX", "ZREVRANGEBYSCORE", "ZREVRANK", "ZSCAN", "ZSCORE",
     ]
 
     private static let allKeyCommands: Set<String> = [
-        "DEL", "EXISTS", "MGET",
+        "DEL", "EXISTS", "MGET", "TOUCH", "UNLINK",
     ]
 
     private static let blockingMultiKeyWithTimeoutCommands: Set<String> = [
@@ -804,6 +821,12 @@ private enum RedisClusterCommandKeys {
             let start = 2
             let end = min(args.count, start + keyCount)
             return Array(args[start..<end])
+        case "BITOP":
+            // BITOP operation destkey srckey [srckey ...]
+            return args.count > 2 ? [args[2]] : []
+        case "BLMOVE":
+            // BLMOVE src dst LEFT|RIGHT LEFT|RIGHT timeout
+            return Array(args.dropFirst().prefix(2))
         case "ZUNIONSTORE", "ZINTERSTORE", "ZDIFFSTORE", "SUNIONSTORE", "SINTERSTORE", "SDIFFSTORE":
             guard args.count > 3, let keyCount = Int(args[2]) else {
                 return args.count > 1 ? [args[1]] : []
@@ -815,8 +838,19 @@ private enum RedisClusterCommandKeys {
             if blockingMultiKeyWithTimeoutCommands.contains(command), args.count > 2 {
                 return Array(args.dropFirst().dropLast())
             }
-            return []
+            return args.count > 1 ? [args[1]] : []
         }
+    }
+}
+
+private enum RedisClusterRetryableError {
+    /// Errors that mean "try again shortly" rather than a real failure.
+    static func isRetryable(_ message: String) -> Bool {
+        let upper = message.uppercased()
+        return upper.hasPrefix("CLUSTERDOWN")
+            || upper.hasPrefix("TRYAGAIN")
+            || upper.hasPrefix("LOADING")
+            || upper.hasPrefix("BUSY")
     }
 }
 

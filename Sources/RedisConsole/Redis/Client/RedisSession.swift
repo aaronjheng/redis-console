@@ -31,8 +31,11 @@ struct RedisEndpoint: Codable, Hashable, Sendable {
         }
 
         if let colonIndex = trimmed.lastIndex(of: ":"), colonIndex > trimmed.startIndex {
+            // Bare IPv6 (e.g. "::1") must not be split at the last colon — only
+            // treat the suffix as a port when it parses AND the remainder looks
+            // like a hostname/IPv4 (bracketed IPv6 is handled above).
             let portStart = trimmed.index(after: colonIndex)
-            if let port = UInt16(trimmed[portStart...]) {
+            if let port = UInt16(trimmed[portStart...]), !trimmed.contains("::") {
                 let host = String(trimmed[..<colonIndex])
                 return RedisEndpoint(host: host, port: port)
             }
@@ -101,7 +104,16 @@ struct RedisScanResult: Sendable {
             throw RedisError.commandError(message)
         }
         let values = response.arrayValues
-        guard values.count >= 2, let cursor = values[0]?.string else {
+        // Some servers reply with an integer cursor ("0"); accept both shapes.
+        guard values.count >= 2 else {
+            throw RedisError.parseError("Unexpected SCAN response: \(response.description)")
+        }
+        let cursor: String
+        if let stringCursor = values[0]?.string {
+            cursor = stringCursor
+        } else if let integerCursor = values[0]?.intValue {
+            cursor = "\(integerCursor)"
+        } else {
             throw RedisError.parseError("Unexpected SCAN response: \(response.description)")
         }
         nextCursor = cursor
@@ -178,6 +190,7 @@ extension RedisClient: RedisSession {
     var mode: RedisConnectionMode { .standalone }
 
     func scan(cursor: String, match: String, count: Int) async throws -> RedisScanResult {
+        let count = min(max(count, 1), 10_000)
         let response = try await send("SCAN", cursor, "MATCH", match, "COUNT", "\(count)")
         return try RedisScanResult(response: response, scannedCount: count)
     }

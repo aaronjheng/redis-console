@@ -24,6 +24,8 @@ extension TabState {
         connectionError = nil
         pendingConnection = resolvedConfig
         resetForDisconnect()
+        connectGeneration += 1
+        let generation = connectGeneration
 
         let task = Task { @MainActor in
             var connectHost = resolvedConfig.host
@@ -137,19 +139,26 @@ extension TabState {
                 AppLogger.info("connect completed name=\(resolvedConfig.name)", category: "Connection")
             } catch is CancellationError {
                 client?.disconnect()
-                clearClusterTunnelManagerIfCurrent(clusterTunnelManager)
+                // Only tear down shared state when this task is still the
+                // current connect; a superseded task must leave the new
+                // connection's resources alone.
+                if generation == self.connectGeneration {
+                    clearClusterTunnelManagerIfCurrent(clusterTunnelManager)
+                }
                 if let clusterTunnelManager {
                     await clusterTunnelManager.disconnect()
                 }
                 AppLogger.info("connect cancelled name=\(resolvedConfig.name)", category: "Connection")
             } catch {
                 client?.disconnect()
-                connectionError = error.localizedDescription
-                failedConnection = resolvedConfig
-                isConnecting = false
-                pendingConnection = nil
-                sshTunnel?.stop()
-                sshTunnel = nil
+                if generation == self.connectGeneration {
+                    connectionError = error.localizedDescription
+                    failedConnection = resolvedConfig
+                    isConnecting = false
+                    pendingConnection = nil
+                    sshTunnel?.stop()
+                    sshTunnel = nil
+                }
                 clearClusterTunnelManagerIfCurrent(clusterTunnelManager)
                 if let clusterTunnelManager {
                     await clusterTunnelManager.disconnect()
@@ -244,6 +253,7 @@ extension TabState {
         // Shell
         shellInput = ""
         shellHistory = []
+        shellHistoryConnectionID = nil
 
         // Server info
         serverInfo = [:]
@@ -260,6 +270,7 @@ extension TabState {
         // Database analysis
         analysis = nil
         analysisError = nil
+        analysisGeneration += 1
         isLoadingAnalysis = false
         analysisTask?.cancel()
         analysisTask = nil

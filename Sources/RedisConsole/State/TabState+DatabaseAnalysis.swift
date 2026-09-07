@@ -15,6 +15,8 @@ extension TabState {
 
     func runDatabaseAnalysis() async {
         guard let client = activeSession, client.isConnected else { return }
+        analysisGeneration += 1
+        let generation = analysisGeneration
         isLoadingAnalysis = true
         analysisError = nil
         analysis = nil
@@ -43,7 +45,7 @@ extension TabState {
             }
             do {
                 let result = try await analysisTask.value
-                guard !Task.isCancelled else {
+                guard !Task.isCancelled, generation == self.analysisGeneration else {
                     isLoadingAnalysis = false
                     return
                 }
@@ -96,18 +98,23 @@ extension TabState {
 
         try Task.checkCancellation()
 
-        // 2. Scan keys for sampling
+        // 2. Scan keys for sampling (dedup + truncate: COUNT is a hint, not a cap)
         var sampledKeys: [String] = []
+        var seenSampledKeys = Set<String>()
         var cursor = "0"
         var hasMore = true
 
         while hasMore && sampledKeys.count < sampleLimit {
             let scanResult = try await client.scan(
-                cursor: cursor, match: "*", count: sampleLimit
+                cursor: cursor, match: "*", count: min(sampleLimit, 1000)
             )
             cursor = scanResult.nextCursor
             hasMore = cursor != "0"
-            sampledKeys.append(contentsOf: scanResult.keys)
+            for key in scanResult.keys where sampledKeys.count < sampleLimit {
+                if seenSampledKeys.insert(key).inserted {
+                    sampledKeys.append(key)
+                }
+            }
         }
 
         result.keysSampled = sampledKeys.count
@@ -120,23 +127,29 @@ extension TabState {
             return result
         }
 
-        // 3. Type Distribution via pipeline
-        let typeCommands = sampledKeys.map { ["TYPE", $0] }
-        let typeResults = try await client.sendPipeline(typeCommands)
-
-        try Task.checkCancellation()
-
-        // 4. Memory usage and TTL for top keys
+        // 3-4. Type / memory / TTL in bounded pipeline batches so a 10k sample
+        // never serializes into one giant request, and cancellation lands
+        // between batches instead of only at the very end.
         let samplesCount = isProduction ? "5" : "0"
-        let memoryCommands = sampledKeys.map { ["MEMORY", "USAGE", $0, "SAMPLES", samplesCount] }
-        let memoryResults = try await client.sendPipeline(memoryCommands)
-
-        let ttlCommands = sampledKeys.map { ["TTL", $0] }
-        let ttlResults = try await client.sendPipeline(ttlCommands)
+        let batchSize = 500
+        var typeResults: [RESPValue] = []
+        var memoryResults: [RESPValue] = []
+        var ttlResults: [RESPValue] = []
+        for batchStart in stride(from: 0, to: sampledKeys.count, by: batchSize) {
+            try Task.checkCancellation()
+            let batchKeys = Array(sampledKeys[batchStart..<min(batchStart + batchSize, sampledKeys.count)])
+            let typeBatch = try await client.sendPipeline(batchKeys.map { ["TYPE", $0] })
+            let memoryBatch = try await client.sendPipeline(batchKeys.map { ["MEMORY", "USAGE", $0, "SAMPLES", samplesCount] })
+            let ttlBatch = try await client.sendPipeline(batchKeys.map { ["TTL", $0] })
+            typeResults.append(contentsOf: typeBatch)
+            memoryResults.append(contentsOf: memoryBatch)
+            ttlResults.append(contentsOf: ttlBatch)
+        }
 
         var keyMemoryEntries: [KeyMemoryEntry] = []
         var typeMemory: [String: Int] = [:]
         var typeCountFinal: [String: Int] = [:]
+        var memoryFailures = 0
         var expirationBuckets: [String: (count: Int, memory: Int)] = [
             "< 1h": (0, 0), "1-6h": (0, 0), "6-24h": (0, 0),
             "1-7d": (0, 0), "7-30d": (0, 0), "> 30d": (0, 0), "No expiry": (0, 0),
@@ -144,7 +157,17 @@ extension TabState {
 
         for (index, key) in sampledKeys.enumerated() {
             let typeName = index < typeResults.count ? typeResults[index].string ?? "unknown" : "unknown"
-            let memory = index < memoryResults.count ? memoryResults[index].intValue ?? 0 : 0
+            let rawMemory = index < memoryResults.count ? memoryResults[index] : nil
+            let memory: Int
+            if case .error(let message)? = rawMemory {
+                memory = 0
+                memoryFailures += 1
+                if memoryFailures <= 3 {
+                    AppLogger.info("MEMORY USAGE failed for key: \(message)", category: "Analysis")
+                }
+            } else {
+                memory = rawMemory?.intValue ?? 0
+            }
             let ttl = index < ttlResults.count ? ttlResults[index].intValue : nil
 
             typeCountFinal[typeName, default: 0] += 1

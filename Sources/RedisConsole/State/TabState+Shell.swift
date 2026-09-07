@@ -23,8 +23,8 @@ extension TabState {
                     connectHost = endpoint.host
                     connectPort = endpoint.port
                 } else {
-                    // Create a dedicated tunnel for shell and save the reference
-                    // so it is properly cleaned up by disconnect() on teardown.
+                    // Create a dedicated tunnel for shell in its own slot so it
+                    // never clobbers the main connection's tunnel reference.
                     let tunnel = SSHTunnel()
                     tunnel.setupTimeoutSeconds = config.ssh.setupTimeout
                     tunnel.connectionAttemptTimeout = .seconds(Int64(config.ssh.connectionAttemptTimeout))
@@ -40,7 +40,8 @@ extension TabState {
                         remotePort: config.port,
                         mode: config.ssh.mode
                     )
-                    sshTunnel = tunnel
+                    shellSSHTunnel?.stop()
+                    shellSSHTunnel = tunnel
                     connectHost = "127.0.0.1"
                     connectPort = tunnel.localPort
                 }
@@ -86,6 +87,8 @@ extension TabState {
     func disconnectShellClient() {
         shellSession?.disconnect()
         shellSession = nil
+        shellSSHTunnel?.stop()
+        shellSSHTunnel = nil
     }
 
     func executeCommand(_ input: String) async {

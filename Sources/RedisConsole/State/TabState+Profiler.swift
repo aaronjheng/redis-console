@@ -348,7 +348,8 @@ extension TabState {
                 }
 
                 if !Task.isCancelled {
-                    continuation.finish(throwing: RedisError.notConnected)
+                    continuation.finish(
+                        throwing: RedisError.commandError("MONITOR connection ended unexpectedly"))
                 }
             } catch is CancellationError {
             } catch {
@@ -362,6 +363,7 @@ extension TabState {
         profilerEntries.append(RedisProfilerEntry(rawLine: capture.line, node: capture.node))
 
         if profilerEntries.count > profilerMaxEntries {
+            // Slice off the excess in one pass; removeFirst(1) per entry was O(n²).
             profilerEntries.removeFirst(profilerEntries.count - profilerMaxEntries)
         }
     }

@@ -103,7 +103,7 @@ final class RedisMonitorClient: Sendable {
     private let caCertificatePath: String
     private let clientCertificatePath: String
     private let clientKeyPath: String
-    private     let connectionTimeout: TimeInterval
+    private let connectionTimeout: TimeInterval
 
     /// Client TLS identity (certificate + private key). Retained for the
     /// connection's lifetime and released on disconnect; its temporary keychain
@@ -149,7 +149,9 @@ final class RedisMonitorClient: Sendable {
         }
 
         do {
-            try await connect()
+            try await withTimeout(connectionTimeout, context: "Redis MONITOR connection") {
+                try await self.connect()
+            }
             try await authenticateIfNeeded()
             state.withLock { $0.isMonitoring = true }
 
@@ -198,10 +200,12 @@ final class RedisMonitorClient: Sendable {
                 } else if !clientCertificatePath.isEmpty {
                     do {
                         clearClientIdentity()
-                        guard let bundle = try loadClientIdentity(
-                            certificatePath: clientCertificatePath,
-                            keyPath: clientKeyPath
-                        ) else {
+                        guard
+                            let bundle = try loadClientIdentity(
+                                certificatePath: clientCertificatePath,
+                                keyPath: clientKeyPath
+                            )
+                        else {
                             connectContinuation.complete(.failure(ClientIdentityLoaderError.incompleteConfiguration))
                             return
                         }
@@ -376,22 +380,34 @@ final class RedisMonitorClient: Sendable {
             var monitorLines: [String] = []
             var finishError: RedisError?
 
-            while let message = $0.parser.parse() {
-                let value: RESPValue
-                switch message {
-                case .response(let parsedValue), .push(let parsedValue):
-                    value = parsedValue
+            do {
+                while let message = try $0.parser.parse() {
+                    let value: RESPValue
+                    switch message {
+                    case .response(let parsedValue), .push(let parsedValue):
+                        value = parsedValue
+                    }
+                    if let completion = $0.pendingCompletions.first {
+                        $0.pendingCompletions.removeFirst()
+                        completions.append((completion, value))
+                    } else if $0.isMonitoring, let line = value.string {
+                        monitorLines.append(line)
+                    } else if case .error(let message) = value {
+                        finishError = RedisError.commandError(message)
+                    }
                 }
-                if let completion = $0.pendingCompletions.first {
-                    $0.pendingCompletions.removeFirst()
-                    completions.append((completion, value))
-                } else if $0.isMonitoring, let line = value.string {
-                    monitorLines.append(line)
-                } else if case .error(let message) = value {
-                    finishError = RedisError.commandError(message)
+                $0.parser.compact()
+            } catch {
+                // Desynchronized stream: complete everything and tear down.
+                let pending = $0.pendingCompletions
+                $0.pendingCompletions.removeAll()
+                $0.parser = RESPParser()
+                $0.isConnected = false
+                for completion in pending {
+                    completion.complete(.failure(RedisError.commandError("RESP protocol error: \(error.localizedDescription)")))
                 }
+                finishError = RedisError.commandError("RESP protocol error: \(error.localizedDescription)")
             }
-            $0.parser.compact()
             return (completions, monitorLines, finishError)
         }
 

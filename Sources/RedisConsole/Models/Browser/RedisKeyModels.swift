@@ -33,7 +33,9 @@ class RedisKeyEntry: Identifiable, Hashable {
     }
 
     var ttlText: String {
-        guard let ttl = ttl, ttl > 0 else { return "No limit" }
+        guard let ttl else { return "No limit" }
+        if ttl == -2 { return "Expired" }
+        guard ttl > 0 else { return "No limit" }
         if ttl > 86400 { return "\(ttl / 86400)d" }
         if ttl > 3600 { return "\(ttl / 3600)h" }
         if ttl > 60 { return "\(ttl / 60)m" }

@@ -295,6 +295,8 @@ final class RedisClient: Sendable {
     let clientKeyPath: String
     let preferredProtocolVersion: RESPProtocolVersion
     let connectionTimeout: TimeInterval
+    /// Per-command timeout (not applied to blocking commands like BLPOP).
+    let commandTimeout: TimeInterval
 
     /// Client TLS identity (certificate + private key). Retained for the
     /// connection's lifetime and released on disconnect; its temporary keychain
@@ -327,7 +329,8 @@ final class RedisClient: Sendable {
         clientCertificatePath: String = "",
         clientKeyPath: String = "",
         preferredProtocolVersion: RESPProtocolVersion = .resp3,
-        connectionTimeout: TimeInterval = 10
+        connectionTimeout: TimeInterval = 10,
+        commandTimeout: TimeInterval = 30
     ) {
         self.host = host
         self.port = port
@@ -340,6 +343,7 @@ final class RedisClient: Sendable {
         self.clientKeyPath = clientKeyPath
         self.preferredProtocolVersion = preferredProtocolVersion
         self.connectionTimeout = connectionTimeout
+        self.commandTimeout = commandTimeout
         queue.setSpecific(key: queueKey, value: true)
     }
 
@@ -352,6 +356,9 @@ final class RedisClient: Sendable {
     private func performConnect() async throws {
         try Task.checkCancellation()
         let connectContinuation = ConnectContinuationState()
+        // A repeated connect() must not leak the previous connection.
+        let staleConnection = state.withLock { $0.connection }
+        staleConnection?.cancel()
         let staleCompletions = state.withLock {
             let pendingCompletions = $0.pendingCompletions.compactMap(\.command)
             $0.isConnected = false
@@ -389,13 +396,17 @@ final class RedisClient: Sendable {
 
                                 if !caCertificatePath.isEmpty {
                                     let url = URL(fileURLWithPath: caCertificatePath)
-                                    if let caData = try? Data(contentsOf: url) {
+                                    guard let caData = try? Data(contentsOf: url),
                                         let caCert = SecCertificateCreateWithData(nil, caData as CFData)
-                                        if let caCert {
-                                            SecTrustSetAnchorCertificates(secTrust, [caCert] as CFArray)
-                                            SecTrustSetAnchorCertificatesOnly(secTrust, false)
-                                        }
+                                    else {
+                                        // The configured CA cannot be read: fail the
+                                        // connection rather than fall back to the
+                                        // system trust store without telling anyone.
+                                        completionHandler(false)
+                                        return
                                     }
+                                    SecTrustSetAnchorCertificates(secTrust, [caCert] as CFArray)
+                                    SecTrustSetAnchorCertificatesOnly(secTrust, false)
                                 }
 
                                 var error: CFError?
@@ -420,10 +431,12 @@ final class RedisClient: Sendable {
                     } else if !clientCertificatePath.isEmpty {
                         do {
                             clearClientIdentity()
-                            guard let bundle = try loadClientIdentity(
-                                certificatePath: clientCertificatePath,
-                                keyPath: clientKeyPath
-                            ) else {
+                            guard
+                                let bundle = try loadClientIdentity(
+                                    certificatePath: clientCertificatePath,
+                                    keyPath: clientKeyPath
+                                )
+                            else {
                                 connectContinuation.complete(.failure(ClientIdentityLoaderError.incompleteConfiguration))
                                 return
                             }
@@ -689,28 +702,48 @@ final class RedisClient: Sendable {
     private func processBuffer() {
         let completedCommands: [(PendingCommand, RESPValue)]
         let pushedMessages: [RESPValue]
-        (completedCommands, pushedMessages) = state.withLock {
+        let protocolFailure: Error?
+        (completedCommands, pushedMessages, protocolFailure) = state.withLock {
             var completedCommands: [(PendingCommand, RESPValue)] = []
             var pushedMessages: [RESPValue] = []
-            while let message = $0.parser.parse() {
-                switch message {
-                case .response(let value):
-                    guard !$0.pendingCompletions.isEmpty else { continue }
-                    let pendingResponse = $0.pendingCompletions.removeFirst()
-                    if let completion = pendingResponse.command {
-                        completedCommands.append((completion, value))
+            var protocolFailure: Error?
+            do {
+                while let message = try $0.parser.parse() {
+                    switch message {
+                    case .response(let value):
+                        guard !$0.pendingCompletions.isEmpty else { continue }
+                        let pendingResponse = $0.pendingCompletions.removeFirst()
+                        if let completion = pendingResponse.command {
+                            completedCommands.append((completion, value))
+                        }
+                    case .push(let value):
+                        // Unsolicited RESP3 push: never matches an in-flight request.
+                        pushedMessages.append(value)
                     }
-                case .push(let value):
-                    // Unsolicited RESP3 push: never matches an in-flight request.
-                    pushedMessages.append(value)
                 }
+                $0.parser.compact()
+            } catch {
+                // A hard protocol violation: the stream is desynchronized and
+                // more data can never fix it, so fail everything and reconnect.
+                let pending = $0.pendingCompletions.compactMap(\.command)
+                $0.pendingCompletions.removeAll()
+                $0.parser = RESPParser()
+                let failure = RedisError.commandError("RESP protocol error: \(error.localizedDescription)")
+                for completion in pending {
+                    completion.complete(.failure(failure))
+                }
+                protocolFailure = error
             }
-            $0.parser.compact()
-            return (completedCommands, pushedMessages)
+            return (completedCommands, pushedMessages, protocolFailure)
         }
 
         for (completion, value) in completedCommands {
             completion.complete(.success(value))
+        }
+
+        if let protocolFailure {
+            cancelConnectionOnQueue(
+                error: RedisError.commandError("RESP protocol error: \(protocolFailure.localizedDescription)"))
         }
 
         guard !pushedMessages.isEmpty else { return }
@@ -729,11 +762,41 @@ final class RedisClient: Sendable {
     }
 
     func send(_ args: [String]) async throws -> RESPValue {
+        guard !args.isEmpty else {
+            throw RedisError.commandError("Redis command is empty")
+        }
         let data = RESPEncoder.encode(args, version: negotiatedProtocolVersion)
-        return try await sendEncodedCommand(data)
+        return try await sendEncodedCommand(data, isBlocking: Self.isBlockingCommand(args))
     }
 
-    private func sendEncodedCommand(_ data: Data) async throws -> RESPValue {
+    /// Commands that legitimately block on the server; a command timeout would
+    /// kill them mid-wait, so they are sent without one.
+    private static let blockingCommands: Set<String> = [
+        "BLPOP", "BRPOP", "BRPOPLPUSH", "BLMOVE", "BZPOPMIN", "BZPOPMAX",
+        "SUBSCRIBE", "PSUBSCRIBE", "MONITOR",
+    ]
+
+    private static func isBlockingCommand(_ args: [String]) -> Bool {
+        guard let command = args.first?.uppercased() else { return false }
+        if blockingCommands.contains(command) {
+            return true
+        }
+        if command == "XREAD" || command == "XREADGROUP" {
+            return args.contains { $0.uppercased() == "BLOCK" }
+        }
+        return false
+    }
+
+    private func sendEncodedCommand(_ data: Data, isBlocking: Bool) async throws -> RESPValue {
+        if !isBlocking {
+            return try await withTimeout(commandTimeout, context: "Redis command") {
+                try await self.sendEncodedCommandUntimed(data)
+            }
+        }
+        return try await sendEncodedCommandUntimed(data)
+    }
+
+    private func sendEncodedCommandUntimed(_ data: Data) async throws -> RESPValue {
         try Task.checkCancellation()
         guard isConnected else {
             throw RedisError.notConnected
@@ -785,12 +848,22 @@ final class RedisClient: Sendable {
         let data = commands.reduce(into: Data()) { encodedData, command in
             encodedData.append(RESPEncoder.encode(command, version: negotiatedProtocolVersion))
         }
+        return try await withTimeout(commandTimeout, context: "Redis pipeline") {
+            try await self.sendPipelineUntimed(data, count: commands.count)
+        }
+    }
+
+    private func sendPipelineUntimed(_ data: Data, count: Int) async throws -> [RESPValue] {
+        try Task.checkCancellation()
+        guard isConnected else {
+            throw RedisError.notConnected
+        }
 
         let pendingBatch = PendingCommandBatch()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                let pipeline = PendingPipeline(count: commands.count, continuation: continuation)
-                let pendingCommands = commands.indices.map { index in
+                let pipeline = PendingPipeline(count: count, continuation: continuation)
+                let pendingCommands = (0..<count).map { index in
                     PendingCommand(completion: { result in
                         pipeline.complete(index: index, with: result)
                     })
@@ -879,7 +952,7 @@ final class RedisClient: Sendable {
             version: .resp2
         )
 
-        return try await sendEncodedCommand(data)
+        return try await sendEncodedCommand(data, isBlocking: false)
     }
 
     private var helloCommandIncludesAuthentication: Bool {

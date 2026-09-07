@@ -5,9 +5,20 @@ import Foundation
 extension TabState {
     // MARK: - Key Browser
 
+    /// Memoized namespace tree for the current keys/filter/separator.
+    func namespaceTree(for entries: [RedisKeyEntry]) -> KeyNamespaceTree {
+        if let cached = keyNamespaceTreeCache, !entries.isEmpty { return cached }
+        let tree = KeyNamespaceTree(entries: entries, separator: namespaceSeparator)
+        keyNamespaceTreeCache = tree
+        return tree
+    }
+
     func scanKeys(reset: Bool = false) async {
         if isScanningKeysRequest {
             pendingResetScan = pendingResetScan || reset
+            if !reset {
+                pendingLoadMore = true
+            }
             return
         }
 
@@ -52,14 +63,17 @@ extension TabState {
                 let scanAll = keyFilter != "*"
                 var iterations = 0
                 let maxIterations = scanAll ? keyPatternScanIterationLimit : 1
+                // Incremental dedup set: rebuilding it from `keys` each iteration
+                // was O(N²) on large keyspaces.
+                var seenKeys = Set(keys.map { $0.key })
                 repeat {
+                    try Task.checkCancellation()
                     let result = try await client.scan(cursor: scanCursor, match: keyFilter, count: keyScanCount)
                     scanCursor = result.nextCursor
                     hasMoreKeys = scanCursor != "0"
                     let newKeyNames = result.keys
                     keyScannedCount += result.scannedCount
                     normalizeKeyScanProgress()
-                    var seenKeys = Set(keys.map { $0.key })
                     let newEntries = newKeyNames.compactMap { keyName -> RedisKeyEntry? in
                         guard seenKeys.insert(keyName).inserted else { return nil }
                         return RedisKeyEntry(key: keyName, type: "", ttl: nil, size: nil)
@@ -76,7 +90,9 @@ extension TabState {
         }
 
         let shouldRestart = pendingResetScan
+        let shouldLoadMore = pendingLoadMore
         pendingResetScan = false
+        pendingLoadMore = false
         isScanningKeysRequest = false
         isLoadingKeys = false
 
@@ -89,6 +105,8 @@ extension TabState {
 
         if shouldRestart {
             await scanKeys(reset: true)
+        } else if shouldLoadMore {
+            await scanKeys()
         }
     }
 
@@ -100,6 +118,7 @@ extension TabState {
         valueSize = nil
         keyDetailTotalCount = nil
         keyDetailError = nil
+        keyDetailTruncated = false
         keyDetailOffset = 0
         keyDetailCursor = "0"
         keyDetailHasMoreRows = false
@@ -180,21 +199,27 @@ extension TabState {
     private func loadKeyMetadata(for entries: [RedisKeyEntry]) {
         guard let client = activeSession, client.isConnected else { return }
         guard !entries.isEmpty else { return }
+        let generation = connectGeneration
 
         Task { @MainActor in
-            for batchStart in stride(from: 0, to: entries.count, by: keyMetadataPipelineBatchSize) {
-                let batchEnd = min(batchStart + keyMetadataPipelineBatchSize, entries.count)
-                let batchEntries = Array(entries[batchStart..<batchEnd])
-                let commands = batchEntries.map { entry in
-                    ["TYPE", entry.key]
-                }
+            do {
+                for batchStart in stride(from: 0, to: entries.count, by: keyMetadataPipelineBatchSize) {
+                    try Task.checkCancellation()
+                    guard generation == self.connectGeneration else { return }
+                    let batchEnd = min(batchStart + keyMetadataPipelineBatchSize, entries.count)
+                    let batchEntries = Array(entries[batchStart..<batchEnd])
+                    let commands = batchEntries.map { entry in
+                        ["TYPE", entry.key]
+                    }
 
-                do {
                     let metadataResults = try await client.sendPipeline(commands)
+                    guard generation == self.connectGeneration else { return }
                     applyMetadataResults(metadataResults, to: batchEntries)
-                } catch {
-                    connectionError = error.localizedDescription
                 }
+            } catch is CancellationError {
+                // A newer scan superseded this metadata pass
+            } catch {
+                connectionError = error.localizedDescription
             }
         }
     }
@@ -280,11 +305,25 @@ extension TabState {
 
             switch keyType {
             case "string":
-                let value = try await client.send("GET", entry.key)
-                try throwIfRedisError(value)
-                guard token == keyDetailGeneration else { return }
-                keyDetail = value.string ?? "(nil)"
-                keyDetailHasMoreRows = false
+                let lengthResult = try await client.send("STRLEN", entry.key)
+                try throwIfRedisError(lengthResult)
+                let stringLength = lengthResult.intValue ?? 0
+                let isOversized = stringLength > stringDetailTruncationLimit
+                if isOversized {
+                    let partial = try await client.send("GETRANGE", entry.key, "0", "\(stringDetailTruncationLimit - 1)")
+                    try throwIfRedisError(partial)
+                    guard token == keyDetailGeneration else { return }
+                    keyDetail = partial.string ?? ""
+                    keyDetailHasMoreRows = false
+                    keyDetailTruncated = true
+                } else {
+                    let value = try await client.send("GET", entry.key)
+                    try throwIfRedisError(value)
+                    guard token == keyDetailGeneration else { return }
+                    keyDetail = value.string ?? "(nil)"
+                    keyDetailHasMoreRows = false
+                    keyDetailTruncated = false
+                }
             case "list":
                 try await loadListDetail(key: entry.key, append: append, using: client, token: token)
             case "hash":
@@ -294,10 +333,23 @@ extension TabState {
             case "zset":
                 try await loadZSetDetail(key: entry.key, append: append, using: client, token: token)
             default:
-                let value = try await client.send("GET", entry.key)
-                try throwIfRedisError(value)
-                guard token == keyDetailGeneration else { return }
-                keyDetail = value.string ?? "(nil)"
+                let lengthResult = try await client.send("STRLEN", entry.key)
+                try throwIfRedisError(lengthResult)
+                let stringLength = lengthResult.intValue ?? 0
+                let isOversized = stringLength > stringDetailTruncationLimit
+                if isOversized {
+                    let partial = try await client.send("GETRANGE", entry.key, "0", "\(stringDetailTruncationLimit - 1)")
+                    try throwIfRedisError(partial)
+                    guard token == keyDetailGeneration else { return }
+                    keyDetail = partial.string ?? ""
+                    keyDetailTruncated = true
+                } else {
+                    let value = try await client.send("GET", entry.key)
+                    try throwIfRedisError(value)
+                    guard token == keyDetailGeneration else { return }
+                    keyDetail = value.string ?? "(nil)"
+                    keyDetailTruncated = false
+                }
                 keyDetailHasMoreRows = false
             }
 

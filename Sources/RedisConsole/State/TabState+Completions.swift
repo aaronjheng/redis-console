@@ -32,6 +32,6 @@ extension TabState {
             "ZREVRANGEBYSCORE", "ZREVRANK", "ZSCAN", "ZSCORE", "ZUNIONSTORE",
         ]
         let upper = prefix.uppercased()
-        return commands.filter { $0.hasPrefix(upper) }
+        return commands.filter { $0.hasPrefix(upper) }.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 }

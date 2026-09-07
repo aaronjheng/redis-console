@@ -6,7 +6,7 @@ enum OperationTimeoutError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .timedOut(let context, let seconds):
-            return "\(context) timed out after \(Int(seconds))s"
+            return String(format: "\(context) timed out after %gs", seconds)
         }
     }
 }

@@ -156,6 +156,13 @@ struct ConnectionDetailView: View {
                                 Text("Provide a password or a private key file path")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
+                                Label(
+                                    "Built-in mode does not verify the server's host key. "
+                                        + "Use System SSH for known_hosts verification.",
+                                    systemImage: "exclamationmark.triangle"
+                                )
+                                .font(.subheadline)
+                                .foregroundStyle(AppColor.warning)
                             } else {
                                 TextField("Private Key Path (optional)", text: $ssh.privateKeyPath)
                                 Text(

@@ -497,11 +497,33 @@ class SSHTunnel: @unchecked Sendable {
     // MARK: - Helper Methods
 
     private func findAvailablePort() -> UInt16 {
-        for _ in 0..<100 {
-            let port = UInt16.random(in: 10000..<60000)
-            if isPortAvailable(port) { return port }
+        // Ask the OS for a free port by binding an ephemeral listener, then
+        // close it. This avoids both the check-then-use race of scanning
+        // random candidates and the unvalidated fallback port.
+        let sock = socket(AF_INET, SOCK_STREAM, 0)
+        guard sock >= 0 else { return UInt16.random(in: 10000..<60000) }
+        defer { close(sock) }
+
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = 0
+        addr.sin_addr.s_addr = INADDR_ANY.bigEndian
+        let bindResult = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                Darwin.bind(sock, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
         }
-        return UInt16.random(in: 50000..<60000)
+        guard bindResult == 0 else { return UInt16.random(in: 10000..<60000) }
+
+        var assigned = sockaddr_in()
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let nameResult = withUnsafeMutablePointer(to: &assigned) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                Darwin.getsockname(sock, $0, &length)
+            }
+        }
+        guard nameResult == 0 else { return UInt16.random(in: 10000..<60000) }
+        return UInt16(bigEndian: assigned.sin_port)
     }
 
     private func isPortAvailable(_ port: UInt16) -> Bool {
