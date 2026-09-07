@@ -1,6 +1,6 @@
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     // MARK: - Database Analysis
 
     private nonisolated static let analysisSampleLimit = 10_000
@@ -14,7 +14,7 @@ extension ConnectionState {
     }
 
     func runDatabaseAnalysis() async {
-        guard let client = activeClient, client.isConnected else { return }
+        guard let client = activeSession, client.isConnected else { return }
         isLoadingAnalysis = true
         analysisError = nil
         analysis = nil
@@ -23,7 +23,7 @@ extension ConnectionState {
         let sampleLimit = isProduction ? Self.analysisProductionSampleLimit : Self.analysisSampleLimit
         let separator = namespaceSeparator.isEmpty ? ":" : namespaceSeparator
 
-        // The handle IS the worker. ConnectionState is @MainActor, so state
+        // The handle IS the worker. TabState is @MainActor, so state
         // mutations below hop to the main actor automatically; the Redis
         // calls and CPU work run off the main actor because `runAnalysisWork`
         // is `nonisolated @concurrent`. Cancellation via `cancel()` is
@@ -68,7 +68,7 @@ extension ConnectionState {
     }
 
     /// Off-main-actor analysis body. Without `nonisolated`, this would inherit
-    /// `@MainActor` from `ConnectionState` (extension members do), putting the
+    /// `@MainActor` from `TabState` (extension members do), putting the
     /// CPU-heavy parsing and aggregation on the main thread. `@concurrent`
     /// pins execution to the global concurrent pool: the body, its
     /// suspensions, and resumptions all stay off the main actor; the result

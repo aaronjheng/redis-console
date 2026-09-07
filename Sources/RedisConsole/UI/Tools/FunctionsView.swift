@@ -3,39 +3,39 @@ import SwiftUI
 // MARK: - Functions View
 
 struct FunctionsView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     @State private var searchText = ""
     @State private var showingLoadSheet = false
     @State private var libraryPendingDeletion: RedisFunctionLibrary?
     @State private var productionConfirmText = ""
 
     private var isProduction: Bool {
-        app.selectedConnection?.environment == .production
+        tab.selectedConnection?.environment == .production
     }
     private var isClusterMode: Bool {
-        app.selectedConnection?.mode == .cluster || !app.clusterNodes.isEmpty
+        tab.selectedConnection?.mode == .cluster || !tab.clusterNodes.isEmpty
     }
 
     private var filteredLibraries: [RedisFunctionLibrary] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return app.functionLibraries }
-        return app.functionLibraries.filter { $0.name.lowercased().contains(query) }
+        guard !query.isEmpty else { return tab.functionLibraries }
+        return tab.functionLibraries.filter { $0.name.lowercased().contains(query) }
     }
 
     /// The currently selected library, freshly resolved against the latest fetch
     /// so the detail view always reflects reloaded data.
     private var displayedLibrary: RedisFunctionLibrary? {
-        guard let selected = app.selectedFunctionLibrary else { return nil }
-        return app.functionLibraries.first { $0.name == selected.name }
+        guard let selected = tab.selectedFunctionLibrary else { return nil }
+        return tab.functionLibraries.first { $0.name == selected.name }
     }
 
     var body: some View {
-        @Bindable var app = app
+        @Bindable var tab = tab
         VStack(spacing: 0) {
             header
 
-            if let error = app.functionsError {
-                ErrorBanner(message: error, dismissAction: { app.functionsError = nil })
+            if let error = tab.functionsError {
+                ErrorBanner(message: error, dismissAction: { tab.functionsError = nil })
             }
 
             Divider()
@@ -43,8 +43,8 @@ struct FunctionsView: View {
             content
         }
         .task {
-            if app.serverInfo.isEmpty { await app.loadServerInfo() }
-            if app.supportsFunctions { await app.fetchFunctionLibraries() }
+            if tab.serverInfo.isEmpty { await tab.loadServerInfo() }
+            if tab.supportsFunctions { await tab.fetchFunctionLibraries() }
         }
         .sheet(isPresented: $showingLoadSheet) {
             LuaEditorView(mode: .create)
@@ -63,9 +63,9 @@ struct FunctionsView: View {
                 Button("Delete", role: .destructive) {
                     Task {
                         do {
-                            try await app.deleteFunctionLibrary(name: library.name)
+                            try await tab.deleteFunctionLibrary(name: library.name)
                         } catch {
-                            app.functionsError = error.localizedDescription
+                            tab.functionsError = error.localizedDescription
                         }
                     }
                     libraryPendingDeletion = nil
@@ -101,9 +101,9 @@ struct FunctionsView: View {
                     onConfirm: {
                         Task {
                             do {
-                                try await app.deleteFunctionLibrary(name: library.name)
+                                try await tab.deleteFunctionLibrary(name: library.name)
                             } catch {
-                                app.functionsError = error.localizedDescription
+                                tab.functionsError = error.localizedDescription
                             }
                         }
                         libraryPendingDeletion = nil
@@ -122,23 +122,23 @@ struct FunctionsView: View {
     // MARK: Header
 
     private var header: some View {
-        @Bindable var app = app
+        @Bindable var tab = tab
         return HStack(spacing: AppSpacing.medium) {
             FilterField("Filter libraries", text: $searchText)
                 .frame(maxWidth: .infinity)
 
-            if app.isLoadingFunctions {
+            if tab.isLoadingFunctions {
                 ProgressView()
                     .controlSize(.small)
             }
 
             Button {
-                Task { await app.fetchFunctionLibraries() }
+                Task { await tab.fetchFunctionLibraries() }
             } label: {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
             .buttonStyle(SecondaryButtonStyle())
-            .disabled(app.isLoadingFunctions || !app.supportsFunctions)
+            .disabled(tab.isLoadingFunctions || !tab.supportsFunctions)
 
             Button {
                 showingLoadSheet = true
@@ -146,7 +146,7 @@ struct FunctionsView: View {
                 Label("Load", systemImage: "plus")
             }
             .buttonStyle(PrimaryButtonStyle())
-            .disabled(!app.supportsFunctions)
+            .disabled(!tab.supportsFunctions)
         }
         .panelToolbar(horizontalPadding: AppSpacing.small)
     }
@@ -155,14 +155,14 @@ struct FunctionsView: View {
 
     @ViewBuilder
     private var content: some View {
-        if app.activeClient?.isConnected != true {
+        if tab.activeSession?.isConnected != true {
             emptyState("Not connected", "Connect to a Redis server to manage functions")
-        } else if !app.supportsFunctions {
+        } else if !tab.supportsFunctions {
             emptyState(
                 "Redis 7.0+ required",
                 "Redis Functions are available in Redis 7.0 and later."
             )
-        } else if app.isLoadingFunctions && app.functionLibraries.isEmpty {
+        } else if tab.isLoadingFunctions && tab.functionLibraries.isEmpty {
             Spacer()
             LoadingState(message: "Loading functions...")
             Spacer()
@@ -206,11 +206,11 @@ struct FunctionsView: View {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(filteredLibraries) { library in
-                                LibraryRow(library: library)
-                                    .fullWidthListRow(selected: app.selectedFunctionLibrary?.name == library.name)
+                                FunctionLibraryRow(library: library)
+                                    .fullWidthListRow(selected: tab.selectedFunctionLibrary?.name == library.name)
                                     .id(library.name)
                                     .contentShape(Rectangle())
-                                    .onTapGesture { app.selectedFunctionLibrary = library }
+                                    .onTapGesture { tab.selectedFunctionLibrary = library }
                                     .contextMenu {
                                         Button(role: .destructive) {
                                             libraryPendingDeletion = library
@@ -226,7 +226,7 @@ struct FunctionsView: View {
 
             Divider()
 
-            WorkspaceFooterBar {
+            PanelFooterBar {
                 StatusFooterView(countText: footerText)
                 Spacer()
             }
@@ -236,10 +236,10 @@ struct FunctionsView: View {
     // MARK: Helpers
 
     private var footerText: String {
-        let total = app.functionLibraries.count
+        let total = tab.functionLibraries.count
         let filtered = filteredLibraries.count
         if isClusterMode {
-            let primaryCount = app.clusterNodes.filter { $0.role == .primary }.count
+            let primaryCount = tab.clusterNodes.filter { $0.role == .primary }.count
             if primaryCount > 0 {
                 return "\(total) libraries \u{00B7} \(primaryCount) primaries"
             }
@@ -259,7 +259,7 @@ struct FunctionsView: View {
     }
 }
 
-private struct LibraryRow: View {
+private struct FunctionLibraryRow: View {
     let library: RedisFunctionLibrary
     @Environment(\.listRowIsSelected) private var isSelected
 

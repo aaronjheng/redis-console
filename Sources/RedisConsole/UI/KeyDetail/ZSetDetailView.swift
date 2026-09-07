@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - ZSet Detail View
 
-struct ZSetRow: Identifiable {
+struct ZSetEntry: Identifiable {
     var id: String { member }
     let score: String
     let member: String
@@ -11,7 +11,7 @@ struct ZSetRow: Identifiable {
 struct ZSetDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let keyLength: Int?
+    let totalCount: Int?
     let searchText: String
     let order: KeyDetailZSetOrder
     let hasMoreRows: Bool
@@ -29,8 +29,8 @@ struct ZSetDetailView: View {
     @State private var memberPendingDeletion: String?
     @State private var productionConfirmText = ""
 
-    private var zsetRows: [ZSetRow] {
-        rows.map { ZSetRow(score: $0.0, member: $0.1) }
+    private var zsetEntries: [ZSetEntry] {
+        rows.map { ZSetEntry(score: $0.0, member: $0.1) }
     }
 
     var body: some View {
@@ -58,7 +58,7 @@ struct ZSetDetailView: View {
 
             Divider()
 
-            Table(zsetRows) {
+            Table(zsetEntries) {
                 TableColumn("Score") { row in
                     EditableZSetCell(
                         row: row,
@@ -98,7 +98,7 @@ struct ZSetDetailView: View {
 
             Divider()
 
-            WorkspaceFooterBar {
+            PanelFooterBar {
                 Button("Add Member", systemImage: "plus") {
                     onAddMember()
                 }
@@ -117,7 +117,7 @@ struct ZSetDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "members")
+                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "members")
                 )
             }
         }
@@ -181,7 +181,7 @@ struct ZSetDetailView: View {
 }
 
 struct EditableZSetCell: View {
-    let row: ZSetRow
+    let row: ZSetEntry
     @Binding var editingMember: String?
     @Binding var editScore: String
     let rowValue: String

@@ -3,14 +3,14 @@ import SwiftUI
 // MARK: - Workspace Sidebar
 
 struct WorkspaceSidebarView: View {
-    @Environment(ConnectionState.self) private var conn
+    @Environment(TabState.self) private var tab
 
     var body: some View {
-        @Bindable var conn = conn
+        @Bindable var tab = tab
 
         VStack(spacing: 0) {
             VStack(spacing: 0) {
-                if let selectedConnection = conn.selectedConnection {
+                if let selectedConnection = tab.selectedConnection {
                     VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                         HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xSmall) {
                             Text(selectedConnection.name)
@@ -47,8 +47,8 @@ struct WorkspaceSidebarView: View {
 
             Divider()
 
-            List(selection: $conn.currentView) {
-                ForEach(AppView.allCases, id: \.self) { view in
+            List(selection: $tab.currentSection) {
+                ForEach(WorkspaceSection.allCases, id: \.self) { view in
                     Label(view.rawValue, systemImage: view.icon)
                         .tag(view)
                 }
@@ -58,9 +58,9 @@ struct WorkspaceSidebarView: View {
 
             Divider()
 
-            WorkspaceFooterBar {
+            PanelFooterBar {
                 Button(role: .destructive) {
-                    conn.disconnect()
+                    tab.disconnect()
                 } label: {
                     Label("Disconnect", systemImage: "power")
                         .frame(maxWidth: .infinity, alignment: .leading)

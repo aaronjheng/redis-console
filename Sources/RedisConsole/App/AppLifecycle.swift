@@ -98,10 +98,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         selectTab(at: sender.tag - 1)
     }
 
-    private func createWindow(for state: ConnectionState, tabbed: Bool) {
+    private func createWindow(for state: TabState, tabbed: Bool) {
         let contentView = TabContentView()
             .environment(state)
-            .environment(AppStore.shared)
+            .environment(ConnectionStore.shared)
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
@@ -132,7 +132,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Drop the manager's strong reference (and the window's) to this
             // delegate synchronously while the window is still alive, otherwise
             // `delegateManager.delegates` accumulates every closed tab's delegate
-            // (and its strongly-captured ConnectionState) for the app's lifetime.
+            // (and its strongly-captured TabState) for the app's lifetime.
             if let self, let window {
                 self.delegateManager.removeDelegate(for: window)
                 window.delegate = nil

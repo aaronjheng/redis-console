@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Connecting View
 
 struct ConnectingView: View {
-    @Environment(ConnectionState.self) private var conn
+    @Environment(TabState.self) private var tab
     @State private var isPulsing = false
 
     var body: some View {
@@ -21,7 +21,7 @@ struct ConnectingView: View {
             }
             .onAppear { isPulsing = true }
 
-            if let pending = conn.pendingConnection {
+            if let pending = tab.pendingConnection {
                 Text("Connecting to \(pending.name)")
                     .font(.title3)
                     .bold()
@@ -29,7 +29,7 @@ struct ConnectingView: View {
                     .foregroundStyle(.secondary)
                     .font(AppFont.dataCell)
             }
-            Button("Cancel") { conn.cancelConnection() }
+            Button("Cancel") { tab.cancelConnection() }
                 .buttonStyle(SecondaryButtonStyle())
                 .padding(.top, AppSpacing.small)
         }

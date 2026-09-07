@@ -10,42 +10,6 @@
 	<string>77</string>
 	<key>objects</key>
 	<dict>
-		<key>B60C092119559FDE6486EF9A</key>
-		<dict>
-			<key>fileRef</key>
-			<string>267D2F4CF9A0B7C084E47895</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
-		<key>267D2F4CF9A0B7C084E47895</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>SSH/SystemSSHConnectionPool.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
-		</dict>
-		<key>576C406DE854B779E17C976D</key>
-		<dict>
-			<key>fileRef</key>
-			<string>84DC0443A8C1E35C6C905DDE</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
-		<key>84DC0443A8C1E35C6C905DDE</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>SSH/SystemSSHTunnel.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
-		</dict>
 		<key>0059138E5AC64EA499317333</key>
 		<dict>
 			<key>isa</key>
@@ -66,6 +30,17 @@
 			<string>PBXBuildFile</string>
 			<key>productRef</key>
 			<string>FCFC0D3871064B0C8DD52CA8</string>
+		</dict>
+		<key>0140843B7E8440A4BD9E2BF8</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Theme/ProductionConfirm.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
 		</dict>
 		<key>027F421A3802B3F7AA0FF5C4</key>
 		<dict>
@@ -138,6 +113,13 @@
 				<string>0.10.0</string>
 			</dict>
 		</dict>
+		<key>0C2E7688F04F4C44913778BC</key>
+		<dict>
+			<key>fileRef</key>
+			<string>ABDD1DD4BFA04BE2B769118C</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>0CDB668F1E8A810797CB0465</key>
 		<dict>
 			<key>fileRef</key>
@@ -186,7 +168,6 @@
 				<string>307922DA0FD1DFBC0AE1C390</string>
 				<string>CFBF582DD63B199731500A76</string>
 				<string>E2D767E06402B486180E8833</string>
-				<string>AF8415C586FF6FD461002505</string>
 				<string>710A7EA408D4C4107D58570D</string>
 				<string>B133F8196C81269D04A526BB</string>
 				<string>B5F564BA2D1E0F1AD0B00339</string>
@@ -206,9 +187,9 @@
 				<string>CF606A6964524077E9B2C2AC</string>
 				<string>E31A8F9B6C2D4A5F90123459</string>
 				<string>C1A5F0E7A4B94C3D9E613001</string>
-			<string>6FC45097D404559C7802F7F8</string>
-			<string>E0D1C2B3A4F5061728394A5B</string>
-			<string>E31A8F9B6C2D4A5F90123457</string>
+				<string>6FC45097D404559C7802F7F8</string>
+				<string>E0D1C2B3A4F5061728394A5B</string>
+				<string>E31A8F9B6C2D4A5F90123457</string>
 				<string>192713478BAB4601F8037492</string>
 				<string>288450F3CEC2CFCC1BF4B8C8</string>
 				<string>4A8D6099DE77854253F3FD15</string>
@@ -222,7 +203,6 @@
 				<string>4CA6B3946EE148E4AB3E6C47</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>85B4BE09415F4F448B2457DE</string>
-				<string>1103EF7EB7CE4B40945AB508</string>
 				<string>34814B30A7A652152BAEBF3C</string>
 				<string>7F2D7DAC8A41B64E26C2B37F</string>
 				<string>352C3153A5BB305520611C59</string>
@@ -243,13 +223,33 @@
 				<string>E7B2C4D6E8F0A1B2C3D4E5F6</string>
 				<string>DDAEA26E1EB44856A4E40CE9</string>
 				<string>E7DAE39125644185BA5CBBCC</string>
-			
 				<string>267D2F4CF9A0B7C084E47895</string>
-				<string>84DC0443A8C1E35C6C905DDE</string></array>
+				<string>84DC0443A8C1E35C6C905DDE</string>
+				<string>F0D7DEC1C4444B2FA5B9FF8B</string>
+				<string>DF1022D1E72B47A799E5B454</string>
+				<string>DB3B9306E6A94167B321F800</string>
+				<string>46DA3BCB49C04DF0AFC01EB4</string>
+				<string>0F72EDF14BD1433C883EAC70</string>
+				<string>8E0D34DB5EC24BE09B051E35</string>
+				<string>0140843B7E8440A4BD9E2BF8</string>
+				<string>ABDD1DD4BFA04BE2B769118C</string>
+				<string>9C8050B2B951400384C029C5</string>
+			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
 			<key>path</key>
 			<string>RedisConsole</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>0F72EDF14BD1433C883EAC70</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Theme/Buttons.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -260,7 +260,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+Connection.swift</string>
+			<string>State/TabState+Connection.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -288,17 +288,6 @@
 			<string>PBXFrameworksBuildPhase</string>
 			<key>runOnlyForDeploymentPostprocessing</key>
 			<string>0</string>
-		</dict>
-		<key>1103EF7EB7CE4B40945AB508</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>Theme/UIComponents.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
 		</dict>
 		<key>111F38255585C4A9001B8D7B</key>
 		<dict>
@@ -342,7 +331,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+Functions.swift</string>
+			<string>State/TabState+Functions.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -421,6 +410,24 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>2269194655EA4169BD4AC1AA</key>
+		<dict>
+			<key>fileRef</key>
+			<string>0F72EDF14BD1433C883EAC70</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>267D2F4CF9A0B7C084E47895</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>SSH/SystemSSHConnectionPool.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>26D28D976EFD4A1A9893B37F</key>
 		<dict>
 			<key>fileRef</key>
@@ -465,20 +472,6 @@
 				<string>upToNextMajorVersion</string>
 				<key>minimumVersion</key>
 				<string>0.24.0</string>
-			</dict>
-		</dict>
-		<key>A7B2C4D6E8F0A1B2C3D4E5F7</key>
-		<dict>
-			<key>isa</key>
-			<string>XCRemoteSwiftPackageReference</string>
-			<key>repositoryURL</key>
-			<string>https://github.com/tree-sitter/tree-sitter-bash.git</string>
-			<key>requirement</key>
-			<dict>
-				<key>kind</key>
-				<string>upToNextMajorVersion</string>
-				<key>minimumVersion</key>
-				<string>0.25.1</string>
 			</dict>
 		</dict>
 		<key>2B5AD09BA69DA97463912AAE</key>
@@ -660,7 +653,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/Tools/SelectableText.swift</string>
+			<string>UI/Editor/SelectableText.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -812,6 +805,17 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>46DA3BCB49C04DF0AFC01EB4</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Theme/StatusViews.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>47D8EAB9242B4058BB99D900</key>
 		<dict>
 			<key>isa</key>
@@ -870,6 +874,13 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>5351AA7A4CFA41629324A115</key>
+		<dict>
+			<key>fileRef</key>
+			<string>F0D7DEC1C4444B2FA5B9FF8B</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>53AF0CC868B84D76BF9AF9E8</key>
 		<dict>
 			<key>fileRef</key>
@@ -891,9 +902,16 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/Tools/TreeSitterLuaHighlighter.swift</string>
+			<string>UI/Editor/TreeSitterLuaHighlighter.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
+		</dict>
+		<key>576C406DE854B779E17C976D</key>
+		<dict>
+			<key>fileRef</key>
+			<string>84DC0443A8C1E35C6C905DDE</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
 		</dict>
 		<key>59AC308B35EAC800725934A3</key>
 		<dict>
@@ -935,7 +953,6 @@
 				<string>6E2E4B02051F42F6A1E7C6A2</string>
 				<string>90AD1D72C1B73A0DFBEB14BC</string>
 				<string>30519E80DAA108581A7E0940</string>
-				<string>FAA3E1F18B30985AE358C5BF</string>
 				<string>A59DF5B6151F93A5CBF4453E</string>
 				<string>F9356B862B03B07C3EC56A48</string>
 				<string>D2D28BF0BE748CE51D64A1F5</string>
@@ -978,7 +995,6 @@
 				<string>32D6CD4720F32943F12FA357</string>
 				<string>21B9E85849C04FB8915DC3BE</string>
 				<string>C85BB738209345BBA8B89B16</string>
-				<string>E8127BFB482B4E59A8A1E691</string>
 				<string>963B1ECEA1CD49A8B83AB0C7</string>
 				<string>8CDBFFBBFE5D453280A45755</string>
 				<string>82F8D6C1651F430F98737411</string>
@@ -997,11 +1013,20 @@
 				<string>4318EBA1CEFB492BA7B69596</string>
 				<string>BB90403899B2435B90545CDD</string>
 				<string>4E304EC41AB84507A2093DF2</string>
-			<string>B5F373F3E06145DE91F62466</string>
-			<string>F1E2D3C4B5A6978679485A6B</string>
-		
+				<string>B5F373F3E06145DE91F62466</string>
+				<string>F1E2D3C4B5A6978679485A6B</string>
 				<string>B60C092119559FDE6486EF9A</string>
-				<string>576C406DE854B779E17C976D</string></array>
+				<string>576C406DE854B779E17C976D</string>
+				<string>5351AA7A4CFA41629324A115</string>
+				<string>F8C93F2C1EEB49E883706AF1</string>
+				<string>DB77B7C345424C29A2678345</string>
+				<string>C91F0B783BA442F09BD2F4CB</string>
+				<string>2269194655EA4169BD4AC1AA</string>
+				<string>A6322AC141904ABE8D85DC06</string>
+				<string>BD2526856B014AA49D0289F1</string>
+				<string>0C2E7688F04F4C44913778BC</string>
+				<string>80037582988D4A29B7CCECC1</string>
+			</array>
 			<key>isa</key>
 			<string>PBXSourcesBuildPhase</string>
 			<key>runOnlyForDeploymentPostprocessing</key>
@@ -1025,7 +1050,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+KeyBrowser.swift</string>
+			<string>State/TabState+KeyBrowser.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1036,7 +1061,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/Clipboard.swift</string>
+			<string>Theme/Pasteboard.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1061,13 +1086,6 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
-		<key>F1E2D3C4B5A6978679485A6B</key>
-		<dict>
-			<key>fileRef</key>
-			<string>E0D1C2B3A4F5061728394A5B</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
 		<key>663CB7525567058CB1C35306</key>
 		<dict>
 			<key>isa</key>
@@ -1075,7 +1093,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+Preferences.swift</string>
+			<string>State/TabState+Preferences.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1113,7 +1131,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+Completions.swift</string>
+			<string>State/TabState+Completions.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1124,7 +1142,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+Profiler.swift</string>
+			<string>State/TabState+Profiler.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1143,17 +1161,6 @@
 			<string>sourcecode.swift</string>
 			<key>path</key>
 			<string>Redis/Client/RedisClient.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
-		</dict>
-		<key>E0D1C2B3A4F5061728394A5B</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>Redis/ClientIdentityLoader.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1242,6 +1249,13 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>80037582988D4A29B7CCECC1</key>
+		<dict>
+			<key>fileRef</key>
+			<string>9C8050B2B951400384C029C5</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>81D1445A8D6521AAEADEC9B6</key>
 		<dict>
 			<key>isa</key>
@@ -1268,6 +1282,17 @@
 			<string>sourcecode.swift</string>
 			<key>path</key>
 			<string>UI/Tools/FunctionsView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>84DC0443A8C1E35C6C905DDE</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>SSH/SystemSSHTunnel.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1351,6 +1376,17 @@
 			<string>D499544E2952AF7EBA6A</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
+		</dict>
+		<key>8E0D34DB5EC24BE09B051E35</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Theme/PickersAndFields.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
 		</dict>
 		<key>8EF1BEB908E646A1A65E9096</key>
 		<dict>
@@ -1527,6 +1563,17 @@
 			<key>name</key>
 			<string>Release</string>
 		</dict>
+		<key>9C8050B2B951400384C029C5</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/KeyDetail/KeyDetailCounts.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>9D664BACAC0A72DBFF6ABC59</key>
 		<dict>
 			<key>isa</key>
@@ -1611,7 +1658,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+ServerInfo.swift</string>
+			<string>State/TabState+ServerInfo.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1632,6 +1679,36 @@
 			<string>App/TabManager.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
+		</dict>
+		<key>A6322AC141904ABE8D85DC06</key>
+		<dict>
+			<key>fileRef</key>
+			<string>8E0D34DB5EC24BE09B051E35</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>A7B2C4D6E8F0A1B2C3D4E5F7</key>
+		<dict>
+			<key>isa</key>
+			<string>XCRemoteSwiftPackageReference</string>
+			<key>repositoryURL</key>
+			<string>https://github.com/tree-sitter/tree-sitter-bash.git</string>
+			<key>requirement</key>
+			<dict>
+				<key>kind</key>
+				<string>upToNextMajorVersion</string>
+				<key>minimumVersion</key>
+				<string>0.25.1</string>
+			</dict>
+		</dict>
+		<key>A7B2C4D6E8F0A1B2C3D4E5F8</key>
+		<dict>
+			<key>isa</key>
+			<string>XCSwiftPackageProductDependency</string>
+			<key>package</key>
+			<string>A7B2C4D6E8F0A1B2C3D4E5F7</string>
+			<key>productName</key>
+			<string>TreeSitterBash</string>
 		</dict>
 		<key>A871A43D5B5961206589CE85</key>
 		<dict>
@@ -1665,6 +1742,17 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>ABDD1DD4BFA04BE2B769118C</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Theme/ListRows.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>ACB9A5A0F74DD02D7C5C6927</key>
 		<dict>
 			<key>fileRef</key>
@@ -1678,17 +1766,6 @@
 			<string>30154E03B5DE5970A72B3E24</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
-		</dict>
-		<key>AF8415C586FF6FD461002505</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>UI/KeyDetail/CollectionDetailControls.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
 		</dict>
 		<key>B03968E34D94ABAFB37875CE</key>
 		<dict>
@@ -1812,6 +1889,13 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>B60C092119559FDE6486EF9A</key>
+		<dict>
+			<key>fileRef</key>
+			<string>267D2F4CF9A0B7C084E47895</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>B8284803F8863D0A2876D242</key>
 		<dict>
 			<key>isa</key>
@@ -1830,7 +1914,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+SlowLog.swift</string>
+			<string>State/TabState+SlowLog.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1848,7 +1932,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/Tools/TreeSitterJsonHighlighter.swift</string>
+			<string>UI/Editor/TreeSitterJsonHighlighter.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1901,6 +1985,13 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>BD2526856B014AA49D0289F1</key>
+		<dict>
+			<key>fileRef</key>
+			<string>0140843B7E8440A4BD9E2BF8</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>BE71ED9FA189175A079FB476</key>
 		<dict>
 			<key>fileRef</key>
@@ -1947,6 +2038,13 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>C91F0B783BA442F09BD2F4CB</key>
+		<dict>
+			<key>fileRef</key>
+			<string>46DA3BCB49C04DF0AFC01EB4</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>CBC7648DD685A71D5D0DA5CE</key>
 		<dict>
 			<key>children</key>
@@ -1974,7 +2072,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/Root/ContentView.swift</string>
+			<string>UI/Root/TabContentView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1999,7 +2097,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/Browser/KeyDetailView.swift</string>
+			<string>UI/KeyDetail/KeyDetailView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -2007,24 +2105,6 @@
 		<dict>
 			<key>fileRef</key>
 			<string>B5F564BA2D1E0F1AD0B00339</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
-		<key>E7B2C4D6E8F0A1B2C3D4E5F6</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>UI/Tools/TreeSitterBashHighlighter.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
-		</dict>
-		<key>F7B2C4D6E8F0A1B2C3D4E5F6</key>
-		<dict>
-			<key>fileRef</key>
-			<string>E7B2C4D6E8F0A1B2C3D4E5F6</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -2053,7 +2133,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState.swift</string>
+			<string>State/TabState.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -2071,6 +2151,24 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>DB3B9306E6A94167B321F800</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Theme/PanelChrome.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>DB77B7C345424C29A2678345</key>
+		<dict>
+			<key>fileRef</key>
+			<string>DB3B9306E6A94167B321F800</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>DDAEA26E1EB44856A4E40CE9</key>
 		<dict>
 			<key>isa</key>
@@ -2078,7 +2176,29 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/Tools/SyntaxHighlighting.swift</string>
+			<string>UI/Editor/SyntaxHighlighting.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>DF1022D1E72B47A799E5B454</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/Workspace/WorkspaceView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E0D1C2B3A4F5061728394A5B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>Redis/ClientIdentityLoader.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -2154,6 +2274,17 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>E7B2C4D6E8F0A1B2C3D4E5F6</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/Editor/TreeSitterBashHighlighter.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
 		<key>E7DAE39125644185BA5CBBCC</key>
 		<dict>
 			<key>isa</key>
@@ -2161,16 +2292,9 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>UI/Tools/SyntaxTextView.swift</string>
+			<string>UI/Editor/SyntaxTextView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
-		</dict>
-		<key>E8127BFB482B4E59A8A1E691</key>
-		<dict>
-			<key>fileRef</key>
-			<string>1103EF7EB7CE4B40945AB508</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
 		</dict>
 		<key>E86C4C52E6E99946D8C66204</key>
 		<dict>
@@ -2219,7 +2343,7 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+Shell.swift</string>
+			<string>State/TabState+Shell.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -2241,7 +2365,18 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/ConnectionState+DatabaseAnalysis.swift</string>
+			<string>State/TabState+DatabaseAnalysis.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>F0D7DEC1C4444B2FA5B9FF8B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>UI/Connection/ConnectionHubView.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -2252,6 +2387,13 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
+		<key>F1E2D3C4B5A6978679485A6B</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E0D1C2B3A4F5061728394A5B</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
 		<key>F59767EE7E02A667EEC3A156</key>
 		<dict>
 			<key>isa</key>
@@ -2259,14 +2401,28 @@
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>State/AppStore.swift</string>
+			<string>State/ConnectionStore.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
+		</dict>
+		<key>F7B2C4D6E8F0A1B2C3D4E5F6</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E7B2C4D6E8F0A1B2C3D4E5F6</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
 		</dict>
 		<key>F865DB7D7F787DD945326BA6</key>
 		<dict>
 			<key>fileRef</key>
 			<string>B54B11C3DFA1C686E6B6AF38</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>F8C93F2C1EEB49E883706AF1</key>
+		<dict>
+			<key>fileRef</key>
+			<string>DF1022D1E72B47A799E5B454</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -2295,13 +2451,6 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>FAA3E1F18B30985AE358C5BF</key>
-		<dict>
-			<key>fileRef</key>
-			<string>AF8415C586FF6FD461002505</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
 		<key>FACEB586CD12D0873A8718B1</key>
 		<dict>
 			<key>isa</key>
@@ -2321,15 +2470,6 @@
 			<string>2AA01E6A552B4B759968E6D3</string>
 			<key>productName</key>
 			<string>TreeSitterJSON</string>
-		</dict>
-		<key>A7B2C4D6E8F0A1B2C3D4E5F8</key>
-		<dict>
-			<key>isa</key>
-			<string>XCSwiftPackageProductDependency</string>
-			<key>package</key>
-			<string>A7B2C4D6E8F0A1B2C3D4E5F7</string>
-			<key>productName</key>
-			<string>TreeSitterBash</string>
 		</dict>
 		<key>FEAD361A497E3B97E10C7FC6</key>
 		<dict>

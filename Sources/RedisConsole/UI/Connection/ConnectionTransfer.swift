@@ -10,7 +10,7 @@ enum ConnectionTransfer {
     /// Builds the JSON document to export, or nil when serialization fails.
     static func exportDocument(
         for configs: [RedisConnectionConfig],
-        store: AppStore
+        store: ConnectionStore
     ) -> ConnectionsDocument? {
         guard let data = store.exportConnections(configs) else { return nil }
         return ConnectionsDocument(
@@ -22,7 +22,7 @@ enum ConnectionTransfer {
     }
 
     /// Merges the configs from a completed fileImporter selection into the store.
-    static func importConnections(from result: Result<[URL], Error>, store: AppStore) {
+    static func importConnections(from result: Result<[URL], Error>, store: ConnectionStore) {
         guard case .success(let urls) = result, let url = urls.first else { return }
         guard let data = try? Data(contentsOf: url),
             let configs = store.importConnections(from: data)

@@ -1,6 +1,6 @@
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     // MARK: - Profiler
 
     func startProfiler() {
@@ -212,7 +212,7 @@ extension ConnectionState {
     private func startClusterProfilerStream(
         config: RedisConnectionConfig
     ) async throws -> RedisProfilerStream {
-        guard let clusterClient = activeClient as? RedisClusterClient else {
+        guard let clusterClient = activeSession as? RedisClusterClient else {
             throw RedisError.commandError("Profiler requires an active Redis Cluster connection")
         }
 

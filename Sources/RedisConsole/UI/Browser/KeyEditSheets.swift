@@ -37,8 +37,8 @@ struct AddHashFieldSheet: View {
 struct AddListElementSheet: View {
     let key: String
     @Binding var value: String
-    @Binding var position: KeyDetailView.ListPosition
-    let onSave: (String, KeyDetailView.ListPosition) -> Void
+    @Binding var position: ListInsertPosition
+    let onSave: (String, ListInsertPosition) -> Void
     let onCancel: () -> Void
 
     var body: some View {
@@ -50,8 +50,8 @@ struct AddListElementSheet: View {
                 TextField("Value", text: $value, axis: .vertical)
                     .lineLimit(3...6)
                 Picker("Position", selection: $position) {
-                    Text("Head (LPUSH)").tag(KeyDetailView.ListPosition.head)
-                    Text("Tail (RPUSH)").tag(KeyDetailView.ListPosition.tail)
+                    Text("Head (LPUSH)").tag(ListInsertPosition.head)
+                    Text("Tail (RPUSH)").tag(ListInsertPosition.tail)
                 }
             }
             .formStyle(.grouped)
@@ -132,7 +132,7 @@ struct AddZSetMemberSheet: View {
 
 // MARK: - Editable Identifiers
 
-extension KeyDetailView.ListPosition: Identifiable {
+extension ListInsertPosition: Identifiable {
     var id: Int {
         switch self {
         case .head: return 0

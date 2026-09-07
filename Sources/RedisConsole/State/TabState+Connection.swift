@@ -1,6 +1,6 @@
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     // MARK: - Connect / Disconnect
 
     func connect(to config: RedisConnectionConfig) async {
@@ -13,7 +13,7 @@ extension ConnectionState {
         )
         stopProfiler(clearEntries: true)
         connectTask?.cancel()
-        activeClient?.disconnect()
+        activeSession?.disconnect()
         sshTunnel?.stop()
         sshTunnel = nil
         let previousClusterTunnelManager = sshClusterTunnelManager
@@ -23,7 +23,7 @@ extension ConnectionState {
         isConnecting = true
         connectionError = nil
         pendingConnection = resolvedConfig
-        clearConnectionState()
+        resetForDisconnect()
 
         let task = Task { @MainActor in
             var connectHost = resolvedConfig.host
@@ -126,7 +126,7 @@ extension ConnectionState {
 
                 try Task.checkCancellation()
 
-                activeClient = redis
+                activeSession = redis
                 selectedConnection = resolvedConfig
                 await loadShellHistory(for: resolvedConfig)
                 isConnecting = false
@@ -177,8 +177,8 @@ extension ConnectionState {
         stopProfiler(clearEntries: true)
         connectTask?.cancel()
         connectTask = nil
-        activeClient?.disconnect()
-        activeClient = nil
+        activeSession?.disconnect()
+        activeSession = nil
         sshTunnel?.stop()
         sshTunnel = nil
         let clusterTunnelManager = sshClusterTunnelManager
@@ -187,7 +187,7 @@ extension ConnectionState {
         isConnecting = false
         pendingConnection = nil
         connectionError = nil
-        clearConnectionState()
+        resetForDisconnect()
     }
 
     func disconnect() {
@@ -196,8 +196,8 @@ extension ConnectionState {
         disconnectShellClient()
         connectTask?.cancel()
         connectTask = nil
-        activeClient?.disconnect()
-        activeClient = nil
+        activeSession?.disconnect()
+        activeSession = nil
         sshTunnel?.stop()
         sshTunnel = nil
         let clusterTunnelManager = sshClusterTunnelManager
@@ -207,13 +207,13 @@ extension ConnectionState {
         isConnecting = false
         pendingConnection = nil
         connectionError = nil
-        clearConnectionState()
+        resetForDisconnect()
     }
 
     /// Clears all per-connection UI state so a new connection starts fresh
     /// without stale data from the previous one. Shared by `disconnect()` and
     /// `cancelConnection()` to keep both paths consistent.
-    private func clearConnectionState() {
+    private func resetForDisconnect() {
         // Key browser
         keys = []
         selectedKey = nil
@@ -230,7 +230,7 @@ extension ConnectionState {
         keyDetailRows = []
         keyType = ""
         valueSize = nil
-        keyDetailLength = nil
+        keyDetailTotalCount = nil
         keyDetailError = nil
         keyDetailOffset = 0
         keyDetailCursor = "0"

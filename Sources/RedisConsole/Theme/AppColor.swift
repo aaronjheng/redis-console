@@ -53,13 +53,13 @@ enum AppColor {
     static let ttlLong: Color = .blue
     static let ttlDistant: Color = .green
 
-    // MARK: - Terminal / Shell
+    // MARK: - Shell
 
-    static let terminalPrompt: Color = .secondary
-    static let terminalCommand: Color = .primary
-    static let terminalSuccess: Color = .secondary
-    static let terminalError: Color = .red
-    static let terminalOutputBackground: Color = Color.secondary.opacity(0.1)
+    static let shellPrompt: Color = .secondary
+    static let shellCommand: Color = .primary
+    static let shellSuccess: Color = .secondary
+    static let shellError: Color = .red
+    static let shellOutputBackground: Color = Color.secondary.opacity(0.1)
 
     // MARK: - Syntax highlighting
 

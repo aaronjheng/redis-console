@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Function Library Detail View
 
 struct FunctionLibraryDetailView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     let library: RedisFunctionLibrary
 
     @State private var showingDeleteConfirm = false
@@ -13,7 +13,7 @@ struct FunctionLibraryDetailView: View {
     @State private var isFunctionsExpanded = false
 
     private var isProduction: Bool {
-        app.selectedConnection?.environment == .production
+        tab.selectedConnection?.environment == .production
     }
 
     var body: some View {
@@ -48,7 +48,7 @@ struct FunctionLibraryDetailView: View {
 
             Divider()
 
-            WorkspaceFooterBar {
+            PanelFooterBar {
                 StatusFooterView(countText: footerText)
                 Spacer()
             }
@@ -71,9 +71,9 @@ struct FunctionLibraryDetailView: View {
             Button("Delete", role: .destructive) {
                 Task {
                     do {
-                        try await app.deleteFunctionLibrary(name: library.name)
+                        try await tab.deleteFunctionLibrary(name: library.name)
                     } catch {
-                        app.functionsError = error.localizedDescription
+                        tab.functionsError = error.localizedDescription
                     }
                 }
             }
@@ -106,9 +106,9 @@ struct FunctionLibraryDetailView: View {
                 onConfirm: {
                     Task {
                         do {
-                            try await app.deleteFunctionLibrary(name: library.name)
+                            try await tab.deleteFunctionLibrary(name: library.name)
                         } catch {
-                            app.functionsError = error.localizedDescription
+                            tab.functionsError = error.localizedDescription
                         }
                     }
                     showingDeleteConfirm = false

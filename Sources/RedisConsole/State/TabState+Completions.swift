@@ -1,6 +1,6 @@
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     // MARK: - Auto-complete
 
     func completions(for prefix: String) -> [String] {

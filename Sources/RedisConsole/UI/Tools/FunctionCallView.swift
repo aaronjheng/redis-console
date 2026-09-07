@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Function Call View
 
 struct FunctionCallView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     @Environment(\.dismiss) private var dismiss
     let library: RedisFunctionLibrary
 
@@ -80,7 +80,7 @@ struct FunctionCallView: View {
                     Label("Run", systemImage: "play.fill")
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                .disabled(app.isCallingFunction || selectedFunctionName.isEmpty)
+                .disabled(tab.isCallingFunction || selectedFunctionName.isEmpty)
             }
             .padding(.top, AppSpacing.small)
         }
@@ -233,10 +233,10 @@ struct FunctionCallView: View {
     private var resultSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Results (\(app.functionCallHistory.count))")
+                Text("Results (\(tab.functionCallHistory.count))")
                     .font(.subheadline.weight(.medium))
                 Spacer()
-                if app.isCallingFunction {
+                if tab.isCallingFunction {
                     ProgressView().controlSize(.small)
                 }
             }
@@ -245,7 +245,7 @@ struct FunctionCallView: View {
             Divider()
 
             Group {
-                if app.functionCallHistory.isEmpty {
+                if tab.functionCallHistory.isEmpty {
                     Text("Run a function to see its result.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -254,9 +254,9 @@ struct FunctionCallView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
-                            ForEach(Array(app.functionCallHistory.enumerated()), id: \.element.id) { index, result in
+                            ForEach(Array(tab.functionCallHistory.enumerated()), id: \.element.id) { index, result in
                                 resultRow(result)
-                                if index < app.functionCallHistory.count - 1 {
+                                if index < tab.functionCallHistory.count - 1 {
                                     Divider()
                                 }
                             }
@@ -310,7 +310,7 @@ struct FunctionCallView: View {
         // Keep at least the count honest: FCALL numkeys must match provided keys.
         // Empty trailing lines are dropped; numkeys reflects actual key count.
         let nonEmptyArgs = args.filter { !$0.isEmpty }
-        await app.callFunction(
+        await tab.callFunction(
             name: selectedFunctionName,
             keys: nonEmptyKeys,
             args: nonEmptyArgs,

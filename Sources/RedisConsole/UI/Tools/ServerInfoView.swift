@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct ServerInfoView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
 
     var sections: [String] {
-        app.serverInfo.keys
+        tab.serverInfo.keys
             .filter { $0 != "Modules" }
             .sorted()
     }
@@ -12,7 +12,7 @@ struct ServerInfoView: View {
     @State private var showTopology = false
 
     private var isClusterMode: Bool {
-        app.selectedConnection?.mode == .cluster || !app.clusterNodes.isEmpty
+        tab.selectedConnection?.mode == .cluster || !tab.clusterNodes.isEmpty
     }
 
     var body: some View {
@@ -21,9 +21,9 @@ struct ServerInfoView: View {
             HStack(spacing: AppSpacing.medium) {
                 Spacer()
                 Button {
-                    Task { await app.loadServerInfo() }
+                    Task { await tab.loadServerInfo() }
                 } label: {
-                    if app.isLoadingServerInfo {
+                    if tab.isLoadingServerInfo {
                         ProgressView()
                             .controlSize(.small)
                     } else {
@@ -31,17 +31,17 @@ struct ServerInfoView: View {
                     }
                 }
                 .buttonStyle(SecondaryButtonStyle())
-                .disabled(app.isLoadingServerInfo)
+                .disabled(tab.isLoadingServerInfo)
             }
             .panelToolbar()
 
             Divider()
 
-            if isClusterMode && !app.clusterNodes.isEmpty {
+            if isClusterMode && !tab.clusterNodes.isEmpty {
                 clusterInfoView
-            } else if app.serverInfo.isEmpty {
+            } else if tab.serverInfo.isEmpty {
                 Spacer()
-                if app.isLoadingServerInfo {
+                if tab.isLoadingServerInfo {
                     LoadingState(message: "Loading server info...")
                 } else {
                     ContentUnavailableView(
@@ -50,7 +50,7 @@ struct ServerInfoView: View {
                         description: Text("Click Refresh to load server information")
                     )
                     Button("Load Info") {
-                        Task { await app.loadServerInfo() }
+                        Task { await tab.loadServerInfo() }
                     }
                     .padding(.top, AppSpacing.small)
                 }
@@ -59,10 +59,10 @@ struct ServerInfoView: View {
                 serverInfoList
             }
             Divider()
-            WorkspaceFooterBar {
+            PanelFooterBar {
                 StatusFooterView(
                     countText: "\(sections.count) sections",
-                    sizeText: app.serverCapabilities.isEmpty ? nil : "\(app.serverCapabilities.count) modules"
+                    sizeText: tab.serverCapabilities.isEmpty ? nil : "\(tab.serverCapabilities.count) modules"
                 )
                 Spacer()
             }
@@ -70,17 +70,17 @@ struct ServerInfoView: View {
     }
 
     private var clusterInfoView: some View {
-        @Bindable var app = app
+        @Bindable var tab = tab
 
         return VStack(spacing: 0) {
             clusterSummaryBar
             Divider()
             if showTopology {
                 ClusterTopologyView(
-                    nodes: app.clusterNodes,
-                    selectedEndpoint: $app.selectedServerInfoNode,
+                    nodes: tab.clusterNodes,
+                    selectedEndpoint: $tab.selectedServerInfoNode,
                     onSelectNode: { endpoint in
-                        Task { await app.selectServerInfoNode(endpoint) }
+                        Task { await tab.selectServerInfoNode(endpoint) }
                         showTopology = false
                     }
                 )
@@ -101,14 +101,14 @@ struct ServerInfoView: View {
 
     private var clusterSummaryBar: some View {
         HStack(spacing: AppSpacing.xLarge) {
-            summaryItem("State", app.clusterInfo["cluster_state"] ?? "-")
-            summaryItem("Nodes", app.clusterInfo["cluster_known_nodes"] ?? "\(app.clusterNodes.count)")
-            summaryItem("Primaries", "\(app.clusterNodes.filter { $0.role == .primary }.count)")
-            summaryItem("Replicas", "\(app.clusterNodes.filter { $0.role == .replica }.count)")
-            summaryItem("Slots", app.clusterInfo["cluster_slots_assigned"] ?? "\(assignedSlotCount)")
-            summaryItem("OK Slots", app.clusterInfo["cluster_slots_ok"] ?? "-")
+            summaryItem("State", tab.clusterInfo["cluster_state"] ?? "-")
+            summaryItem("Nodes", tab.clusterInfo["cluster_known_nodes"] ?? "\(tab.clusterNodes.count)")
+            summaryItem("Primaries", "\(tab.clusterNodes.filter { $0.role == .primary }.count)")
+            summaryItem("Replicas", "\(tab.clusterNodes.filter { $0.role == .replica }.count)")
+            summaryItem("Slots", tab.clusterInfo["cluster_slots_assigned"] ?? "\(assignedSlotCount)")
+            summaryItem("OK Slots", tab.clusterInfo["cluster_slots_ok"] ?? "-")
             Spacer()
-            if isClusterMode && !app.clusterNodes.isEmpty {
+            if isClusterMode && !tab.clusterNodes.isEmpty {
                 BinaryTogglePicker(
                     selection: $showTopology,
                     first: false,
@@ -136,9 +136,9 @@ struct ServerInfoView: View {
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
-                    ForEach(app.clusterNodes) { node in
+                    ForEach(tab.clusterNodes) { node in
                         Button {
-                            Task { await app.selectServerInfoNode(node.endpoint) }
+                            Task { await tab.selectServerInfoNode(node.endpoint) }
                         } label: {
                             clusterNodeRow(node)
                         }
@@ -182,7 +182,7 @@ struct ServerInfoView: View {
 
             ForEach(sections, id: \.self) { section in
                 Section(header: Text(section)) {
-                    if let items = app.serverInfo[section] {
+                    if let items = tab.serverInfo[section] {
                         ForEach(items.keys.sorted(), id: \.self) { key in
                             infoRow(key, items[key] ?? "")
                         }
@@ -192,7 +192,7 @@ struct ServerInfoView: View {
         }
         .listStyle(.inset)
         .overlay {
-            if app.isLoadingServerInfo && !app.serverInfo.isEmpty {
+            if tab.isLoadingServerInfo && !tab.serverInfo.isEmpty {
                 VStack(spacing: AppSpacing.small) {
                     ProgressView()
                     Text("Loading node info...")
@@ -208,13 +208,13 @@ struct ServerInfoView: View {
 
     private var capabilitiesSection: some View {
         Section(header: Text("Capabilities")) {
-            infoRow("redis", app.serverInfo["Server"]?["redis_version"] ?? "-")
+            infoRow("redis", tab.serverInfo["Server"]?["redis_version"] ?? "-")
             infoRow("mode", capabilityMode)
 
-            if app.serverCapabilities.isEmpty {
+            if tab.serverCapabilities.isEmpty {
                 infoRow("modules", "No modules loaded")
             } else {
-                ForEach(app.serverCapabilities) { capability in
+                ForEach(tab.serverCapabilities) { capability in
                     capabilityRow(capability)
                 }
             }
@@ -222,18 +222,18 @@ struct ServerInfoView: View {
     }
 
     private var selectedNode: RedisClusterNodeSummary? {
-        guard let endpoint = app.selectedServerInfoNode else { return nil }
-        return app.clusterNodes.first { $0.endpoint == endpoint }
+        guard let endpoint = tab.selectedServerInfoNode else { return nil }
+        return tab.clusterNodes.first { $0.endpoint == endpoint }
     }
 
     private var assignedSlotCount: Int {
-        app.clusterNodes
+        tab.clusterNodes
             .filter { $0.role == .primary }
             .reduce(0) { $0 + $1.coveredSlotCount }
     }
 
     private var capabilityMode: String {
-        if isClusterMode || app.serverInfo["Cluster"]?["cluster_enabled"] == "1" {
+        if isClusterMode || tab.serverInfo["Cluster"]?["cluster_enabled"] == "1" {
             return "Cluster"
         }
         return "Standalone"
@@ -279,7 +279,7 @@ struct ServerInfoView: View {
     }
 
     private func clusterNodeRow(_ node: RedisClusterNodeSummary) -> some View {
-        let isSelected = app.selectedServerInfoNode == node.endpoint
+        let isSelected = tab.selectedServerInfoNode == node.endpoint
 
         return HStack(alignment: .top, spacing: AppSpacing.small) {
             Image(systemName: node.role == .primary ? "server.rack" : "externaldrive.connected.to.line.below")

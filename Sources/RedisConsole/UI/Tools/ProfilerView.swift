@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ProfilerView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     @State private var filterText = ""
     @State private var autoScroll = true
     @State private var hideNoiseCommands = true
@@ -10,11 +10,11 @@ struct ProfilerView: View {
     @State private var showingProductionWarning = false
 
     private var isProduction: Bool {
-        app.selectedConnection?.environment == .production
+        tab.selectedConnection?.environment == .production
     }
 
     private var hasFunctionLibraries: Bool {
-        !app.functionLibraries.isEmpty
+        !tab.functionLibraries.isEmpty
     }
 
     /// Effective column visibility: the user opt-in must be on *and* libraries
@@ -26,8 +26,8 @@ struct ProfilerView: View {
     private var filteredEntries: [RedisProfilerEntry] {
         let visibleEntries =
             hideNoiseCommands
-            ? app.profilerEntries.filter { !$0.isNoiseCommand }
-            : app.profilerEntries
+            ? tab.profilerEntries.filter { !$0.isNoiseCommand }
+            : tab.profilerEntries
 
         let query = filterText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !query.isEmpty else { return visibleEntries }
@@ -54,26 +54,26 @@ struct ProfilerView: View {
                 hideNoiseCommands: $hideNoiseCommands,
                 libraryColumnEnabled: $libraryColumnEnabled,
                 canShowLibraryColumn: hasFunctionLibraries,
-                isStarting: app.isProfilerStarting,
-                isRunning: app.isProfilerRunning,
-                hasEntries: !app.profilerEntries.isEmpty,
+                isStarting: tab.isProfilerStarting,
+                isRunning: tab.isProfilerRunning,
+                hasEntries: !tab.profilerEntries.isEmpty,
                 onToggleCapture: toggleCapture,
                 onClear: clearProfiler
             )
 
-            if let error = app.profilerError {
-                ErrorBanner(message: error, severity: .warning, dismissAction: { app.profilerError = nil })
+            if let error = tab.profilerError {
+                ErrorBanner(message: error, severity: .warning, dismissAction: { tab.profilerError = nil })
             }
 
             ProfilerContentView(
                 entries: filteredEntries,
-                isStarting: app.isProfilerStarting,
-                isRunning: app.isProfilerRunning,
+                isStarting: tab.isProfilerStarting,
+                isRunning: tab.isProfilerRunning,
                 selectedEntryID: $selectedEntryID,
                 autoScroll: $autoScroll,
                 lastVisibleEntryID: lastVisibleEntryID,
                 showLibraryColumn: showLibraryColumn,
-                libraries: app.functionLibraries,
+                libraries: tab.functionLibraries,
                 onStart: startProfilerGated
             )
 
@@ -81,26 +81,26 @@ struct ProfilerView: View {
 
             ProfilerFooterView(
                 filteredCount: filteredEntries.count,
-                retainedCount: app.profilerEntries.count,
-                capturedCount: app.profilerCapturedCount,
+                retainedCount: tab.profilerEntries.count,
+                capturedCount: tab.profilerCapturedCount,
                 selectedEntry: selectedEntry,
-                isStarting: app.isProfilerStarting,
-                isRunning: app.isProfilerRunning
+                isStarting: tab.isProfilerStarting,
+                isRunning: tab.isProfilerRunning
             )
         }
         .task {
             // Keep function libraries loaded so FCALL entries can be resolved to
             // their owning library without first visiting the Functions tab.
-            guard app.activeClient?.isConnected == true else { return }
-            if app.serverInfo.isEmpty { await app.loadServerInfo() }
-            if app.supportsFunctions && app.functionLibraries.isEmpty {
-                await app.fetchFunctionLibraries()
+            guard tab.activeSession?.isConnected == true else { return }
+            if tab.serverInfo.isEmpty { await tab.loadServerInfo() }
+            if tab.supportsFunctions && tab.functionLibraries.isEmpty {
+                await tab.fetchFunctionLibraries()
             }
         }
         .alert("Start Profiler on Production?", isPresented: $showingProductionWarning) {
             Button("Cancel", role: .cancel) {}
             Button("Start Profiler") {
-                app.startProfiler()
+                tab.startProfiler()
             }
         } message: {
             Text(
@@ -111,8 +111,8 @@ struct ProfilerView: View {
     }
 
     private func toggleCapture() {
-        if app.isProfilerRunning || app.isProfilerStarting {
-            app.stopProfiler()
+        if tab.isProfilerRunning || tab.isProfilerStarting {
+            tab.stopProfiler()
         } else {
             startProfilerGated()
         }
@@ -122,13 +122,13 @@ struct ProfilerView: View {
         if isProduction {
             showingProductionWarning = true
         } else {
-            app.startProfiler()
+            tab.startProfiler()
         }
     }
 
     private func clearProfiler() {
         selectedEntryID = nil
-        app.clearProfiler()
+        tab.clearProfiler()
     }
 }
 
@@ -444,7 +444,7 @@ private struct ProfilerFooterView: View {
                 Divider()
             }
 
-            WorkspaceFooterBar {
+            PanelFooterBar {
                 ProfilerStatusIndicator(isStarting: isStarting, isRunning: isRunning)
                 StatusFooterView(
                     countText: "Showing \(filteredCount) of \(retainedCount)",

@@ -2,7 +2,7 @@
 import Darwin
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     // MARK: - Key Browser
 
     func scanKeys(reset: Bool = false) async {
@@ -11,7 +11,7 @@ extension ConnectionState {
             return
         }
 
-        guard let client = activeClient, client.isConnected else {
+        guard let client = activeSession, client.isConnected else {
             isLoadingKeys = false
             return
         }
@@ -98,7 +98,7 @@ extension ConnectionState {
         keyDetailRows = []
         keyType = ""
         valueSize = nil
-        keyDetailLength = nil
+        keyDetailTotalCount = nil
         keyDetailError = nil
         keyDetailOffset = 0
         keyDetailCursor = "0"
@@ -109,7 +109,7 @@ extension ConnectionState {
     }
 
     @discardableResult
-    func insertCreatedKeyIntoBrowser(name: String, type: String) -> RedisKeyEntry? {
+    func insertCreatedKey(name: String, type: String) -> RedisKeyEntry? {
         noteKeyCreated()
         guard keyMatchesCurrentFilter(name) else { return nil }
 
@@ -178,7 +178,7 @@ extension ConnectionState {
     }
 
     private func loadKeyMetadata(for entries: [RedisKeyEntry]) {
-        guard let client = activeClient, client.isConnected else { return }
+        guard let client = activeSession, client.isConnected else { return }
         guard !entries.isEmpty else { return }
 
         Task { @MainActor in
@@ -252,7 +252,7 @@ extension ConnectionState {
     private func loadSelectedKeyDetail(append: Bool) async {
         let token = keyDetailGeneration
         guard let entry = selectedKey else { return }
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
 
         isLoadingDetail = true
         keyDetailError = nil
@@ -260,7 +260,7 @@ extension ConnectionState {
             keyDetail = ""
             keyDetailRows = []
             valueSize = nil
-            keyDetailLength = nil
+            keyDetailTotalCount = nil
         }
 
         do {
@@ -274,9 +274,9 @@ extension ConnectionState {
                 return
             }
             entry.type = keyType
-            keyDetailLength = await loadLength(for: entry.key, type: keyType, using: client)
+            keyDetailTotalCount = await loadLength(for: entry.key, type: keyType, using: client)
             guard token == keyDetailGeneration else { return }
-            entry.length = keyDetailLength
+            entry.length = keyDetailTotalCount
 
             switch keyType {
             case "string":
@@ -370,8 +370,8 @@ extension ConnectionState {
             keyDetailRows = rows
         }
         keyDetailOffset = start + rows.count
-        if let keyDetailLength {
-            keyDetailHasMoreRows = keyDetailOffset < keyDetailLength
+        if let keyDetailTotalCount {
+            keyDetailHasMoreRows = keyDetailOffset < keyDetailTotalCount
         } else {
             keyDetailHasMoreRows = rows.count == keyDetailPageSize
         }
@@ -440,8 +440,8 @@ extension ConnectionState {
             keyDetailRows = rows
         }
         keyDetailOffset = start + rows.count
-        if let keyDetailLength {
-            keyDetailHasMoreRows = keyDetailOffset < keyDetailLength
+        if let keyDetailTotalCount {
+            keyDetailHasMoreRows = keyDetailOffset < keyDetailTotalCount
         } else {
             keyDetailHasMoreRows = rows.count == keyDetailPageSize
         }
@@ -541,7 +541,7 @@ extension ConnectionState {
     }
 
     func deleteKey(_ entry: RedisKeyEntry) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send("DEL", entry.key)
             try throwIfRedisError(result)
@@ -558,7 +558,7 @@ extension ConnectionState {
     }
 
     func renameKey(old: String, new: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send("RENAMENX", old, new)
             try throwIfRedisError(result)
@@ -574,7 +574,7 @@ extension ConnectionState {
     // MARK: - Key Editing
 
     func updateKeyTTL(_ entry: RedisKeyEntry, ttl: Int) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
 
         do {
             if ttl == -1 {
@@ -605,7 +605,7 @@ extension ConnectionState {
     }
 
     func updateStringValue(key: String, value: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let ttlResult = try await client.send("TTL", key)
             try throwIfRedisError(ttlResult)
@@ -627,7 +627,7 @@ extension ConnectionState {
     }
 
     func addHashField(key: String, field: String, value: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send("HSET", key, field, value)
             try throwIfRedisError(result)
@@ -641,7 +641,7 @@ extension ConnectionState {
     }
 
     func deleteHashField(key: String, field: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send("HDEL", key, field)
             try throwIfRedisError(result)
@@ -651,7 +651,7 @@ extension ConnectionState {
     }
 
     func addListElement(key: String, value: String, tail: Bool = false) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send(tail ? "RPUSHX" : "LPUSHX", key, value)
             try throwIfRedisError(result)
@@ -661,7 +661,7 @@ extension ConnectionState {
     }
 
     func updateListElement(key: String, index: Int, value: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send("LSET", key, "\(index)", value)
             try throwIfRedisError(result)
@@ -671,7 +671,7 @@ extension ConnectionState {
     }
 
     func deleteListElement(key: String, index: Int) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         let marker = "__redis_console_delete_\(UUID().uuidString)__"
         do {
             let setResult = try await client.send("LSET", key, "\(index)", marker)
@@ -684,7 +684,7 @@ extension ConnectionState {
     }
 
     func addSetMember(key: String, member: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send("SADD", key, member)
             try throwIfRedisError(result)
@@ -694,7 +694,7 @@ extension ConnectionState {
     }
 
     func deleteSetMember(key: String, member: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send("SREM", key, member)
             try throwIfRedisError(result)
@@ -704,7 +704,7 @@ extension ConnectionState {
     }
 
     func addZSetMember(key: String, member: String, score: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send("ZADD", key, "NX", score, member)
             try throwIfRedisError(result)
@@ -717,7 +717,7 @@ extension ConnectionState {
     }
 
     func updateZSetScore(key: String, member: String, score: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let currentScore = try await client.send("ZSCORE", key, member)
             try throwIfRedisError(currentScore)
@@ -733,7 +733,7 @@ extension ConnectionState {
     }
 
     func deleteZSetMember(key: String, member: String) async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         do {
             let result = try await client.send("ZREM", key, member)
             try throwIfRedisError(result)

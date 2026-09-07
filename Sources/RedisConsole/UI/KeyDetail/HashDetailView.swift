@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Hash Detail View
 
-struct HashRow: Identifiable {
+struct HashEntry: Identifiable {
     var id: String { field }
     let field: String
     let value: String
@@ -11,7 +11,7 @@ struct HashRow: Identifiable {
 struct HashDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let keyLength: Int?
+    let totalCount: Int?
     let searchText: String
     let hasMoreRows: Bool
     var isProduction: Bool = false
@@ -27,8 +27,8 @@ struct HashDetailView: View {
     @State private var fieldPendingDeletion: String?
     @State private var productionConfirmText = ""
 
-    private var hashRows: [HashRow] {
-        rows.map { HashRow(field: $0.0, value: $0.1) }
+    private var hashEntries: [HashEntry] {
+        rows.map { HashEntry(field: $0.0, value: $0.1) }
     }
 
     var body: some View {
@@ -40,7 +40,7 @@ struct HashDetailView: View {
 
             Divider()
 
-            Table(hashRows) {
+            Table(hashEntries) {
                 TableColumn("Field") { row in
                     Text(row.field)
                         .font(AppFont.dataCell)
@@ -80,7 +80,7 @@ struct HashDetailView: View {
 
             Divider()
 
-            WorkspaceFooterBar {
+            PanelFooterBar {
                 Button("Add Field", systemImage: "plus") {
                     onAddField()
                 }
@@ -99,7 +99,7 @@ struct HashDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "fields")
+                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "fields")
                 )
             }
         }
@@ -163,7 +163,7 @@ struct HashDetailView: View {
 }
 
 struct EditableHashCell: View {
-    let row: HashRow
+    let row: HashEntry
     @Binding var editingField: String?
     @Binding var editValue: String
     let rowValue: String

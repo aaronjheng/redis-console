@@ -1,7 +1,13 @@
 import SwiftUI
 
+// MARK: - List Insert Position
+
+enum ListInsertPosition {
+    case head, tail
+}
+
 struct KeyDetailView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     @State private var didCopyKey = false
     @State private var editingString = false
     @State private var stringValue = ""
@@ -10,7 +16,7 @@ struct KeyDetailView: View {
     @State private var newHashValue = ""
     @State private var showingAddListElement = false
     @State private var newListElement = ""
-    @State private var newListPosition: ListPosition = .head
+    @State private var newListInsertPosition: ListInsertPosition = .head
     @State private var showingAddSetMember = false
     @State private var newSetMember = ""
     @State private var showingAddZSetMember = false
@@ -27,26 +33,22 @@ struct KeyDetailView: View {
 
     private let maxTTL = 2_147_483_647
 
-    enum ListPosition {
-        case head, tail
-    }
-
     // MARK: - Body
     var body: some View {
-        @Bindable var app = app
+        @Bindable var tab = tab
 
         VStack(spacing: 0) {
-            if let key = app.selectedKey {
+            if let key = tab.selectedKey {
                 headerView(key: key)
 
                 Divider()
 
-                if let error = app.keyDetailError {
-                    ErrorBanner(message: error, dismissAction: { app.keyDetailError = nil })
+                if let error = tab.keyDetailError {
+                    ErrorBanner(message: error, dismissAction: { tab.keyDetailError = nil })
                     Divider()
                 }
 
-                if app.isLoadingDetail {
+                if tab.isLoadingDetail {
                     Spacer()
                     LoadingState(message: "Loading value...")
                     Spacer()
@@ -77,7 +79,7 @@ struct KeyDetailView: View {
         ) {
             if let key = keyPendingDeletion {
                 Button("Delete", role: .destructive) {
-                    Task { await app.deleteKey(key) }
+                    Task { await tab.deleteKey(key) }
                     keyPendingDeletion = nil
                     deleteFeedbackTrigger.toggle()
                 }
@@ -108,7 +110,7 @@ struct KeyDetailView: View {
                     confirmText: "DELETE",
                     input: $productionConfirmText,
                     onConfirm: {
-                        Task { await app.deleteKey(key) }
+                        Task { await tab.deleteKey(key) }
                         keyPendingDeletion = nil
                         productionConfirmText = ""
                         deleteFeedbackTrigger.toggle()
@@ -121,7 +123,7 @@ struct KeyDetailView: View {
                 .presentationSizing(.form)
             }
         }
-        .onChange(of: app.selectedKey?.key) {
+        .onChange(of: tab.selectedKey?.key) {
             showingTTLEditor = false
             ttlEditorError = nil
         }
@@ -131,35 +133,35 @@ struct KeyDetailView: View {
             guard autoRefreshInterval > 0 else { return }
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(autoRefreshInterval))
-                guard !Task.isCancelled, app.selectedKey != nil, !app.isLoadingDetail else { continue }
-                await app.refreshSelectedKey()
+                guard !Task.isCancelled, tab.selectedKey != nil, !tab.isLoadingDetail else { continue }
+                await tab.refreshSelectedKey()
             }
         }
     }
 
     private var autoRefreshTaskID: String {
-        "\(app.selectedKey?.key ?? "")|\(autoRefreshInterval)"
+        "\(tab.selectedKey?.key ?? "")|\(autoRefreshInterval)"
     }
 
     private var isProduction: Bool {
-        app.selectedConnection?.environment == .production
+        tab.selectedConnection?.environment == .production
     }
 
     // MARK: - Detail Content
     @ViewBuilder
     private func detailContent(key: RedisKeyEntry) -> some View {
-        @Bindable var app = app
+        @Bindable var tab = tab
 
-        switch app.keyType {
+        switch tab.keyType {
         case "string":
             StringDetailView(
                 key: key.key,
-                value: app.keyDetail,
-                format: $app.stringValueFormat,
+                value: tab.keyDetail,
+                format: $tab.stringValueFormat,
                 onSave: { value in
                     Task {
-                        await app.updateStringValue(key: key.key, value: value)
-                        await app.refreshSelectedKey()
+                        await tab.updateStringValue(key: key.key, value: value)
+                        await tab.refreshSelectedKey()
                     }
                 }
             )
@@ -167,28 +169,28 @@ struct KeyDetailView: View {
         case "hash":
             HashDetailView(
                 key: key.key,
-                rows: app.keyDetailRows,
-                keyLength: app.keyDetailLength ?? key.length,
-                searchText: app.keyDetailSearchText,
-                hasMoreRows: app.keyDetailHasMoreRows,
+                rows: tab.keyDetailRows,
+                totalCount: tab.keyDetailTotalCount ?? key.length,
+                searchText: tab.keyDetailSearchText,
+                hasMoreRows: tab.keyDetailHasMoreRows,
                 isProduction: isProduction,
                 onSearch: { text in
-                    Task { await app.searchSelectedKeyDetail(text) }
+                    Task { await tab.searchSelectedKeyDetail(text) }
                 },
                 onLoadMore: {
-                    Task { await app.loadMoreSelectedKeyDetailRows() }
+                    Task { await tab.loadMoreSelectedKeyDetailRows() }
                 },
                 onAddField: { showingAddHashField = true },
                 onSaveField: { field, value in
                     Task {
-                        await app.updateHashField(key: key.key, field: field, value: value)
-                        await app.refreshSelectedKey()
+                        await tab.updateHashField(key: key.key, field: field, value: value)
+                        await tab.refreshSelectedKey()
                     }
                 },
                 onDeleteField: { field in
                     Task {
-                        await app.deleteHashField(key: key.key, field: field)
-                        await app.refreshSelectedKey()
+                        await tab.deleteHashField(key: key.key, field: field)
+                        await tab.refreshSelectedKey()
                     }
                 }
             )
@@ -199,8 +201,8 @@ struct KeyDetailView: View {
                     value: $newHashValue,
                     onSave: { field, value in
                         Task {
-                            await app.addHashField(key: key.key, field: field, value: value)
-                            await app.refreshSelectedKey()
+                            await tab.addHashField(key: key.key, field: field, value: value)
+                            await tab.refreshSelectedKey()
                         }
                         showingAddHashField = false
                     },
@@ -212,24 +214,24 @@ struct KeyDetailView: View {
         case "list":
             ListDetailView(
                 key: key.key,
-                rows: app.keyDetailRows,
-                keyLength: app.keyDetailLength ?? key.length,
-                hasMoreRows: app.keyDetailHasMoreRows,
+                rows: tab.keyDetailRows,
+                totalCount: tab.keyDetailTotalCount ?? key.length,
+                hasMoreRows: tab.keyDetailHasMoreRows,
                 isProduction: isProduction,
                 onLoadMore: {
-                    Task { await app.loadMoreSelectedKeyDetailRows() }
+                    Task { await tab.loadMoreSelectedKeyDetailRows() }
                 },
                 onAddElement: { showingAddListElement = true },
                 onSaveElement: { index, value in
                     Task {
-                        await app.updateListElement(key: key.key, index: index, value: value)
-                        await app.refreshSelectedKey()
+                        await tab.updateListElement(key: key.key, index: index, value: value)
+                        await tab.refreshSelectedKey()
                     }
                 },
                 onDeleteElement: { index, _ in
                     Task {
-                        await app.deleteListElement(key: key.key, index: index)
-                        await app.refreshSelectedKey()
+                        await tab.deleteListElement(key: key.key, index: index)
+                        await tab.refreshSelectedKey()
                     }
                 }
             )
@@ -237,11 +239,11 @@ struct KeyDetailView: View {
                 AddListElementSheet(
                     key: key.key,
                     value: $newListElement,
-                    position: $newListPosition,
+                    position: $newListInsertPosition,
                     onSave: { value, position in
                         Task {
-                            await app.addListElement(key: key.key, value: value, tail: position == .tail)
-                            await app.refreshSelectedKey()
+                            await tab.addListElement(key: key.key, value: value, tail: position == .tail)
+                            await tab.refreshSelectedKey()
                         }
                         showingAddListElement = false
                     },
@@ -253,22 +255,22 @@ struct KeyDetailView: View {
         case "set":
             SetDetailView(
                 key: key.key,
-                rows: app.keyDetailRows,
-                keyLength: app.keyDetailLength ?? key.length,
-                searchText: app.keyDetailSearchText,
-                hasMoreRows: app.keyDetailHasMoreRows,
+                rows: tab.keyDetailRows,
+                totalCount: tab.keyDetailTotalCount ?? key.length,
+                searchText: tab.keyDetailSearchText,
+                hasMoreRows: tab.keyDetailHasMoreRows,
                 isProduction: isProduction,
                 onSearch: { text in
-                    Task { await app.searchSelectedKeyDetail(text) }
+                    Task { await tab.searchSelectedKeyDetail(text) }
                 },
                 onLoadMore: {
-                    Task { await app.loadMoreSelectedKeyDetailRows() }
+                    Task { await tab.loadMoreSelectedKeyDetailRows() }
                 },
                 onAddMember: { showingAddSetMember = true },
                 onDeleteMember: { member in
                     Task {
-                        await app.deleteSetMember(key: key.key, member: member)
-                        await app.refreshSelectedKey()
+                        await tab.deleteSetMember(key: key.key, member: member)
+                        await tab.refreshSelectedKey()
                     }
                 }
             )
@@ -278,8 +280,8 @@ struct KeyDetailView: View {
                     member: $newSetMember,
                     onSave: { member in
                         Task {
-                            await app.addSetMember(key: key.key, member: member)
-                            await app.refreshSelectedKey()
+                            await tab.addSetMember(key: key.key, member: member)
+                            await tab.refreshSelectedKey()
                         }
                         showingAddSetMember = false
                     },
@@ -291,32 +293,32 @@ struct KeyDetailView: View {
         case "zset":
             ZSetDetailView(
                 key: key.key,
-                rows: app.keyDetailRows,
-                keyLength: app.keyDetailLength ?? key.length,
-                searchText: app.keyDetailSearchText,
-                order: app.keyDetailZSetOrder,
-                hasMoreRows: app.keyDetailHasMoreRows,
+                rows: tab.keyDetailRows,
+                totalCount: tab.keyDetailTotalCount ?? key.length,
+                searchText: tab.keyDetailSearchText,
+                order: tab.keyDetailZSetOrder,
+                hasMoreRows: tab.keyDetailHasMoreRows,
                 isProduction: isProduction,
                 onSearch: { text in
-                    Task { await app.searchSelectedKeyDetail(text) }
+                    Task { await tab.searchSelectedKeyDetail(text) }
                 },
                 onOrderChange: { order in
-                    Task { await app.updateSelectedZSetOrder(order) }
+                    Task { await tab.updateSelectedZSetOrder(order) }
                 },
                 onLoadMore: {
-                    Task { await app.loadMoreSelectedKeyDetailRows() }
+                    Task { await tab.loadMoreSelectedKeyDetailRows() }
                 },
                 onAddMember: { showingAddZSetMember = true },
                 onSaveMember: { member, score in
                     Task {
-                        await app.updateZSetScore(key: key.key, member: member, score: score)
-                        await app.refreshSelectedKey()
+                        await tab.updateZSetScore(key: key.key, member: member, score: score)
+                        await tab.refreshSelectedKey()
                     }
                 },
                 onDeleteMember: { member in
                     Task {
-                        await app.deleteZSetMember(key: key.key, member: member)
-                        await app.refreshSelectedKey()
+                        await tab.deleteZSetMember(key: key.key, member: member)
+                        await tab.refreshSelectedKey()
                     }
                 }
             )
@@ -327,8 +329,8 @@ struct KeyDetailView: View {
                     score: $newZSetScore,
                     onSave: { member, score in
                         Task {
-                            await app.addZSetMember(key: key.key, member: member, score: score)
-                            await app.refreshSelectedKey()
+                            await tab.addZSetMember(key: key.key, member: member, score: score)
+                            await tab.refreshSelectedKey()
                         }
                         showingAddZSetMember = false
                     },
@@ -338,7 +340,7 @@ struct KeyDetailView: View {
             }
 
         default:
-            if app.keyDetailRows.isEmpty {
+            if tab.keyDetailRows.isEmpty {
                 emptyValueView
             } else {
                 genericRowsView
@@ -360,14 +362,14 @@ struct KeyDetailView: View {
                 }
 
                 HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
-                    if let length = app.keyDetailLength ?? key.length {
+                    if let totalCount = tab.keyDetailTotalCount ?? key.length {
                         HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "number")
-                            Text("Length: \(length)")
+                            Text("Length: \(totalCount)")
                         }
                         .foregroundStyle(.secondary)
                     }
-                    if let size = app.valueSize ?? key.size {
+                    if let size = tab.valueSize ?? key.size {
                         HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "memorychip")
                             Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .memory))
@@ -386,7 +388,7 @@ struct KeyDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(key.hasExpiry ? AppColor.warning : .secondary)
-                    .disabled(app.isLoadingDetail)
+                    .disabled(tab.isLoadingDetail)
                     .accessibilityLabel("Edit TTL, \(key.ttlText)")
                     .help("Edit TTL")
                     .popover(isPresented: $showingTTLEditor, arrowEdge: .bottom) {
@@ -405,7 +407,7 @@ struct KeyDetailView: View {
                             ttlEditorError = nil
                         }
                     }
-                    if let refreshedAt = app.keyDetailLastRefreshedAt {
+                    if let refreshedAt = tab.keyDetailLastRefreshedAt {
                         HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "clock.arrow.circlepath")
                             Text(refreshedAt, style: .time)
@@ -421,10 +423,10 @@ struct KeyDetailView: View {
             HStack(spacing: AppSpacing.small) {
                 RefreshControl(
                     autoRefreshInterval: $autoRefreshInterval,
-                    isLoading: app.isLoadingDetail,
+                    isLoading: tab.isLoadingDetail,
                     intervals: [5, 10, 15, 30, 60]
                 ) {
-                    Task { await app.refreshSelectedKey() }
+                    Task { await tab.refreshSelectedKey() }
                 }
 
                 Button("Copy Key", systemImage: didCopyKey ? "checkmark" : "doc.on.doc") {
@@ -438,7 +440,7 @@ struct KeyDetailView: View {
                 .labelStyle(.iconOnly)
                 .foregroundStyle(didCopyKey ? AppColor.success : .primary)
                 .buttonStyle(.borderless)
-                .disabled(app.isLoadingDetail)
+                .disabled(tab.isLoadingDetail)
                 .help("Copy key")
 
                 Button("Delete Key", systemImage: "trash", role: .destructive) {
@@ -446,7 +448,7 @@ struct KeyDetailView: View {
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
-                .disabled(app.isLoadingDetail)
+                .disabled(tab.isLoadingDetail)
                 .help("Delete key")
             }
         }
@@ -479,10 +481,10 @@ struct KeyDetailView: View {
         showingTTLEditor = false
         ttlEditorError = nil
         Task {
-            let previousError = app.keyDetailError
-            await app.updateKeyTTL(key, ttl: ttl)
+            let previousError = tab.keyDetailError
+            await tab.updateKeyTTL(key, ttl: ttl)
             // Only fire success feedback when the operation didn't set a new error.
-            if app.keyDetailError == previousError {
+            if tab.keyDetailError == previousError {
                 ttlFeedbackTrigger.toggle()
             }
         }
@@ -500,7 +502,7 @@ struct KeyDetailView: View {
     private var genericRowsView: some View {
         List {
             Section {
-                ForEach(Array(app.keyDetailRows.enumerated()), id: \.offset) { _, row in
+                ForEach(Array(tab.keyDetailRows.enumerated()), id: \.offset) { _, row in
                     HStack(alignment: .top) {
                         Text(row.0)
                             .font(AppFont.monoSubheadline)
@@ -515,7 +517,7 @@ struct KeyDetailView: View {
                 }
             } header: {
                 HStack {
-                    Text(app.keyType == "zset" ? "Score" : "Key")
+                    Text(tab.keyType == "zset" ? "Score" : "Key")
                         .frame(width: 100, alignment: .leading)
                     Text("Value")
                     Spacer()
@@ -528,7 +530,7 @@ struct KeyDetailView: View {
 
     private var emptyValueView: some View {
         ScrollView {
-            Text(app.keyDetail)
+            Text(tab.keyDetail)
                 .font(AppFont.dataCell)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)

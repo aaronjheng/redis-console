@@ -1,6 +1,6 @@
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     private struct BrowserPreferences: Codable {
         var keyTypeFilter: String
         var isNamespaceGroupingEnabled: Bool

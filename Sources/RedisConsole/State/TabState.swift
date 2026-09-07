@@ -2,14 +2,14 @@ import AppKit
 import Foundation
 import Observation
 
-// MARK: - Connection State (Per-tab state)
+// MARK: - Tab State
 
-enum RightPanel: Equatable {
+enum ConnectionPanel: Equatable {
     case welcome
     case editConnection(RedisConnectionConfig)
     case newConnection
 
-    static func == (lhs: RightPanel, rhs: RightPanel) -> Bool {
+    static func == (lhs: ConnectionPanel, rhs: ConnectionPanel) -> Bool {
         switch (lhs, rhs) {
         case (.welcome, .welcome): return true
         case (.newConnection, .newConnection): return true
@@ -21,12 +21,12 @@ enum RightPanel: Equatable {
 
 @MainActor
 @Observable
-class ConnectionState {
+class TabState {
     let id = UUID()
     @ObservationIgnored
     weak var window: NSWindow?
 
-    var activeClient: (any RedisSession)?
+    var activeSession: (any RedisSession)?
     var isConnecting = false
     var connectionError: String?
     var selectedConnection: RedisConnectionConfig?
@@ -43,7 +43,7 @@ class ConnectionState {
     var keyDetailRows: [(String, String)] = []
     var keyType: String = ""
     var valueSize: Int?
-    var keyDetailLength: Int?
+    var keyDetailTotalCount: Int?
     var keyDetailError: String?
     var keyDetailOffset = 0
     var keyDetailCursor: String = "0"
@@ -87,7 +87,7 @@ class ConnectionState {
 
     var shellHistory: [ShellHistoryEntry] = []
     var shellInput: String = ""
-    var shellClient: (any RedisSession)?
+    var shellSession: (any RedisSession)?
 
     var slowLogEntries: [SlowLogEntry] = []
     var slowLogConfig = SlowLogConfig()
@@ -125,8 +125,8 @@ class ConnectionState {
     var functionCallHistory: [RedisFunctionCallResult] = []
     var isCallingFunction = false
 
-    var currentView: AppView = .browser
-    var rightPanel: RightPanel = .welcome
+    var currentSection: WorkspaceSection = .browser
+    var connectionPanel: ConnectionPanel = .welcome
 
     var connectTask: Task<Void, Never>?
     var sshTunnel: SSHTunnel?
@@ -151,8 +151,8 @@ class ConnectionState {
     }
 
     var windowTitle: String {
-        if let conn = selectedConnection {
-            return conn.name
+        if let config = selectedConnection {
+            return config.name
         }
         return "Redis Console"
     }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct BrowserView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     @State private var searchText = ""
     @State private var showingAddKey = false
     @State private var keyPendingDeletion: RedisKeyEntry?
@@ -18,22 +18,22 @@ struct BrowserView: View {
     private let treeScanCount = 10_000
 
     var body: some View {
-        @Bindable var app = app
+        @Bindable var tab = tab
 
         VStack(spacing: 0) {
             // MARK: Header Bar
             HStack(spacing: AppSpacing.small) {
                 OptionsPicker(
                     "Filter by key type",
-                    selection: $app.keyTypeFilter,
+                    selection: $tab.keyTypeFilter,
                     options: ["", "string", "list", "hash", "set", "zset"],
                     label: { typeFilterTitle($0) }
                 )
 
                 FilterField("Filter by key pattern (e.g. user:*)", text: $searchText) {
-                    app.keyFilter = searchText.isEmpty ? "*" : searchText
-                    app.keyScanCount = currentScanCount
-                    Task { await app.scanKeys(reset: true) }
+                    tab.keyFilter = searchText.isEmpty ? "*" : searchText
+                    tab.keyScanCount = currentScanCount
+                    Task { await tab.scanKeys(reset: true) }
                 }
                 .frame(maxWidth: .infinity)
 
@@ -52,8 +52,8 @@ struct BrowserView: View {
 
             Divider()
 
-            if let error = app.connectionError {
-                ErrorBanner(message: error, dismissAction: { app.connectionError = nil })
+            if let error = tab.connectionError {
+                ErrorBanner(message: error, dismissAction: { tab.connectionError = nil })
                 Divider()
             }
 
@@ -66,13 +66,13 @@ struct BrowserView: View {
                     HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
                         BinaryTogglePicker(
                             selection: Binding(
-                                get: { app.isNamespaceGroupingEnabled },
+                                get: { tab.isNamespaceGroupingEnabled },
                                 set: { isEnabled in
-                                    guard app.isNamespaceGroupingEnabled != isEnabled else { return }
-                                    app.isNamespaceGroupingEnabled = isEnabled
-                                    app.keyScanCount = isEnabled ? treeScanCount : listScanCount
+                                    guard tab.isNamespaceGroupingEnabled != isEnabled else { return }
+                                    tab.isNamespaceGroupingEnabled = isEnabled
+                                    tab.keyScanCount = isEnabled ? treeScanCount : listScanCount
                                     expandedNamespaces = []
-                                    Task { await app.scanKeys(reset: true) }
+                                    Task { await tab.scanKeys(reset: true) }
                                 }
                             ),
                             first: false,
@@ -88,11 +88,11 @@ struct BrowserView: View {
 
                         RefreshControl(
                             autoRefreshInterval: $autoRefreshInterval,
-                            isLoading: app.isLoadingKeys,
+                            isLoading: tab.isLoadingKeys,
                             intervals: [5, 10, 15, 30, 60]
                         ) {
-                            app.keyScanCount = currentScanCount
-                            Task { await app.scanKeys(reset: true) }
+                            tab.keyScanCount = currentScanCount
+                            Task { await tab.scanKeys(reset: true) }
                         }
                     }
                     .padding(.horizontal, AppSpacing.small)
@@ -102,11 +102,11 @@ struct BrowserView: View {
 
                     let displayedKeys = filteredKeys
 
-                    if app.isLoadingKeys && app.keys.isEmpty {
+                    if tab.isLoadingKeys && tab.keys.isEmpty {
                         Spacer()
                         LoadingState(message: "Scanning keys...")
                         Spacer()
-                    } else if app.keys.isEmpty {
+                    } else if tab.keys.isEmpty {
                         Spacer()
                         ContentUnavailableView(
                             searchText.isEmpty ? "No keys found" : "No matching keys",
@@ -126,10 +126,10 @@ struct BrowserView: View {
                         Spacer()
                     } else {
                         Group {
-                            if app.isNamespaceGroupingEnabled {
+                            if tab.isNamespaceGroupingEnabled {
                                 KeyNamespaceList(
-                                    tree: KeyNamespaceTree(entries: displayedKeys, separator: app.namespaceSeparator),
-                                    selectedKey: $app.selectedKey,
+                                    tree: KeyNamespaceTree(entries: displayedKeys, separator: tab.namespaceSeparator),
+                                    selectedKey: $tab.selectedKey,
                                     expandedNamespaces: $expandedNamespaces,
                                     scrollTargetKey: keyListScrollTarget,
                                     onDeleteKey: { keyPendingDeletion = $0 },
@@ -138,17 +138,17 @@ struct BrowserView: View {
                             } else {
                                 KeyFlatList(
                                     keys: displayedKeys,
-                                    selectedKey: $app.selectedKey,
+                                    selectedKey: $tab.selectedKey,
                                     scrollTargetKey: keyListScrollTarget,
                                     onDeleteKey: { keyPendingDeletion = $0 },
                                     onCopyKey: copyKeyToPasteboard
                                 )
                             }
                         }
-                        .onChange(of: app.selectedKey) { _, newValue in
+                        .onChange(of: tab.selectedKey) { _, newValue in
                             if let key = newValue {
                                 expandNamespaces(containing: key.key)
-                                Task { await app.selectKey(key) }
+                                Task { await tab.selectKey(key) }
                             }
                         }
 
@@ -157,7 +157,7 @@ struct BrowserView: View {
 
                     Divider()
 
-                    WorkspaceFooterBar {
+                    PanelFooterBar {
                         StatusFooterView(
                             countText: browserFooterText(displayedCount: filteredKeys.count)
                         )
@@ -192,7 +192,7 @@ struct BrowserView: View {
         ) {
             if let key = keyPendingDeletion {
                 Button("Delete", role: .destructive) {
-                    Task { await app.deleteKey(key) }
+                    Task { await tab.deleteKey(key) }
                     keyPendingDeletion = nil
                     deleteFeedbackTrigger.toggle()
                 }
@@ -221,7 +221,7 @@ struct BrowserView: View {
                     confirmText: "DELETE",
                     input: $productionConfirmText,
                     onConfirm: {
-                        Task { await app.deleteKey(key) }
+                        Task { await tab.deleteKey(key) }
                         keyPendingDeletion = nil
                         productionConfirmText = ""
                         deleteFeedbackTrigger.toggle()
@@ -235,17 +235,17 @@ struct BrowserView: View {
             }
         }
         .onAppear {
-            app.keyScanCount = currentScanCount
-            searchText = app.keyFilter == "*" ? "" : app.keyFilter
+            tab.keyScanCount = currentScanCount
+            searchText = tab.keyFilter == "*" ? "" : tab.keyFilter
         }
         .sensoryFeedback(.success, trigger: deleteFeedbackTrigger)
         .task(id: autoRefreshTaskID) {
             guard autoRefreshInterval > 0 else { return }
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(autoRefreshInterval))
-                guard !Task.isCancelled, !app.isLoadingKeys else { continue }
-                app.keyScanCount = currentScanCount
-                await app.scanKeys(reset: true)
+                guard !Task.isCancelled, !tab.isLoadingKeys else { continue }
+                tab.keyScanCount = currentScanCount
+                await tab.scanKeys(reset: true)
             }
         }
     }
@@ -254,8 +254,8 @@ struct BrowserView: View {
 
     @ViewBuilder
     private var loadMoreOrScanningView: some View {
-        if app.hasMoreKeys {
-            if app.isLoadingKeys {
+        if tab.hasMoreKeys {
+            if tab.isLoadingKeys {
                 HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
                     ProgressView()
                         .controlSize(.small)
@@ -266,8 +266,8 @@ struct BrowserView: View {
                 .padding(AppSpacing.small)
             } else {
                 Button("Load more") {
-                    app.keyScanCount = currentScanCount
-                    Task { await app.scanKeys() }
+                    tab.keyScanCount = currentScanCount
+                    Task { await tab.scanKeys() }
                 }
                 .buttonStyle(SecondaryButtonStyle())
                 .padding(AppSpacing.small)
@@ -278,7 +278,7 @@ struct BrowserView: View {
     // MARK: - Helpers
 
     private var filteredKeys: [RedisKeyEntry] {
-        app.keys.filter { app.keyTypeFilter.isEmpty || $0.type.isEmpty || $0.type == app.keyTypeFilter }
+        tab.keys.filter { tab.keyTypeFilter.isEmpty || $0.type.isEmpty || $0.type == tab.keyTypeFilter }
     }
 
     private func typeFilterTitle(_ filter: String) -> String {
@@ -294,11 +294,11 @@ struct BrowserView: View {
     }
 
     private var currentScanCount: Int {
-        app.isNamespaceGroupingEnabled ? treeScanCount : listScanCount
+        tab.isNamespaceGroupingEnabled ? treeScanCount : listScanCount
     }
 
     private var isProduction: Bool {
-        app.selectedConnection?.environment == .production
+        tab.selectedConnection?.environment == .production
     }
 
     private var autoRefreshTaskID: String {
@@ -311,26 +311,26 @@ struct BrowserView: View {
 
     private func expandNamespaces(containing key: String) {
         var namespacePath: [String] = []
-        for namespace in KeyNamespaceTree.namespaceSegments(for: key, separator: app.namespaceSeparator) {
+        for namespace in KeyNamespaceTree.namespaceSegments(for: key, separator: tab.namespaceSeparator) {
             namespacePath.append(namespace)
-            expandedNamespaces.insert(namespacePath.joined(separator: app.namespaceSeparator))
+            expandedNamespaces.insert(namespacePath.joined(separator: tab.namespaceSeparator))
         }
     }
 
     private func browserFooterText(displayedCount: Int) -> String {
-        let totalText = app.keyTotalCount.map(String.init) ?? "unknown"
-        let limitText = app.keyScanLimitReached ? " · Threshold Reached" : ""
-        let countText = "\(app.keys.count) Loaded · \(displayedCount) Shown\(limitText)"
-        let showsScanProgress = app.keyFilter != "*" || !app.keyTypeFilter.isEmpty || app.isNamespaceGroupingEnabled
+        let totalText = tab.keyTotalCount.map(String.init) ?? "unknown"
+        let limitText = tab.keyScanLimitReached ? " · Threshold Reached" : ""
+        let countText = "\(tab.keys.count) Loaded · \(displayedCount) Shown\(limitText)"
+        let showsScanProgress = tab.keyFilter != "*" || !tab.keyTypeFilter.isEmpty || tab.isNamespaceGroupingEnabled
 
         if showsScanProgress {
-            return "Results \(displayedCount) · Scanned \(app.keyScannedCount) / \(totalText) · \(countText)"
+            return "Results \(displayedCount) · Scanned \(tab.keyScannedCount) / \(totalText) · \(countText)"
         }
         return "Total \(totalText) · \(countText)"
     }
 
     private func addKey(name: String, type: String, value: String) async {
-        guard let client = app.activeClient else { return }
+        guard let client = tab.activeSession else { return }
         do {
             let existsResult = try await client.send("EXISTS", name)
             try throwIfRedisError(existsResult)
@@ -394,16 +394,16 @@ struct BrowserView: View {
                     throw RedisError.commandError("Key \"\(name)\" already exists")
                 }
             }
-            app.connectionError = nil
-            let createdKey = app.insertCreatedKeyIntoBrowser(name: name, type: type)
-            let isCreatedKeyVisible = app.keyTypeFilter.isEmpty || app.keyTypeFilter == type
+            tab.connectionError = nil
+            let createdKey = tab.insertCreatedKey(name: name, type: type)
+            let isCreatedKeyVisible = tab.keyTypeFilter.isEmpty || tab.keyTypeFilter == type
             if let createdKey, isCreatedKeyVisible {
-                app.selectedKey = createdKey
+                tab.selectedKey = createdKey
                 keyListScrollTarget = createdKey.key
             }
         } catch {
-            app.connectionError = error.localizedDescription
-            app.keyDetailError = error.localizedDescription
+            tab.connectionError = error.localizedDescription
+            tab.keyDetailError = error.localizedDescription
         }
     }
 }

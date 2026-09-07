@@ -4,8 +4,8 @@ import SwiftUI
 // MARK: - Welcome View
 
 struct WelcomeView: View {
-    @Environment(ConnectionState.self) private var conn
-    @Environment(AppStore.self) private var store
+    @Environment(TabState.self) private var tab
+    @Environment(ConnectionStore.self) private var store
     @State private var isImporting = false
 
     var body: some View {
@@ -28,8 +28,8 @@ struct WelcomeView: View {
 
             HStack(spacing: AppSpacing.medium) {
                 Button {
-                    conn.selectedConnection = nil
-                    conn.rightPanel = .newConnection
+                    tab.selectedConnection = nil
+                    tab.connectionPanel = .newConnection
                 } label: {
                     Label("New Connection", systemImage: "plus")
                 }

@@ -3,8 +3,8 @@ import SwiftUI
 // MARK: - Connection Hub Sidebar
 
 struct ConnectionHubSidebarView: View {
-    @Environment(ConnectionState.self) private var conn
-    @Environment(AppStore.self) private var store
+    @Environment(TabState.self) private var tab
+    @Environment(ConnectionStore.self) private var store
     @State private var connectionPendingDeletion: RedisConnectionConfig?
     @State private var isExporting = false
     @State private var isImporting = false
@@ -29,8 +29,8 @@ struct ConnectionHubSidebarView: View {
                 .buttonStyle(.borderless)
                 .help("Import Connections")
                 Button("New Connection", systemImage: "plus") {
-                    conn.selectedConnection = nil
-                    conn.rightPanel = .newConnection
+                    tab.selectedConnection = nil
+                    tab.connectionPanel = .newConnection
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
@@ -42,11 +42,11 @@ struct ConnectionHubSidebarView: View {
 
             List(
                 selection: Binding(
-                    get: { conn.selectedConnection },
+                    get: { tab.selectedConnection },
                     set: {
-                        conn.selectedConnection = $0
+                        tab.selectedConnection = $0
                         if let selectedConnection = $0 {
-                            conn.rightPanel = .editConnection(selectedConnection)
+                            tab.connectionPanel = .editConnection(selectedConnection)
                         }
                     }
                 )
@@ -58,20 +58,20 @@ struct ConnectionHubSidebarView: View {
                         .contentShape(Rectangle())
                         .overlay(
                             DoubleClickHandler {
-                                Task { await conn.connect(to: config) }
+                                Task { await tab.connect(to: config) }
                             }
                         )
                         .contextMenu {
                             Button("Connect") {
-                                Task { await conn.connect(to: config) }
+                                Task { await tab.connect(to: config) }
                             }
                             Button("Duplicate") {
                                 var copy = config
                                 copy.id = UUID()
                                 copy.name = "\(config.name) Copy"
                                 store.addConnection(copy)
-                                conn.selectedConnection = copy
-                                conn.rightPanel = .editConnection(copy)
+                                tab.selectedConnection = copy
+                                tab.connectionPanel = .editConnection(copy)
                             }
                             Button("Delete", role: .destructive) {
                                 connectionPendingDeletion = config
@@ -115,9 +115,9 @@ struct ConnectionHubSidebarView: View {
             if let config = connectionPendingDeletion {
                 Button("Delete \"\(config.name)\"", role: .destructive) {
                     store.deleteConnection(config)
-                    if conn.selectedConnection?.id == config.id {
-                        conn.selectedConnection = nil
-                        conn.rightPanel = .welcome
+                    if tab.selectedConnection?.id == config.id {
+                        tab.selectedConnection = nil
+                        tab.connectionPanel = .welcome
                     }
                     connectionPendingDeletion = nil
                 }

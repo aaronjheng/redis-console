@@ -1,12 +1,12 @@
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     // MARK: - Shell
 
     func connectShellClient() async {
         guard let config = selectedConnection else { return }
-        shellClient?.disconnect()
-        shellClient = nil
+        shellSession?.disconnect()
+        shellSession = nil
 
         do {
             var connectHost = config.host
@@ -77,19 +77,19 @@ extension ConnectionState {
             }
 
             try await client.connect()
-            shellClient = client
+            shellSession = client
         } catch {
             AppLogger.error("shell client connect failed error=\(error)", category: "Shell")
         }
     }
 
     func disconnectShellClient() {
-        shellClient?.disconnect()
-        shellClient = nil
+        shellSession?.disconnect()
+        shellSession = nil
     }
 
     func executeCommand(_ input: String) async {
-        guard let client = shellClient, client.isConnected else { return }
+        guard let client = shellSession, client.isConnected else { return }
         let redacted = redactSensitiveCommand(input)
         do {
             let parts = try parseCommand(input)

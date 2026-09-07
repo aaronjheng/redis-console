@@ -4,8 +4,8 @@ import SwiftUI
 // MARK: - Connection Detail View
 
 struct ConnectionDetailView: View {
-    @Environment(ConnectionState.self) private var conn
-    @Environment(AppStore.self) private var store
+    @Environment(TabState.self) private var tab
+    @Environment(ConnectionStore.self) private var store
 
     @State private var name = ""
     @State private var connectionMode: RedisConnectionMode = .standalone
@@ -21,17 +21,10 @@ struct ConnectionDetailView: View {
     @State private var environment: ConnectionEnvironment = .unspecified
     @State private var uriInput = ""
     @State private var uriError: String?
-    @State private var isCreatingNew = false
-    @State private var cachedConfig: RedisConnectionConfig?
+    @State private var isNew = false
+    @State private var editingConfig: RedisConnectionConfig?
     @State private var connectionTimeout: TimeInterval = 10
     @State private var pingTimeout: TimeInterval = 5
-
-    private var editingConfig: RedisConnectionConfig? {
-        cachedConfig
-    }
-    private var isNew: Bool {
-        isCreatingNew
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -176,11 +169,11 @@ struct ConnectionDetailView: View {
                 }
                 .formStyle(.grouped)
             }
-            .onChange(of: conn.rightPanel) { _, newValue in
+            .onChange(of: tab.connectionPanel) { _, newValue in
                 loadConfig(from: newValue)
             }
             .onAppear {
-                loadConfig(from: conn.rightPanel)
+                loadConfig(from: tab.connectionPanel)
             }
 
             Divider()
@@ -190,8 +183,8 @@ struct ConnectionDetailView: View {
                     Button("Save") {
                         let config = createConfig()
                         store.addConnection(config)
-                        conn.selectedConnection = config
-                        conn.rightPanel = .editConnection(config)
+                        tab.selectedConnection = config
+                        tab.connectionPanel = .editConnection(config)
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(host.isEmpty)
@@ -217,7 +210,7 @@ struct ConnectionDetailView: View {
                         updated.tls = tls
                         updated.environment = environment
                         store.updateConnection(updated)
-                        conn.selectedConnection = updated
+                        tab.selectedConnection = updated
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(host.isEmpty)
@@ -238,10 +231,10 @@ struct ConnectionDetailView: View {
                     if let existing = editingConfig {
                         var temp = config
                         temp.id = existing.id
-                        Task { await conn.connect(to: temp) }
+                        Task { await tab.connect(to: temp) }
                     } else {
                         store.addConnection(config)
-                        Task { await conn.connect(to: config) }
+                        Task { await tab.connect(to: config) }
                     }
                 }
                 .buttonStyle(PrimaryButtonStyle())
@@ -269,12 +262,12 @@ struct ConnectionDetailView: View {
         return config
     }
 
-    private func loadConfig(from panel: RightPanel) {
+    private func loadConfig(from panel: ConnectionPanel) {
         testResult = nil
         switch panel {
         case .editConnection(let config):
-            isCreatingNew = false
-            cachedConfig = config
+            isNew = false
+            editingConfig = config
             name = config.name
             connectionMode = config.mode
             host = config.host
@@ -287,8 +280,8 @@ struct ConnectionDetailView: View {
             connectionTimeout = config.connectionTimeout
             pingTimeout = config.pingTimeout
         case .newConnection:
-            isCreatingNew = true
-            cachedConfig = nil
+            isNew = true
+            editingConfig = nil
             name = "localhost"
             connectionMode = .standalone
             host = "127.0.0.1"

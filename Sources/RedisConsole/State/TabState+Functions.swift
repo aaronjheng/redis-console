@@ -1,6 +1,6 @@
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     // MARK: - Redis Functions
 
     /// Redis 7.0+ is required for Functions.
@@ -13,7 +13,7 @@ extension ConnectionState {
     /// `FUNCTION LIST WITHCODE`. In cluster mode, lists are fetched from every
     /// primary and merged by library name, recording which nodes hold each library.
     func fetchFunctionLibraries() async {
-        guard let client = activeClient, client.isConnected else { return }
+        guard let client = activeSession, client.isConnected else { return }
         if !serverInfo.isEmpty && !supportsFunctions {
             functionLibraries = []
             isLoadingFunctions = false
@@ -94,7 +94,7 @@ extension ConnectionState {
     /// In cluster mode the first encountered error is thrown after attempting
     /// all nodes, so partial failures are not silently swallowed from the UI.
     private func sendToAllPrimaries(_ args: [String]) async throws {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         if let clusterClient = client as? RedisClusterClient {
             let nodes = try await clusterClient.clusterNodes()
             let primaries = nodes.filter { $0.role == .primary }.map(\.endpoint)
@@ -162,7 +162,7 @@ extension ConnectionState {
     /// `FUNCTION DRYRUN <code>`. In cluster mode every primary is checked; the
     /// first error reported by any node is returned. Returns `nil` on success.
     func dryRunFunction(code: String) async -> String? {
-        guard let client = activeClient, client.isConnected else {
+        guard let client = activeSession, client.isConnected else {
             return "Not connected"
         }
         do {
@@ -198,7 +198,7 @@ extension ConnectionState {
     /// Invokes a function. Routing is key-based, so the cluster client handles
     /// it automatically (no per-node fan-out needed).
     func callFunction(name: String, keys: [String], args: [String], isReadOnly: Bool) async {
-        guard let client = activeClient, client.isConnected else { return }
+        guard let client = activeSession, client.isConnected else { return }
         isCallingFunction = true
         defer { isCallingFunction = false }
 

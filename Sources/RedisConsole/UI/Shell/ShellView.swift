@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ShellView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     @State private var input = ""
     @State private var historyIndex = -1
     @State private var showCompletions = false
@@ -25,7 +25,7 @@ struct ShellView: View {
         guard !input.isEmpty else { return [] }
         let parts = input.split(separator: " ")
         if parts.count <= 1 {
-            return app.completions(for: String(parts.first ?? ""))
+            return tab.completions(for: String(parts.first ?? ""))
         }
         return []
     }
@@ -37,13 +37,13 @@ struct ShellView: View {
                 HStack(spacing: AppSpacing.medium) {
                     Spacer()
                     Button(
-                        action: { app.clearShellHistory() },
+                        action: { tab.clearShellHistory() },
                         label: {
                             Label("Clear", systemImage: "trash")
                         }
                     )
                     .buttonStyle(SecondaryButtonStyle())
-                    .disabled(app.shellHistory.isEmpty)
+                    .disabled(tab.shellHistory.isEmpty)
                 }
                 .panelToolbar()
 
@@ -51,7 +51,7 @@ struct ShellView: View {
             }
 
             // History list
-            if app.shellHistory.isEmpty {
+            if tab.shellHistory.isEmpty {
                 Spacer()
                 ContentUnavailableView(
                     "Enter Redis commands below",
@@ -63,19 +63,19 @@ struct ShellView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(app.shellHistory) { entry in
+                            ForEach(tab.shellHistory) { entry in
                                 ShellHistoryRow(entry: entry)
                                     .id(entry.id)
                                     .contextMenu {
                                         Button("Delete", role: .destructive) {
-                                            app.deleteShellHistoryEntry(entry)
+                                            tab.deleteShellHistoryEntry(entry)
                                         }
                                     }
                             }
                         }
                     }
-                    .onChange(of: app.shellHistory.count) { _, _ in
-                        if let last = app.shellHistory.last {
+                    .onChange(of: tab.shellHistory.count) { _, _ in
+                        if let last = tab.shellHistory.last {
                             withAnimation {
                                 proxy.scrollTo(last.id, anchor: .bottom)
                             }
@@ -113,7 +113,7 @@ struct ShellView: View {
                     Text("›")
                         .font(AppFont.dataCell)
                         .fontWeight(.bold)
-                        .foregroundStyle(AppColor.terminalPrompt)
+                        .foregroundStyle(AppColor.shellPrompt)
 
                     TextField("Send a Redis command", text: $input, axis: .vertical)
                         .font(AppFont.monoBody)
@@ -133,16 +133,16 @@ struct ShellView: View {
                             return .ignored
                         }
                         .onKeyPress(.upArrow) {
-                            if !app.shellHistory.isEmpty {
-                                historyIndex = min(historyIndex + 1, app.shellHistory.count - 1)
-                                input = app.shellHistory[app.shellHistory.count - 1 - historyIndex].command
+                            if !tab.shellHistory.isEmpty {
+                                historyIndex = min(historyIndex + 1, tab.shellHistory.count - 1)
+                                input = tab.shellHistory[tab.shellHistory.count - 1 - historyIndex].command
                             }
                             return .handled
                         }
                         .onKeyPress(.downArrow) {
                             if historyIndex > 0 {
                                 historyIndex -= 1
-                                input = app.shellHistory[app.shellHistory.count - 1 - historyIndex].command
+                                input = tab.shellHistory[tab.shellHistory.count - 1 - historyIndex].command
                             } else if historyIndex == 0 {
                                 historyIndex = -1
                                 input = ""
@@ -177,8 +177,8 @@ struct ShellView: View {
             .background(.bar)
 
             Divider()
-            WorkspaceFooterBar {
-                StatusFooterView(countText: "\(app.shellHistory.count) commands")
+            PanelFooterBar {
+                StatusFooterView(countText: "\(tab.shellHistory.count) commands")
                 Spacer()
             }
         }
@@ -191,10 +191,10 @@ struct ShellView: View {
                 input = ""
                 let cmd = pendingCommand
                 pendingCommand = ""
-                Task { await app.executeCommand(cmd) }
+                Task { await tab.executeCommand(cmd) }
             }
         } message: {
-            if app.selectedConnection?.environment == .production {
+            if tab.selectedConnection?.environment == .production {
                 Text("This is a PRODUCTION database. Are you sure you want to execute:\n\n\(pendingCommand)")
             } else {
                 Text("This command is potentially destructive. Are you sure you want to execute:\n\n\(pendingCommand)")
@@ -209,7 +209,7 @@ struct ShellView: View {
         showCompletions = false
 
         let cmdUpper = cmd.uppercased().trimmingCharacters(in: .whitespaces)
-        let isProduction = app.selectedConnection?.environment == .production
+        let isProduction = tab.selectedConnection?.environment == .production
         let isAlwaysConfirm = alwaysConfirmCommands.contains { cmdUpper.hasPrefix($0) }
         let isProductionOnly = productionConfirmCommands.contains { cmdUpper.hasPrefix($0) }
 
@@ -220,7 +220,7 @@ struct ShellView: View {
         }
 
         input = ""
-        Task { await app.executeCommand(cmd) }
+        Task { await tab.executeCommand(cmd) }
     }
 }
 
@@ -235,7 +235,7 @@ struct ShellHistoryRow: View, Equatable {
     }
 
     private var statusColor: Color {
-        entry.isError ? AppColor.terminalError : AppColor.terminalSuccess
+        entry.isError ? AppColor.shellError : AppColor.shellSuccess
     }
 
     var body: some View {
@@ -245,7 +245,7 @@ struct ShellHistoryRow: View, Equatable {
                 Text("›")
                     .font(AppFont.dataCell)
                     .fontWeight(.bold)
-                    .foregroundStyle(AppColor.terminalPrompt.opacity(0.65))
+                    .foregroundStyle(AppColor.shellPrompt.opacity(0.65))
 
                 Text(TreeSitterBashHighlighter.shared.highlight(entry.command))
                     .font(AppFont.dataCell)
@@ -264,11 +264,11 @@ struct ShellHistoryRow: View, Equatable {
             // Output block
             Text(entry.result)
                 .font(AppFont.monoSubheadline)
-                .foregroundStyle(entry.isError ? AppColor.terminalError : .primary)
+                .foregroundStyle(entry.isError ? AppColor.shellError : .primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(AppSpacing.small)
-                .background(AppColor.terminalOutputBackground)
+                .background(AppColor.shellOutputBackground)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
         }
         .padding(.horizontal, AppSpacing.large)

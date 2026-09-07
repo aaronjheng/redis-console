@@ -123,7 +123,7 @@ struct RedisProfilerEntry: Identifiable, Hashable {
     /// Function names are globally unique in Redis, so the first match wins.
     /// Returns the qualified `library.function` form, or `nil` when the entry is
     /// not a function call or no matching library is loaded. The libraries are
-    /// passed in to keep this model free of a `ConnectionState` dependency.
+    /// passed in to keep this model free of a `TabState` dependency.
     func fcallLibraryName(in libraries: [RedisFunctionLibrary]) -> String? {
         guard let functionName = fcallFunctionName,
             let library = libraries.first(where: { $0.functions.contains { $0.name == functionName } })

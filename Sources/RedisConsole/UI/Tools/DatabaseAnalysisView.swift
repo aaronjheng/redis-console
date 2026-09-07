@@ -4,13 +4,13 @@ import UniformTypeIdentifiers
 // MARK: - Database Analysis View
 
 struct DatabaseAnalysisView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     @State private var showingProductionWarning = false
     @State private var isExporting = false
     @State private var exportReport: AnalysisReportDocument?
 
     private var isProduction: Bool {
-        app.selectedConnection?.environment == .production
+        tab.selectedConnection?.environment == .production
     }
 
     var body: some View {
@@ -19,7 +19,7 @@ struct DatabaseAnalysisView: View {
             HStack(spacing: AppSpacing.medium) {
                 Spacer()
 
-                if app.isLoadingAnalysis {
+                if tab.isLoadingAnalysis {
                     ProgressView()
                         .controlSize(.small)
                 }
@@ -28,17 +28,17 @@ struct DatabaseAnalysisView: View {
                     if isProduction {
                         showingProductionWarning = true
                     } else {
-                        Task { await app.runDatabaseAnalysis() }
+                        Task { await tab.runDatabaseAnalysis() }
                     }
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(SecondaryButtonStyle())
-                .disabled(app.isLoadingAnalysis)
+                .disabled(tab.isLoadingAnalysis)
                 .alert("Production Database", isPresented: $showingProductionWarning) {
                     Button("Cancel", role: .cancel) {}
                     Button("Run Analysis") {
-                        Task { await app.runDatabaseAnalysis() }
+                        Task { await tab.runDatabaseAnalysis() }
                     }
                 } message: {
                     Text(
@@ -53,22 +53,22 @@ struct DatabaseAnalysisView: View {
                     Label("Export", systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(SecondaryButtonStyle())
-                .disabled(app.analysis == nil)
+                .disabled(tab.analysis == nil)
             }
             .panelToolbar()
 
             Divider()
 
-            if let error = app.analysisError {
-                ErrorBanner(message: error, dismissAction: { app.analysisError = nil })
+            if let error = tab.analysisError {
+                ErrorBanner(message: error, dismissAction: { tab.analysisError = nil })
                 Divider()
             }
 
-            if app.isLoadingAnalysis {
+            if tab.isLoadingAnalysis {
                 Spacer()
                 LoadingState(message: "Analyzing database...")
                 Spacer()
-            } else if let analysis = app.analysis {
+            } else if let analysis = tab.analysis {
                 analysisContent(analysis)
             } else {
                 Spacer()
@@ -81,23 +81,23 @@ struct DatabaseAnalysisView: View {
                     if isProduction {
                         showingProductionWarning = true
                     } else {
-                        Task { await app.runDatabaseAnalysis() }
+                        Task { await tab.runDatabaseAnalysis() }
                     }
                 }
                 .padding(.top, AppSpacing.small)
                 Spacer()
             }
             Divider()
-            WorkspaceFooterBar {
-                if let analysis = app.analysis {
+            PanelFooterBar {
+                if let analysis = tab.analysis {
                     StatusFooterView(
                         countText: "\(analysis.totalKeys) keys",
                         sizeText: analysis.serverMetrics.usedMemoryHuman
                     )
-                } else if app.isLoadingAnalysis {
+                } else if tab.isLoadingAnalysis {
                     Label("Analyzing…", systemImage: "hourglass")
                         .foregroundStyle(.secondary)
-                } else if app.analysisError != nil {
+                } else if tab.analysisError != nil {
                     Label("Analysis failed", systemImage: "exclamationmark.triangle")
                         .foregroundStyle(AppColor.error)
                 } else {
@@ -108,7 +108,7 @@ struct DatabaseAnalysisView: View {
             }
         }
         .onDisappear {
-            app.cancelAnalysis()
+            tab.cancelAnalysis()
         }
         .fileExporter(
             isPresented: $isExporting,
@@ -160,11 +160,11 @@ struct DatabaseAnalysisView: View {
 
             Divider().frame(height: 30)
 
-            StatItem(label: "Total Keys", value: "\(analysis.totalKeys)")
-            StatItem(label: "Total Memory", value: analysis.serverMetrics.usedMemoryHuman)
-            StatItem(label: "Hit Rate", value: String(format: "%.1f%%", analysis.serverMetrics.hitRate))
-            StatItem(label: "Ops/sec", value: "\(analysis.serverMetrics.opsPerSecond)")
-            StatItem(label: "Clients", value: "\(analysis.serverMetrics.connectedClients)")
+            AnalysisStatView(label: "Total Keys", value: "\(analysis.totalKeys)")
+            AnalysisStatView(label: "Total Memory", value: analysis.serverMetrics.usedMemoryHuman)
+            AnalysisStatView(label: "Hit Rate", value: String(format: "%.1f%%", analysis.serverMetrics.hitRate))
+            AnalysisStatView(label: "Ops/sec", value: "\(analysis.serverMetrics.opsPerSecond)")
+            AnalysisStatView(label: "Clients", value: "\(analysis.serverMetrics.connectedClients)")
 
             if analysis.isEstimate {
                 Badge(
@@ -330,7 +330,7 @@ struct DatabaseAnalysisView: View {
     }
 
     private func exportAnalysis() {
-        guard let analysis = app.analysis else { return }
+        guard let analysis = tab.analysis else { return }
         var lines: [String] = [
             "Database Analysis - \(DateFormatter.localizedString(from: analysis.analyzedAt, dateStyle: .medium, timeStyle: .medium))",
             "Keys Sampled: \(analysis.keysSampled)\(analysis.isEstimate ? " (estimate)" : "")",
@@ -396,7 +396,7 @@ private struct AnalysisReportDocument: FileDocument {
 
 // MARK: - Stat Item
 
-struct StatItem: View {
+struct AnalysisStatView: View {
     let label: String
     let value: String
 

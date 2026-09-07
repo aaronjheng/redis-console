@@ -2,14 +2,14 @@ import SwiftUI
 
 // MARK: - List Detail View
 
-struct ListRow: Identifiable {
+struct ListEntry: Identifiable {
     var id: Int { index }
     let index: Int
     let value: String
 }
 
 struct EditableListCell: View {
-    let row: ListRow
+    let row: ListEntry
     @Binding var editingIndex: Int?
     @Binding var editValue: String
     let rowValue: String
@@ -38,7 +38,7 @@ struct EditableListCell: View {
 struct ListDetailView: View {
     let key: String
     let rows: [(String, String)]
-    let keyLength: Int?
+    let totalCount: Int?
     let hasMoreRows: Bool
     var isProduction: Bool = false
     let onLoadMore: () -> Void
@@ -48,19 +48,19 @@ struct ListDetailView: View {
 
     @State private var editingIndex: Int?
     @State private var editValue = ""
-    @State private var elementPendingDeletion: ListRow?
+    @State private var elementPendingDeletion: ListEntry?
     @State private var productionConfirmText = ""
 
-    private var listRows: [ListRow] {
+    private var listEntries: [ListEntry] {
         rows.compactMap { row in
             guard let index = Int(row.0) else { return nil }
-            return ListRow(index: index, value: row.1)
+            return ListEntry(index: index, value: row.1)
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            Table(listRows) {
+            Table(listEntries) {
                 TableColumn("Index") { row in
                     Text("\(row.index)")
                         .font(AppFont.monoSubheadline)
@@ -100,7 +100,7 @@ struct ListDetailView: View {
 
             Divider()
 
-            WorkspaceFooterBar {
+            PanelFooterBar {
                 Button("Add Element", systemImage: "plus") {
                     onAddElement()
                 }
@@ -119,7 +119,7 @@ struct ListDetailView: View {
                 Spacer()
 
                 StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: keyLength, noun: "elements")
+                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "elements")
                 )
             }
         }

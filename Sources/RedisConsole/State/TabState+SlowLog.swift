@@ -1,6 +1,6 @@
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     // MARK: - Slow Log
 
     var slowLogConfigKey: String {
@@ -22,7 +22,7 @@ extension ConnectionState {
     }
 
     func fetchSlowLog() async {
-        guard let client = activeClient, client.isConnected else { return }
+        guard let client = activeSession, client.isConnected else { return }
         isLoadingSlowLog = true
         slowLogError = nil
 
@@ -46,7 +46,7 @@ extension ConnectionState {
     }
 
     func fetchSlowLogLen() async -> Int {
-        guard let client = activeClient, client.isConnected else { return 0 }
+        guard let client = activeSession, client.isConnected else { return 0 }
         do {
             let result = try await client.send("SLOWLOG", "LEN")
             return result.intValue ?? 0

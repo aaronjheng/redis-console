@@ -3,20 +3,20 @@ import Observation
 @MainActor
 @Observable
 class TabManager {
-    var tabStates: [ConnectionState] = []
+    var tabStates: [TabState] = []
 
-    func createTab() -> ConnectionState {
-        let state = ConnectionState()
+    func createTab() -> TabState {
+        let state = TabState()
         tabStates.append(state)
         return state
     }
 
-    func closeTab(_ state: ConnectionState) {
+    func closeTab(_ state: TabState) {
         state.disconnect()
         tabStates.removeAll { $0.id == state.id }
     }
 
-    func tabIndex(for state: ConnectionState) -> Int? {
+    func tabIndex(for state: TabState) -> Int? {
         tabStates.firstIndex(where: { $0.id == state.id })
     }
 }

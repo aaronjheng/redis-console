@@ -3,13 +3,13 @@ import SwiftUI
 // MARK: - Slow Log View
 
 struct SlowLogView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     @State private var filterText = ""
 
     private var filteredEntries: [SlowLogEntry] {
         let query = filterText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return app.slowLogEntries }
-        return app.slowLogEntries.filter { entry in
+        guard !query.isEmpty else { return tab.slowLogEntries }
+        return tab.slowLogEntries.filter { entry in
             entry.commandText.lowercased().contains(query)
                 || entry.clientIP.lowercased().contains(query)
                 || entry.clientName.lowercased().contains(query)
@@ -17,7 +17,7 @@ struct SlowLogView: View {
     }
 
     var body: some View {
-        @Bindable var app = app
+        @Bindable var tab = tab
 
         VStack(spacing: 0) {
             // Header
@@ -25,18 +25,18 @@ struct SlowLogView: View {
                 FilterField("Filter command, client, or name", text: $filterText)
                     .frame(maxWidth: .infinity)
 
-                if app.isLoadingSlowLog {
+                if tab.isLoadingSlowLog {
                     ProgressView()
                         .controlSize(.small)
                 }
 
                 Button {
-                    Task { await app.fetchSlowLog() }
+                    Task { await tab.fetchSlowLog() }
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(SecondaryButtonStyle())
-                .disabled(app.isLoadingSlowLog)
+                .disabled(tab.isLoadingSlowLog)
             }
             .panelToolbar()
 
@@ -45,7 +45,7 @@ struct SlowLogView: View {
             // Entries list
             if filteredEntries.isEmpty {
                 Spacer()
-                if app.isLoadingSlowLog {
+                if tab.isLoadingSlowLog {
                     LoadingState(message: "Loading slow log...")
                 } else {
                     ContentUnavailableView(
@@ -99,7 +99,7 @@ struct SlowLogView: View {
             Divider()
 
             // Footer
-            WorkspaceFooterBar {
+            PanelFooterBar {
                 StatusFooterView(
                     countText: footerCountText
                 )
@@ -107,12 +107,12 @@ struct SlowLogView: View {
             }
         }
         .task {
-            await app.fetchSlowLog()
+            await tab.fetchSlowLog()
         }
     }
 
     private var footerCountText: String {
-        let total = app.slowLogEntries.count
+        let total = tab.slowLogEntries.count
         let filtered = filteredEntries.count
         if filterText.isEmpty || filtered == total {
             return "\(total) entries total"

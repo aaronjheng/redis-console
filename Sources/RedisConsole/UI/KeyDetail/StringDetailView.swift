@@ -182,7 +182,7 @@ struct StringDetailView: View {
 
                     Divider()
 
-                    WorkspaceFooterBar {
+                    PanelFooterBar {
                         Menu {
                             ForEach(StringValueFormat.allCases, id: \.self) { option in
                                 Button {

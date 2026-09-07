@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Lua Editor View
 
 struct LuaEditorView: View {
-    @Environment(ConnectionState.self) private var app
+    @Environment(TabState.self) private var tab
     @Environment(\.dismiss) private var dismiss
 
     let mode: Mode
@@ -243,7 +243,7 @@ struct LuaEditorView: View {
     }
 
     private var isProduction: Bool {
-        app.selectedConnection?.environment == .production
+        tab.selectedConnection?.environment == .production
     }
 
     /// Keeps the `#!lua name=<name>` shebang in sync with the library name field.
@@ -258,7 +258,7 @@ struct LuaEditorView: View {
     private func runDryRun() async {
         isWorking = true
         dryRunState = .checking
-        if let message = await app.dryRunFunction(code: code) {
+        if let message = await tab.dryRunFunction(code: code) {
             dryRunState = .failed(message)
         } else {
             dryRunState = .ok
@@ -270,7 +270,7 @@ struct LuaEditorView: View {
         isWorking = true
         error = nil
         do {
-            try await app.loadFunctionLibrary(code: code, replace: replace)
+            try await tab.loadFunctionLibrary(code: code, replace: replace)
             dismiss()
         } catch {
             self.error = error.localizedDescription

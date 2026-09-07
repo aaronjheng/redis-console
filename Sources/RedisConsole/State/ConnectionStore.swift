@@ -1,12 +1,12 @@
 import Foundation
 import Observation
 
-// MARK: - App Store (Global singleton, shared across all tabs)
+// MARK: - Connection Store (Global singleton, shared across all tabs)
 
 @MainActor
 @Observable
-class AppStore {
-    static let shared = AppStore()
+class ConnectionStore {
+    static let shared = ConnectionStore()
 
     var connections: [RedisConnectionConfig] = []
     private let storeURL: URL

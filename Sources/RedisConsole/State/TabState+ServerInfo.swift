@@ -1,10 +1,10 @@
 import Foundation
 
-extension ConnectionState {
+extension TabState {
     // MARK: - Server Info
 
     func loadServerInfo() async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         isLoadingServerInfo = true
         defer { isLoadingServerInfo = false }
         do {
@@ -68,7 +68,7 @@ extension ConnectionState {
     /// cluster topology (`CLUSTER NODES` / `CLUSTER INFO`) is global and is not
     /// re-fetched here, so switching nodes stays responsive.
     func loadServerInfoForSelectedNode() async {
-        guard let client = activeClient else { return }
+        guard let client = activeSession else { return }
         guard let clusterClient = client as? RedisClusterClient else { return }
         guard let endpoint = selectedServerInfoNode else { return }
         isLoadingServerInfo = true

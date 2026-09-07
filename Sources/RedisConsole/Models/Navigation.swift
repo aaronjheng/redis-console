@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Navigation
 
-enum AppView: String, CaseIterable {
+enum WorkspaceSection: String, CaseIterable {
     case browser = "Browser"
     case functions = "Functions"
     case shell = "Shell"
