@@ -6,6 +6,7 @@ extension TabState {
     func loadServerInfo() async {
         guard let client = activeSession else { return }
         isLoadingServerInfo = true
+        serverInfoError = nil
         defer { isLoadingServerInfo = false }
         do {
             let result: RESPValue
@@ -55,6 +56,7 @@ extension TabState {
                 await loadModuleCapabilities(using: client, endpoint: capabilityEndpoint)
                 ?? infoCapabilities
         } catch {
+            serverInfoError = error.localizedDescription
             AppLogger.error("Failed to load server info: \(error)", category: "ServerInfo")
         }
     }
@@ -72,6 +74,7 @@ extension TabState {
         guard let clusterClient = client as? RedisClusterClient else { return }
         guard let endpoint = selectedServerInfoNode else { return }
         isLoadingServerInfo = true
+        serverInfoError = nil
         defer { isLoadingServerInfo = false }
         do {
             let result = try await clusterClient.send(["INFO"], to: endpoint)
@@ -82,6 +85,7 @@ extension TabState {
             serverInfo = parseServerInfo(infoStr)
             serverCapabilities = parseInfoModuleCapabilities(infoStr)
         } catch {
+            serverInfoError = error.localizedDescription
             AppLogger.error("Failed to load server info for node: \(error)", category: "ServerInfo")
         }
     }

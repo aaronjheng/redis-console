@@ -8,6 +8,7 @@ struct AddHashFieldSheet: View {
     @Binding var value: String
     let onSave: (String, String) -> Void
     let onCancel: () -> Void
+    @FocusState private var fieldFocused: Bool
 
     var body: some View {
         VStack(spacing: AppSpacing.large) {
@@ -16,6 +17,7 @@ struct AddHashFieldSheet: View {
 
             Form {
                 TextField("Field name", text: $field)
+                    .focused($fieldFocused)
                 TextField("Value", text: $value, axis: .vertical)
                     .lineLimit(3...6)
             }
@@ -31,6 +33,7 @@ struct AddHashFieldSheet: View {
             }
         }
         .padding(AppSpacing.large)
+        .onAppear { fieldFocused = true }
     }
 }
 
@@ -40,6 +43,7 @@ struct AddListElementSheet: View {
     @Binding var position: ListInsertPosition
     let onSave: (String, ListInsertPosition) -> Void
     let onCancel: () -> Void
+    @FocusState private var valueFocused: Bool
 
     var body: some View {
         VStack(spacing: AppSpacing.large) {
@@ -49,6 +53,7 @@ struct AddListElementSheet: View {
             Form {
                 TextField("Value", text: $value, axis: .vertical)
                     .lineLimit(3...6)
+                    .focused($valueFocused)
                 Picker("Position", selection: $position) {
                     Text("Head (LPUSH)").tag(ListInsertPosition.head)
                     Text("Tail (RPUSH)").tag(ListInsertPosition.tail)
@@ -66,6 +71,7 @@ struct AddListElementSheet: View {
             }
         }
         .padding(AppSpacing.large)
+        .onAppear { valueFocused = true }
     }
 }
 
@@ -74,6 +80,7 @@ struct AddSetMemberSheet: View {
     @Binding var member: String
     let onSave: (String) -> Void
     let onCancel: () -> Void
+    @FocusState private var memberFocused: Bool
 
     var body: some View {
         VStack(spacing: AppSpacing.large) {
@@ -81,8 +88,9 @@ struct AddSetMemberSheet: View {
                 .font(.headline)
 
             Form {
-                TextField("Member value", text: $member, axis: .vertical)
+                TextField("Member", text: $member, axis: .vertical)
                     .lineLimit(3...6)
+                    .focused($memberFocused)
             }
             .formStyle(.grouped)
 
@@ -96,6 +104,7 @@ struct AddSetMemberSheet: View {
             }
         }
         .padding(AppSpacing.large)
+        .onAppear { memberFocused = true }
     }
 }
 
@@ -105,6 +114,7 @@ struct AddZSetMemberSheet: View {
     @Binding var score: String
     let onSave: (String, String) -> Void
     let onCancel: () -> Void
+    @FocusState private var scoreFocused: Bool
 
     var body: some View {
         VStack(spacing: AppSpacing.large) {
@@ -112,8 +122,9 @@ struct AddZSetMemberSheet: View {
                 .font(.headline)
 
             Form {
-                TextField("Member", text: $member)
                 TextField("Score", text: $score)
+                    .focused($scoreFocused)
+                TextField("Member", text: $member)
             }
             .formStyle(.grouped)
 
@@ -127,6 +138,7 @@ struct AddZSetMemberSheet: View {
             }
         }
         .padding(AppSpacing.large)
+        .onAppear { scoreFocused = true }
     }
 }
 
@@ -152,8 +164,28 @@ struct AddKeySheet: View {
     @State private var hashPairs: [(field: String, value: String)] = [("", "")]
     @State private var setMembers: [String] = [""]
     @State private var zsetPairs: [(score: String, member: String)] = [("", "")]
+    @FocusState private var keyNameFocused: Bool
 
     private static let typeOptions = ["string", "list", "hash", "set", "zset"]
+
+    /// Why the Add button is disabled, if it is. Empty means submittable.
+    private var disabledReason: String {
+        if keyName.isEmpty {
+            return "Enter a key name."
+        }
+        switch keyType {
+        case "list" where !hasValidMembers:
+            return "Add at least one element."
+        case "hash" where !hasValidMembers:
+            return "Add at least one field with a value."
+        case "set" where !hasValidMembers:
+            return "Add at least one member."
+        case "zset" where !hasValidMembers:
+            return "Add at least one member with a score."
+        default:
+            return ""
+        }
+    }
 
     private var hasValidMembers: Bool {
         switch keyType {
@@ -170,16 +202,6 @@ struct AddKeySheet: View {
         }
     }
 
-    private func resetArrays(for type: String) {
-        switch type {
-        case "list": listValues = [""]
-        case "hash": hashPairs = [("", "")]
-        case "set": setMembers = [""]
-        case "zset": zsetPairs = [("", "")]
-        default: break
-        }
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -187,6 +209,7 @@ struct AddKeySheet: View {
             formSection
         }
         .frame(width: 560)
+        .onAppear { keyNameFocused = true }
     }
 
     // MARK: Header
@@ -195,7 +218,7 @@ struct AddKeySheet: View {
         HStack(spacing: AppSpacing.small) {
             Image(systemName: "plus.circle")
                 .foregroundStyle(.tint)
-            Text("Add New Key")
+            Text("Add Key")
                 .font(.headline)
             Spacer()
             Button {
@@ -220,6 +243,11 @@ struct AddKeySheet: View {
             valueSection
 
             HStack(spacing: AppSpacing.small) {
+                if !disabledReason.isEmpty {
+                    Text(disabledReason)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button {
                     save()
@@ -227,7 +255,7 @@ struct AddKeySheet: View {
                     Label("Add", systemImage: "plus")
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                .disabled(keyName.isEmpty || !hasValidMembers)
+                .disabled(!disabledReason.isEmpty)
                 .keyboardShortcut(.defaultAction)
             }
             .padding(.top, AppSpacing.small)
@@ -245,6 +273,7 @@ struct AddKeySheet: View {
             TextField("Key name", text: $keyName)
                 .textFieldStyle(.roundedBorder)
                 .font(AppFont.monoSubheadline)
+                .focused($keyNameFocused)
         }
     }
 
@@ -258,12 +287,9 @@ struct AddKeySheet: View {
                 "Select key type",
                 selection: $keyType,
                 options: Self.typeOptions,
-                label: { typeLabel($0) }
+                label: { redisKeyTypeTitle($0) }
             )
             .frame(maxWidth: 260, alignment: .leading)
-            .onChange(of: keyType) { _, newValue in
-                resetArrays(for: newValue)
-            }
             Spacer()
         }
     }
@@ -274,9 +300,9 @@ struct AddKeySheet: View {
         case "list":
             valueRows(
                 values: $listValues,
-                heading: "Values",
-                placeholder: { "Value \($0 + 1)" },
-                addLabel: "Add Value"
+                heading: "Elements",
+                placeholder: { "Element \($0 + 1)" },
+                addLabel: "Add Element"
             )
         case "hash":
             pairRows(
@@ -443,16 +469,6 @@ struct AddKeySheet: View {
         }
     }
 
-    private func typeLabel(_ type: String) -> String {
-        switch type {
-        case "string": return "String"
-        case "list": return "List"
-        case "hash": return "Hash"
-        case "set": return "Set"
-        case "zset": return "Sorted Set"
-        default: return type
-        }
-    }
 }
 
 private struct ConditionalWidth: ViewModifier {

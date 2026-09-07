@@ -12,6 +12,8 @@ struct FunctionCallView: View {
     @State private var keys: [String] = [""]
     @State private var args: [String] = [""]
     @State private var error: String?
+    @State private var showProductionConfirm = false
+    @State private var productionConfirmText = ""
 
     init(library: RedisFunctionLibrary) {
         self.library = library
@@ -33,6 +35,29 @@ struct FunctionCallView: View {
             resultSection
         }
         .frame(width: 640, height: 560)
+        .sheet(isPresented: $showProductionConfirm) {
+            ProductionConfirmView(
+                title: "Call Function on Production?",
+                message: "This will run \(selectedFunctionName) with writes on a production server. This action cannot be undone.",
+                confirmText: "CALL",
+                confirmButtonTitle: "Call",
+                input: $productionConfirmText,
+                onConfirm: {
+                    showProductionConfirm = false
+                    productionConfirmText = ""
+                    Task { await runCall() }
+                },
+                onCancel: {
+                    showProductionConfirm = false
+                    productionConfirmText = ""
+                }
+            )
+            .presentationSizing(.form)
+        }
+    }
+
+    private var isProduction: Bool {
+        tab.selectedConnection?.environment == .production
     }
 
     // MARK: Header
@@ -75,9 +100,13 @@ struct FunctionCallView: View {
                 }
                 Spacer()
                 Button {
-                    Task { await runCall() }
+                    if isProduction, !useReadOnly {
+                        showProductionConfirm = true
+                    } else {
+                        Task { await runCall() }
+                    }
                 } label: {
-                    Label("Run", systemImage: "play.fill")
+                    Label("Call", systemImage: "play.fill")
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(tab.isCallingFunction || selectedFunctionName.isEmpty)
@@ -117,7 +146,7 @@ struct FunctionCallView: View {
             if let fn = selectedFunction {
                 if fn.isReadOnly {
                     Badge(
-                        text: "no-writes",
+                        text: "Read-only",
                         foregroundColor: AppColor.success,
                         backgroundColor: AppColor.badgeBackground(AppColor.success)
                     )
@@ -149,7 +178,7 @@ struct FunctionCallView: View {
     private var keysSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.small) {
             HStack {
-                Text("Keys (\(keys.count))")
+                Text("Keys (\(keys.filter { !$0.isEmpty }.count))")
                     .font(.subheadline.weight(.medium))
                 Spacer()
                 Button {
@@ -187,7 +216,7 @@ struct FunctionCallView: View {
     private var argsSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.small) {
             HStack {
-                Text("Args (\(args.count))")
+                Text("Args (\(args.filter { !$0.isEmpty }.count))")
                     .font(.subheadline.weight(.medium))
                 Spacer()
                 Button {

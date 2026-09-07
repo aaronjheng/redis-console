@@ -68,7 +68,7 @@ struct FunctionLibraryDetailView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button("Delete \"\(library.name)\"", role: .destructive) {
                 Task {
                     do {
                         try await tab.deleteFunctionLibrary(name: library.name)
@@ -100,8 +100,12 @@ struct FunctionLibraryDetailView: View {
         ) {
             ProductionConfirmView(
                 title: "Delete library \"\(library.name)\"?",
-                message: "This will permanently delete the library. This action cannot be undone.",
+                message: (library.nodes ?? []).isEmpty
+                    ? "This will permanently delete the library. This action cannot be undone."
+                    : "This will permanently delete the library from \((library.nodes ?? []).count)"
+                        + "primary node(s). This action cannot be undone.",
                 confirmText: "DELETE",
+                confirmButtonTitle: "Delete \"\(library.name)\"",
                 input: $productionConfirmText,
                 onConfirm: {
                     Task {

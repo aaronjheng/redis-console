@@ -90,7 +90,7 @@ struct HashDetailView: View {
                 .help("Add field")
 
                 if hasMoreRows {
-                    Button("Load more") {
+                    Button("Load More") {
                         onLoadMore()
                     }
                     .buttonStyle(.borderless)
@@ -145,6 +145,7 @@ struct HashDetailView: View {
                     title: "Delete Field?",
                     message: "This permanently deletes field \"\(field)\" from \"\(key)\".",
                     confirmText: "DELETE",
+                    confirmButtonTitle: "Delete \"\(field)\"",
                     input: $productionConfirmText,
                     onConfirm: {
                         onDeleteField(field)

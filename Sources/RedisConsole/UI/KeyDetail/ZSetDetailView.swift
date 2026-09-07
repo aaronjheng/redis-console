@@ -56,6 +56,15 @@ struct ZSetDetailView: View {
             }
             .padding(AppSpacing.small)
 
+            if !pendingSearchText.isEmpty {
+                Text("Clear the filter to change the sort order.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, AppSpacing.small)
+                    .padding(.bottom, AppSpacing.xxSmall)
+            }
+
             Divider()
 
             Table(zsetEntries) {
@@ -108,7 +117,7 @@ struct ZSetDetailView: View {
                 .help("Add member")
 
                 if hasMoreRows {
-                    Button("Load more") {
+                    Button("Load More") {
                         onLoadMore()
                     }
                     .buttonStyle(.borderless)
@@ -163,6 +172,7 @@ struct ZSetDetailView: View {
                     title: "Delete Member?",
                     message: "This permanently deletes member \"\(member)\" from \"\(key)\".",
                     confirmText: "DELETE",
+                    confirmButtonTitle: "Delete \"\(member)\"",
                     input: $productionConfirmText,
                     onConfirm: {
                         onDeleteMember(member)

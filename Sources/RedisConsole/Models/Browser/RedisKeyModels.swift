@@ -54,6 +54,18 @@ class RedisKeyEntry: Identifiable, Hashable {
     }
 }
 
+/// Display title for a Redis key type, shared by badges, filters, and menus.
+func redisKeyTypeTitle(_ type: String) -> String {
+    switch type {
+    case "string": "String"
+    case "list": "List"
+    case "hash": "Hash"
+    case "set": "Set"
+    case "zset": "Sorted Set"
+    default: type
+    }
+}
+
 enum KeyDetailZSetOrder: String, CaseIterable, Identifiable {
     case ascending
     case descending
@@ -88,8 +100,8 @@ enum StringValueFormat: String, CaseIterable, Identifiable, Codable {
         case .ascii: return "ASCII"
         case .hex: return "Hex"
         case .base64: return "Base64"
-        case .base64Encode: return "Base64(Encode)"
-        case .gzip: return "GZip"
+        case .base64Encode: return "Base64 (Encode)"
+        case .gzip: return "Gzip"
         }
     }
 }

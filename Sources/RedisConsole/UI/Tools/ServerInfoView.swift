@@ -20,15 +20,14 @@ struct ServerInfoView: View {
             // Header
             HStack(spacing: AppSpacing.medium) {
                 Spacer()
+                if tab.isLoadingServerInfo {
+                    ProgressView()
+                        .controlSize(.small)
+                }
                 Button {
                     Task { await tab.loadServerInfo() }
                 } label: {
-                    if tab.isLoadingServerInfo {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                    }
+                    Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(tab.isLoadingServerInfo)
@@ -37,19 +36,24 @@ struct ServerInfoView: View {
 
             Divider()
 
+            if let error = tab.serverInfoError {
+                ErrorBanner(message: error, dismissAction: { tab.serverInfoError = nil })
+                Divider()
+            }
+
             if isClusterMode && !tab.clusterNodes.isEmpty {
                 clusterInfoView
             } else if tab.serverInfo.isEmpty {
                 Spacer()
                 if tab.isLoadingServerInfo {
-                    LoadingState(message: "Loading server info...")
+                    LoadingState(message: "Loading server info…")
                 } else {
                     ContentUnavailableView(
                         "No server info loaded",
                         systemImage: "info.circle",
                         description: Text("Click Refresh to load server information")
                     )
-                    Button("Load Info") {
+                    Button("Refresh") {
                         Task { await tab.loadServerInfo() }
                     }
                     .padding(.top, AppSpacing.small)
@@ -195,7 +199,7 @@ struct ServerInfoView: View {
             if tab.isLoadingServerInfo && !tab.serverInfo.isEmpty {
                 VStack(spacing: AppSpacing.small) {
                     ProgressView()
-                    Text("Loading node info...")
+                    Text("Loading node info…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

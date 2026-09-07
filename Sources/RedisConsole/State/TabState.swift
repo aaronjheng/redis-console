@@ -29,6 +29,7 @@ class TabState {
     var activeSession: (any RedisSession)?
     var isConnecting = false
     var connectionError: String?
+    var failedConnection: RedisConnectionConfig?
     var selectedConnection: RedisConnectionConfig?
     var pendingConnection: RedisConnectionConfig?
 
@@ -114,6 +115,7 @@ class TabState {
     var serverCapabilities: [RedisServerCapability] = []
     var clusterInfo: [String: String] = [:]
     var clusterNodes: [RedisClusterNodeSummary] = []
+    var serverInfoError: String?
     var selectedServerInfoNode: RedisEndpoint?
     var isLoadingServerInfo = false
 

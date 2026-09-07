@@ -110,7 +110,7 @@ struct ListDetailView: View {
                 .help("Add element")
 
                 if hasMoreRows {
-                    Button("Load more") {
+                    Button("Load More") {
                         onLoadMore()
                     }
                     .buttonStyle(.borderless)
@@ -132,7 +132,7 @@ struct ListDetailView: View {
             titleVisibility: .visible
         ) {
             if let row = elementPendingDeletion {
-                Button("Delete element \(row.index)", role: .destructive) {
+                Button("Delete Element \(row.index)", role: .destructive) {
                     onDeleteElement(row.index, row.value)
                     elementPendingDeletion = nil
                 }
@@ -159,6 +159,7 @@ struct ListDetailView: View {
                     title: "Delete Element?",
                     message: "This permanently deletes element at index \(row.index) from \"\(key)\".",
                     confirmText: "DELETE",
+                    confirmButtonTitle: "Delete Element \(row.index)",
                     input: $productionConfirmText,
                     onConfirm: {
                         onDeleteElement(row.index, row.value)

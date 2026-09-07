@@ -104,7 +104,7 @@ struct BrowserView: View {
 
                     if tab.isLoadingKeys && tab.keys.isEmpty {
                         Spacer()
-                        LoadingState(message: "Scanning keys...")
+                        LoadingState(message: "Scanning keys…")
                         Spacer()
                     } else if tab.keys.isEmpty {
                         Spacer()
@@ -191,7 +191,7 @@ struct BrowserView: View {
             titleVisibility: .visible
         ) {
             if let key = keyPendingDeletion {
-                Button("Delete", role: .destructive) {
+                Button("Delete \"\(key.key)\"", role: .destructive) {
                     Task { await tab.deleteKey(key) }
                     keyPendingDeletion = nil
                     deleteFeedbackTrigger.toggle()
@@ -219,6 +219,7 @@ struct BrowserView: View {
                     title: "Delete Key?",
                     message: "This permanently deletes \(key.key).",
                     confirmText: "DELETE",
+                    confirmButtonTitle: "Delete \"\(key.key)\"",
                     input: $productionConfirmText,
                     onConfirm: {
                         Task { await tab.deleteKey(key) }
@@ -259,13 +260,13 @@ struct BrowserView: View {
                 HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
                     ProgressView()
                         .controlSize(.small)
-                    Text("Scanning...")
+                    Text("Scanning…")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(AppSpacing.small)
             } else {
-                Button("Load more") {
+                Button("Load More") {
                     tab.keyScanCount = currentScanCount
                     Task { await tab.scanKeys() }
                 }
@@ -282,15 +283,7 @@ struct BrowserView: View {
     }
 
     private func typeFilterTitle(_ filter: String) -> String {
-        switch filter {
-        case "": return "All Types"
-        case "string": return "String"
-        case "list": return "List"
-        case "hash": return "Hash"
-        case "set": return "Set"
-        case "zset": return "Sorted Set"
-        default: return filter
-        }
+        filter.isEmpty ? "All Types" : redisKeyTypeTitle(filter)
     }
 
     private var currentScanCount: Int {
@@ -319,14 +312,14 @@ struct BrowserView: View {
 
     private func browserFooterText(displayedCount: Int) -> String {
         let totalText = tab.keyTotalCount.map(String.init) ?? "unknown"
-        let limitText = tab.keyScanLimitReached ? " · Threshold Reached" : ""
-        let countText = "\(tab.keys.count) Loaded · \(displayedCount) Shown\(limitText)"
+        let limitText = tab.keyScanLimitReached ? " · threshold reached" : ""
+        let loadedText = "\(tab.keys.count) of \(totalText) loaded\(limitText)"
         let showsScanProgress = tab.keyFilter != "*" || !tab.keyTypeFilter.isEmpty || tab.isNamespaceGroupingEnabled
 
         if showsScanProgress {
-            return "Results \(displayedCount) · Scanned \(tab.keyScannedCount) / \(totalText) · \(countText)"
+            return "Showing \(displayedCount) · scanned \(tab.keyScannedCount) of \(totalText) · \(loadedText)"
         }
-        return "Total \(totalText) · \(countText)"
+        return loadedText
     }
 
     private func addKey(name: String, type: String, value: String) async {
@@ -354,11 +347,19 @@ struct BrowserView: View {
                 try throwIfRedisError(result)
             case "hash":
                 var args = ["HSET", name]
-                for line in value.split(separator: "\n", omittingEmptySubsequences: true) {
+                for (offset, line) in value.split(separator: "\n", omittingEmptySubsequences: true).enumerated() {
                     let parts = line.split(separator: ":", maxSplits: 1)
                     if parts.count == 2 {
                         args.append(String(parts[0]))
                         args.append(String(parts[1]))
+                    } else {
+                        // Blank form rows produce a bare ":" — skip those, but never
+                        // silently drop a line the user actually typed.
+                        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty, trimmed != ":" {
+                            throw RedisError.commandError(
+                                "Line \(offset + 1) needs \"field:value\" format")
+                        }
                     }
                 }
                 guard args.count > 2 else {
@@ -375,11 +376,19 @@ struct BrowserView: View {
                 try throwIfRedisError(result)
             case "zset":
                 var args = ["ZADD", name, "NX"]
-                for line in value.split(separator: "\n", omittingEmptySubsequences: true) {
+                for (offset, line) in value.split(separator: "\n", omittingEmptySubsequences: true).enumerated() {
                     let parts = line.split(separator: ":", maxSplits: 1)
                     if parts.count == 2 {
                         args.append(String(parts[0]))
                         args.append(String(parts[1]))
+                    } else {
+                        // Blank form rows produce a bare ":" — skip those, but never
+                        // silently drop a line the user actually typed.
+                        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty, trimmed != ":" {
+                            throw RedisError.commandError(
+                                "Line \(offset + 1) needs \"score:member\" format")
+                        }
                     }
                 }
                 guard args.count > 3 else {
@@ -576,7 +585,7 @@ private struct KeyNamespaceNodeView: View {
             if hasMore {
                 HStack {
                     Spacer()
-                    Text("\(namespaceKeys.count - pageSize) more keys...")
+                    Text("\(namespaceKeys.count - pageSize) more keys…")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()

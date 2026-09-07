@@ -69,6 +69,7 @@ struct ProfilerView: View {
                 entries: filteredEntries,
                 isStarting: tab.isProfilerStarting,
                 isRunning: tab.isProfilerRunning,
+                isCluster: tab.selectedConnection?.mode == .cluster || !tab.clusterNodes.isEmpty,
                 selectedEntryID: $selectedEntryID,
                 autoScroll: $autoScroll,
                 lastVisibleEntryID: lastVisibleEntryID,
@@ -136,6 +137,7 @@ private struct ProfilerContentView: View {
     let entries: [RedisProfilerEntry]
     let isStarting: Bool
     let isRunning: Bool
+    let isCluster: Bool
     @Binding var selectedEntryID: RedisProfilerEntry.ID?
     @Binding var autoScroll: Bool
     let lastVisibleEntryID: RedisProfilerEntry.ID?
@@ -148,6 +150,7 @@ private struct ProfilerContentView: View {
             ProfilerEmptyStateView(
                 isStarting: isStarting,
                 isRunning: isRunning,
+                isCluster: isCluster,
                 onStart: onStart
             )
         } else {
@@ -166,6 +169,7 @@ private struct ProfilerContentView: View {
 private struct ProfilerEmptyStateView: View {
     let isStarting: Bool
     let isRunning: Bool
+    let isCluster: Bool
     let onStart: () -> Void
 
     var body: some View {
@@ -173,18 +177,21 @@ private struct ProfilerEmptyStateView: View {
             Spacer()
             if isStarting {
                 ContentUnavailableView(
-                    "Starting profiler\u{2026}",
+                    "Starting Profiler…",
                     systemImage: "circle.dotted"
                 )
             } else if isRunning {
                 ContentUnavailableView(
                     "Waiting for Redis commands",
                     systemImage: "dot.radiowaves.left.and.right",
-                    description: Text("Run commands from Shell or another client to see them here.")
+                    description: Text(
+                        isCluster
+                            ? "Run commands from Shell or another client to see them here. MONITOR shows a single node."
+                            : "Run commands from Shell or another client to see them here.")
                 )
             } else {
                 ContentUnavailableView(
-                    "Profiler is stopped",
+                    "Profiler Stopped",
                     systemImage: "waveform.path.ecg"
                 )
                 Button("Start Profiler", action: onStart)
@@ -220,9 +227,11 @@ private struct ProfilerToolbarView: View {
 
                 Toggle("Auto-scroll", isOn: $autoScroll)
                     .toggleStyle(.switch)
+                    .help("Keep the newest commands visible")
 
                 Toggle("Hide noise", isOn: $hideNoiseCommands)
                     .toggleStyle(.switch)
+                    .help("Hide PING and other polling commands")
 
                 if canShowLibraryColumn {
                     Toggle("Library", isOn: $libraryColumnEnabled)
@@ -249,7 +258,7 @@ private struct ProfilerToolbarView: View {
     }
 
     private var captureButtonTitle: String {
-        if isStarting { return "Starting\u{2026}" }
+        if isStarting { return "Starting…" }
         return isRunning ? "Stop" : "Start"
     }
 

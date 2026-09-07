@@ -38,5 +38,5 @@ enum AppSize {
     static let refreshButtonWidth: CGFloat = 26
     static let refreshSeparatorHeight: CGFloat = 14
     /// Unified width for the small type/engine badge in key and library rows.
-    static let typeBadgeWidth: CGFloat = 48
+    static let typeBadgeWidth: CGFloat = 64
 }

@@ -36,6 +36,7 @@ struct LuaEditorView: View {
     @State private var isWorking = false
     @State private var error: String?
     @State private var showingSaveConfirm = false
+    @FocusState private var libraryNameFocused: Bool
     @State private var productionConfirmText = ""
 
     init(mode: Mode) {
@@ -101,6 +102,7 @@ struct LuaEditorView: View {
                 title: "\(mode.isEdit ? "Save" : "Load") library \"\(libraryName)\"?",
                 message: "This will \(mode.isEdit ? "overwrite" : "load") a library on a production server. This action cannot be undone.",
                 confirmText: mode.isEdit ? "SAVE" : "LOAD",
+                confirmButtonTitle: mode.isEdit ? "Save" : "Load",
                 input: $productionConfirmText,
                 onConfirm: {
                     Task { await save() }
@@ -140,6 +142,7 @@ struct LuaEditorView: View {
                 TextField("library name", text: $libraryName)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 220)
+                    .focused($libraryNameFocused)
                     .onChange(of: libraryName) { _, _ in
                         syncShebang()
                     }
@@ -185,11 +188,13 @@ struct LuaEditorView: View {
     private var dryRunIndicator: some View {
         switch dryRunState {
         case .idle:
-            EmptyView()
+            Text("Type Lua code — Tab completes redis.* names")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         case .checking:
             HStack(spacing: AppSpacing.xSmall) {
                 ProgressView().controlSize(.small)
-                Text("Checking syntax\u{2026}")
+                Text("Checking syntax…")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

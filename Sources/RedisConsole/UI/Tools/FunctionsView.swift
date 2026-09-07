@@ -60,7 +60,7 @@ struct FunctionsView: View {
             titleVisibility: .visible
         ) {
             if let library = libraryPendingDeletion {
-                Button("Delete", role: .destructive) {
+                Button("Delete \"\(library.name)\"", role: .destructive) {
                     Task {
                         do {
                             try await tab.deleteFunctionLibrary(name: library.name)
@@ -95,8 +95,12 @@ struct FunctionsView: View {
             if let library = libraryPendingDeletion {
                 ProductionConfirmView(
                     title: "Delete library \"\(library.name)\"?",
-                    message: "This will permanently delete the library. This action cannot be undone.",
+                    message: (library.nodes ?? []).isEmpty
+                        ? "This will permanently delete the library. This action cannot be undone."
+                        : "This will permanently delete the library from \((library.nodes ?? []).count)"
+                            + "primary node(s). This action cannot be undone.",
                     confirmText: "DELETE",
+                    confirmButtonTitle: "Delete \"\(library.name)\"",
                     input: $productionConfirmText,
                     onConfirm: {
                         Task {
@@ -151,6 +155,13 @@ struct FunctionsView: View {
         .panelToolbar(horizontalPadding: AppSpacing.small)
     }
 
+    private var unsupportedFunctionsDescription: String {
+        if let version = tab.serverInfo["Server"]?["redis_version"], !version.isEmpty {
+            return "Detected Redis \(version) — upgrade to 7.0 or later for Functions."
+        }
+        return "Redis Functions are available in Redis 7.0 and later."
+    }
+
     // MARK: Content
 
     @ViewBuilder
@@ -160,11 +171,11 @@ struct FunctionsView: View {
         } else if !tab.supportsFunctions {
             emptyState(
                 "Redis 7.0+ required",
-                "Redis Functions are available in Redis 7.0 and later."
+                unsupportedFunctionsDescription
             )
         } else if tab.isLoadingFunctions && tab.functionLibraries.isEmpty {
             Spacer()
-            LoadingState(message: "Loading functions...")
+            LoadingState(message: "Loading functions…")
             Spacer()
         } else {
             PersistentSplitView(
@@ -196,11 +207,23 @@ struct FunctionsView: View {
             Group {
                 if filteredLibraries.isEmpty {
                     Spacer()
-                    ContentUnavailableView(
-                        "No libraries",
-                        systemImage: "curlybraces",
-                        description: Text("Load a function library to get started.")
-                    )
+                    if searchText.isEmpty {
+                        ContentUnavailableView(
+                            "No libraries",
+                            systemImage: "curlybraces",
+                            description: Text("Load a function library to get started.")
+                        )
+                    } else {
+                        ContentUnavailableView(
+                            "No matching libraries",
+                            systemImage: "magnifyingglass",
+                            description: Text("Try a different filter.")
+                        )
+                        Button("Clear Filter") {
+                            searchText = ""
+                        }
+                        .padding(.top, AppSpacing.small)
+                    }
                     Spacer()
                 } else {
                     ScrollView {

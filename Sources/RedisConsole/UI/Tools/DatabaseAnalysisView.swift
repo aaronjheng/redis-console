@@ -31,11 +31,13 @@ struct DatabaseAnalysisView: View {
                         Task { await tab.runDatabaseAnalysis() }
                     }
                 } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
+                    Label(
+                        tab.analysis == nil ? "Run Analysis" : "Refresh",
+                        systemImage: tab.analysis == nil ? "play.fill" : "arrow.clockwise")
                 }
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(tab.isLoadingAnalysis)
-                .alert("Production Database", isPresented: $showingProductionWarning) {
+                .alert("Run Analysis on Production?", isPresented: $showingProductionWarning) {
                     Button("Cancel", role: .cancel) {}
                     Button("Run Analysis") {
                         Task { await tab.runDatabaseAnalysis() }
@@ -66,7 +68,7 @@ struct DatabaseAnalysisView: View {
 
             if tab.isLoadingAnalysis {
                 Spacer()
-                LoadingState(message: "Analyzing database...")
+                LoadingState(message: "Analyzing database…")
                 Spacer()
             } else if let analysis = tab.analysis {
                 analysisContent(analysis)
@@ -75,7 +77,7 @@ struct DatabaseAnalysisView: View {
                 ContentUnavailableView(
                     "No analysis data",
                     systemImage: "chart.pie",
-                    description: Text("Run analysis to see database statistics")
+                    description: Text("Run Analysis to see database statistics")
                 )
                 Button("Run Analysis") {
                     if isProduction {
@@ -172,6 +174,7 @@ struct DatabaseAnalysisView: View {
                     foregroundColor: AppColor.warning,
                     backgroundColor: AppColor.badgeBackground(AppColor.warning)
                 )
+                .help("Totals are estimated from a key sample, not a full scan")
             }
         }
         .padding(.horizontal, AppSpacing.large)
@@ -191,12 +194,12 @@ struct DatabaseAnalysisView: View {
                         Text("Type").font(.body).foregroundStyle(.secondary).frame(width: 60, alignment: .leading)
                         Text("Count").font(.body).foregroundStyle(.secondary).frame(width: 70, alignment: .trailing)
                         Text("Memory").font(.body).foregroundStyle(.secondary).frame(width: 120, alignment: .trailing)
-                        Text("Avg").font(.body).foregroundStyle(.secondary).frame(width: 100, alignment: .trailing)
+                        Text("Avg Bytes").font(.body).foregroundStyle(.secondary).frame(width: 100, alignment: .trailing)
                     }
                     ForEach(types, id: \.self) { type in
                         if let stats = analysis.typeDistribution[type] {
                             HStack {
-                                Text(type.capitalized)
+                                Text(redisKeyTypeTitle(type))
                                     .font(.body)
                                     .frame(width: 60, alignment: .leading)
                                 Text("\(stats.count)")

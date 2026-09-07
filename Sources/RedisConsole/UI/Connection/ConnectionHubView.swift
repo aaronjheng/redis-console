@@ -34,6 +34,13 @@ struct ConnectionHubView: View {
             ),
             presenting: tab.connectionError
         ) { _ in
+            if tab.failedConnection != nil {
+                Button("Retry") {
+                    if let config = tab.failedConnection {
+                        Task { await tab.connect(to: config) }
+                    }
+                }
+            }
             Button("OK", role: .cancel) {}
         } message: { error in
             Text(error)

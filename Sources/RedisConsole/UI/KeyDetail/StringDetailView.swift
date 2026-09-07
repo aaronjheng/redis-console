@@ -90,31 +90,60 @@ struct StringDetailView: View {
         guard let data = Data(base64Encoded: value),
             let decoded = String(data: data, encoding: .utf8)
         else {
-            return "Invalid Base64 data"
+            return value
         }
         return decoded
     }
 
     private var base64EncodedValue: String {
         guard let data = value.data(using: .utf8) else {
-            return "Unable to encode"
+            return value
         }
         return data.base64EncodedString()
     }
 
     private var gzipDecompressedValue: String {
         guard let data = Data(base64Encoded: value) ?? value.data(using: .utf8) else {
-            return "Unable to read data"
+            return value
         }
         guard !data.isEmpty else { return value }
         do {
             let decompressed = try (data as NSData).decompressed(using: .zlib) as Data
-            guard let result = String(data: decompressed, encoding: .utf8) else {
-                return "Decompressed data is not valid UTF-8"
-            }
-            return result
+            return String(data: decompressed, encoding: .utf8) ?? value
         } catch {
-            return "GZip decompression failed: \(error.localizedDescription)"
+            return value
+        }
+    }
+
+    /// Why the current format cannot decode `value`, if any. Shown in an
+    /// `ErrorBanner` above the raw value so decode failures are never
+    /// mistaken for the actual stored value.
+    private var decodeError: String? {
+        switch format {
+        case .base64:
+            guard let data = Data(base64Encoded: value) else {
+                return "Invalid Base64 data — showing the raw value."
+            }
+            guard String(data: data, encoding: .utf8) != nil else {
+                return "Base64 data is not valid UTF-8 — showing the raw value."
+            }
+            return nil
+        case .gzip:
+            guard let data = Data(base64Encoded: value) ?? value.data(using: .utf8) else {
+                return "Unable to read data — showing the raw value."
+            }
+            guard !data.isEmpty else { return nil }
+            do {
+                let decompressed = try (data as NSData).decompressed(using: .zlib) as Data
+                guard String(data: decompressed, encoding: .utf8) != nil else {
+                    return "Decompressed data is not valid UTF-8 — showing the raw value."
+                }
+                return nil
+            } catch {
+                return "GZip decompression failed — showing the raw value."
+            }
+        default:
+            return nil
         }
     }
 
@@ -158,16 +187,20 @@ struct StringDetailView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(AppSpacing.large)
                         } else {
-                            Text(displayedValue)
+                            if let decodeError {
+                                ErrorBanner(message: decodeError)
+                            }
+                            Text(decodeError == nil ? displayedValue : value)
                                 .font(AppFont.dataCell)
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(AppSpacing.large)
                         }
                     }
-                    .onTapGesture(count: 2) {
-                        editValue = value
-                        isEditing = true
+                    .contextMenu {
+                        Button("Copy Value") {
+                            copyToPasteboard(value)
+                        }
                     }
                     .overlay(alignment: .topTrailing) {
                         Button("Edit Value", systemImage: "pencil") {
@@ -188,7 +221,11 @@ struct StringDetailView: View {
                                 Button {
                                     format = option
                                 } label: {
-                                    Text(option.title)
+                                    if option == format {
+                                        Label(option.title, systemImage: "checkmark")
+                                    } else {
+                                        Text(option.title)
+                                    }
                                 }
                             }
                         } label: {

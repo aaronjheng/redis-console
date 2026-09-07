@@ -7,7 +7,7 @@ struct KeyRow: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.small) {
-            Text(entry.type)
+            Text(redisKeyTypeTitle(entry.type))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(isSelected ? AppColor.onSelectionSecondary : .secondary)
                 .lineLimit(1)

@@ -4,8 +4,11 @@ struct ShellView: View {
     @Environment(TabState.self) private var tab
     @State private var input = ""
     @State private var historyIndex = -1
+    @State private var historyDraft = ""
     @State private var showCompletions = false
     @State private var showDangerousCommandAlert = false
+    @State private var showProductionConfirm = false
+    @State private var productionConfirmText = ""
     @State private var pendingCommand = ""
     @FocusState private var inputFocused: Bool
 
@@ -16,9 +19,10 @@ struct ShellView: View {
     ]
 
     /// Commands that require confirmation in ALL environments, including non-production.
-    /// This is a subset of `productionConfirmCommands`.
+    /// Key deletes always confirm, matching the Browser delete flow.
     private let alwaysConfirmCommands: Set<String> = [
         "FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "SHUTDOWN", "SWAPDB",
+        "DEL", "UNLINK",
     ]
 
     var filteredCompletions: [String] {
@@ -67,6 +71,13 @@ struct ShellView: View {
                                 ShellHistoryRow(entry: entry)
                                     .id(entry.id)
                                     .contextMenu {
+                                        Button("Copy Command") {
+                                            copyToPasteboard(entry.command)
+                                        }
+                                        Button("Copy Result") {
+                                            copyToPasteboard(entry.result)
+                                        }
+                                        Divider()
                                         Button("Delete", role: .destructive) {
                                             tab.deleteShellHistoryEntry(entry)
                                         }
@@ -132,8 +143,18 @@ struct ShellView: View {
                             }
                             return .ignored
                         }
+                        .onKeyPress(.escape) {
+                            if showCompletions {
+                                showCompletions = false
+                                return .handled
+                            }
+                            return .ignored
+                        }
                         .onKeyPress(.upArrow) {
                             if !tab.shellHistory.isEmpty {
+                                if historyIndex == -1 {
+                                    historyDraft = input
+                                }
                                 historyIndex = min(historyIndex + 1, tab.shellHistory.count - 1)
                                 input = tab.shellHistory[tab.shellHistory.count - 1 - historyIndex].command
                             }
@@ -145,7 +166,7 @@ struct ShellView: View {
                                 input = tab.shellHistory[tab.shellHistory.count - 1 - historyIndex].command
                             } else if historyIndex == 0 {
                                 historyIndex = -1
-                                input = ""
+                                input = historyDraft
                             }
                             return .handled
                         }
@@ -200,12 +221,37 @@ struct ShellView: View {
                 Text("This command is potentially destructive. Are you sure you want to execute:\n\n\(pendingCommand)")
             }
         }
+        .sheet(isPresented: $showProductionConfirm) {
+            ProductionConfirmView(
+                title: "Execute on Production?",
+                message: "This will execute the following command on a production"
+                    + "server. This action cannot be undone.\n\n\(pendingCommand)",
+                confirmText: "EXECUTE",
+                confirmButtonTitle: "Execute",
+                input: $productionConfirmText,
+                onConfirm: {
+                    input = ""
+                    let cmd = pendingCommand
+                    pendingCommand = ""
+                    productionConfirmText = ""
+                    showProductionConfirm = false
+                    Task { await tab.executeCommand(cmd) }
+                },
+                onCancel: {
+                    pendingCommand = ""
+                    productionConfirmText = ""
+                    showProductionConfirm = false
+                }
+            )
+            .presentationSizing(.form)
+        }
     }
 
     private func executeCommand() {
         let cmd = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cmd.isEmpty else { return }
         historyIndex = -1
+        historyDraft = ""
         showCompletions = false
 
         let cmdUpper = cmd.uppercased().trimmingCharacters(in: .whitespaces)
@@ -215,7 +261,11 @@ struct ShellView: View {
 
         if isAlwaysConfirm || (isProductionOnly && isProduction) {
             pendingCommand = cmd
-            showDangerousCommandAlert = true
+            if isProduction {
+                showProductionConfirm = true
+            } else {
+                showDangerousCommandAlert = true
+            }
             return
         }
 

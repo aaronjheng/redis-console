@@ -145,6 +145,7 @@ extension TabState {
             } catch {
                 client?.disconnect()
                 connectionError = error.localizedDescription
+                failedConnection = resolvedConfig
                 isConnecting = false
                 pendingConnection = nil
                 sshTunnel?.stop()

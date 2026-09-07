@@ -21,8 +21,17 @@ struct ConnectionDetailView: View {
     @State private var environment: ConnectionEnvironment = .unspecified
     @State private var uriInput = ""
     @State private var uriError: String?
+    @State private var portText = "6379"
+    @State private var sshPortText = "22"
+    @State private var portError: String?
+    @State private var sshPortError: String?
     @State private var isNew = false
     @State private var editingConfig: RedisConnectionConfig?
+
+    /// The form submits only with a host, valid ports, and no test in flight.
+    private var canSubmit: Bool {
+        !host.isEmpty && portError == nil && (!ssh.enabled || sshPortError == nil)
+    }
     @State private var connectionTimeout: TimeInterval = 10
     @State private var pingTimeout: TimeInterval = 5
 
@@ -59,7 +68,7 @@ struct ConnectionDetailView: View {
                     }
 
                     Section(isNew ? "New Connection" : "Connection") {
-                        TextField("Name", text: $name)
+                        TextField("Name (optional, defaults to host)", text: $name)
                         HStack {
                             Text("Mode")
                             Spacer()
@@ -74,18 +83,21 @@ struct ConnectionDetailView: View {
                         HStack {
                             Text("Port")
                             Spacer()
-                            TextField(
-                                "",
-                                text: Binding(
-                                    get: { "\(port)" },
-                                    set: {
-                                        if let parsedPort = UInt16($0) {
-                                            port = parsedPort
-                                        }
+                            TextField("", text: $portText)
+                                .frame(width: AppSize.formFieldWidth)
+                                .onChange(of: portText) { _, newValue in
+                                    portError = nil
+                                    if let parsed = UInt16(newValue), parsed > 0 {
+                                        port = parsed
+                                    } else {
+                                        portError = "Invalid port (1–65535)"
                                     }
-                                )
-                            )
-                            .frame(width: AppSize.formFieldWidth)
+                                }
+                        }
+                        if let portError {
+                            Text(portError)
+                                .font(.subheadline)
+                                .foregroundStyle(AppColor.error)
                         }
                         TextField("Username", text: $username)
                         SecureField("Password", text: $password)
@@ -121,18 +133,21 @@ struct ConnectionDetailView: View {
                             HStack {
                                 Text("Port")
                                 Spacer()
-                                TextField(
-                                    "",
-                                    text: Binding(
-                                        get: { "\(ssh.port)" },
-                                        set: {
-                                            if let parsedPort = UInt16($0) {
-                                                ssh.port = parsedPort
-                                            }
+                                TextField("", text: $sshPortText)
+                                    .frame(width: AppSize.formFieldWidth)
+                                    .onChange(of: sshPortText) { _, newValue in
+                                        sshPortError = nil
+                                        if let parsed = UInt16(newValue), parsed > 0 {
+                                            ssh.port = parsed
+                                        } else {
+                                            sshPortError = "Invalid port (1–65535)"
                                         }
-                                    )
-                                )
-                                .frame(width: AppSize.formFieldWidth)
+                                    }
+                            }
+                            if ssh.enabled, let sshPortError {
+                                Text(sshPortError)
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColor.error)
                             }
                             TextField("User (optional)", text: $ssh.user)
                             if ssh.mode == .builtIn {
@@ -187,13 +202,13 @@ struct ConnectionDetailView: View {
                         tab.connectionPanel = .editConnection(config)
                     }
                     .buttonStyle(SecondaryButtonStyle())
-                    .disabled(host.isEmpty)
+                    .disabled(!canSubmit || isTesting)
 
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
                     .buttonStyle(SecondaryButtonStyle())
-                    .disabled(host.isEmpty || isTesting || (ssh.enabled && ssh.host.isEmpty))
+                    .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
 
                     testResultView
                 } else if let config = editingConfig {
@@ -213,13 +228,13 @@ struct ConnectionDetailView: View {
                         tab.selectedConnection = updated
                     }
                     .buttonStyle(SecondaryButtonStyle())
-                    .disabled(host.isEmpty)
+                    .disabled(!canSubmit || isTesting)
 
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
                     .buttonStyle(SecondaryButtonStyle())
-                    .disabled(host.isEmpty || isTesting || (ssh.enabled && ssh.host.isEmpty))
+                    .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
 
                     testResultView
                 }
@@ -238,7 +253,7 @@ struct ConnectionDetailView: View {
                     }
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                .disabled(host.isEmpty || (ssh.enabled && ssh.host.isEmpty))
+                .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
             }
             .padding(AppSpacing.large)
         }
@@ -268,6 +283,10 @@ struct ConnectionDetailView: View {
         case .editConnection(let config):
             isNew = false
             editingConfig = config
+            portText = "\(config.port)"
+            sshPortText = "\(config.ssh.port)"
+            portError = nil
+            sshPortError = nil
             name = config.name
             connectionMode = config.mode
             host = config.host
@@ -282,10 +301,14 @@ struct ConnectionDetailView: View {
         case .newConnection:
             isNew = true
             editingConfig = nil
-            name = "localhost"
+            name = ""
             connectionMode = .standalone
             host = "127.0.0.1"
             port = 6379
+            portText = "6379"
+            sshPortText = "22"
+            portError = nil
+            sshPortError = nil
             username = ""
             password = ""
             ssh = SSHConfig()

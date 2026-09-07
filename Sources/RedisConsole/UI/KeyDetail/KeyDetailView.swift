@@ -6,6 +6,16 @@ enum ListInsertPosition {
     case head, tail
 }
 
+/// A production mutation staged behind a typed confirmation.
+private struct PendingProductionWrite: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let confirmText: String
+    let confirmButtonTitle: String
+    let action: () -> Void
+}
+
 struct KeyDetailView: View {
     @Environment(TabState.self) private var tab
     @State private var didCopyKey = false
@@ -28,6 +38,8 @@ struct KeyDetailView: View {
     @State private var ttlEditorError: String?
     @State private var autoRefreshInterval: TimeInterval = 0
     @State private var productionConfirmText = ""
+    @State private var pendingProductionWrite: PendingProductionWrite?
+    @State private var productionWriteConfirmText = ""
     @State private var deleteFeedbackTrigger = false
     @State private var ttlFeedbackTrigger = false
 
@@ -50,7 +62,7 @@ struct KeyDetailView: View {
 
                 if tab.isLoadingDetail {
                     Spacer()
-                    LoadingState(message: "Loading value...")
+                    LoadingState(message: "Loading value…")
                     Spacer()
                 } else {
                     detailContent(key: key)
@@ -78,7 +90,7 @@ struct KeyDetailView: View {
             titleVisibility: .visible
         ) {
             if let key = keyPendingDeletion {
-                Button("Delete", role: .destructive) {
+                Button("Delete \"\(key.key)\"", role: .destructive) {
                     Task { await tab.deleteKey(key) }
                     keyPendingDeletion = nil
                     deleteFeedbackTrigger.toggle()
@@ -108,6 +120,7 @@ struct KeyDetailView: View {
                     title: "Delete Key?",
                     message: "This permanently deletes \(key.key).",
                     confirmText: "DELETE",
+                    confirmButtonTitle: "Delete \"\(key.key)\"",
                     input: $productionConfirmText,
                     onConfirm: {
                         Task { await tab.deleteKey(key) }
@@ -123,9 +136,31 @@ struct KeyDetailView: View {
                 .presentationSizing(.form)
             }
         }
+        .sheet(item: $pendingProductionWrite) { pending in
+            ProductionConfirmView(
+                title: pending.title,
+                message: pending.message,
+                confirmText: pending.confirmText,
+                confirmButtonTitle: pending.confirmButtonTitle,
+                input: $productionWriteConfirmText,
+                onConfirm: {
+                    let action = pending.action
+                    pendingProductionWrite = nil
+                    productionWriteConfirmText = ""
+                    action()
+                },
+                onCancel: {
+                    pendingProductionWrite = nil
+                    productionWriteConfirmText = ""
+                }
+            )
+            .presentationSizing(.form)
+        }
         .onChange(of: tab.selectedKey?.key) {
             showingTTLEditor = false
             ttlEditorError = nil
+            pendingProductionWrite = nil
+            productionWriteConfirmText = ""
         }
         .sensoryFeedback(.success, trigger: deleteFeedbackTrigger)
         .sensoryFeedback(.success, trigger: ttlFeedbackTrigger)
@@ -147,6 +182,28 @@ struct KeyDetailView: View {
         tab.selectedConnection?.environment == .production
     }
 
+    /// Runs a mutation immediately, or stages it behind a typed confirmation
+    /// on production. Deletes already confirm; this covers adds/overwrites/TTL.
+    private func guardProductionWrite(
+        title: String,
+        message: String,
+        confirmText: String,
+        confirmButtonTitle: String,
+        action: @escaping () -> Void
+    ) {
+        if isProduction {
+            pendingProductionWrite = PendingProductionWrite(
+                title: title,
+                message: message,
+                confirmText: confirmText,
+                confirmButtonTitle: confirmButtonTitle,
+                action: action
+            )
+        } else {
+            action()
+        }
+    }
+
     // MARK: - Detail Content
     @ViewBuilder
     private func detailContent(key: RedisKeyEntry) -> some View {
@@ -159,9 +216,16 @@ struct KeyDetailView: View {
                 value: tab.keyDetail,
                 format: $tab.stringValueFormat,
                 onSave: { value in
-                    Task {
-                        await tab.updateStringValue(key: key.key, value: value)
-                        await tab.refreshSelectedKey()
+                    guardProductionWrite(
+                        title: "Overwrite Value?",
+                        message: "This will overwrite the value of \"(key.key)\" on a production server. This action cannot be undone.",
+                        confirmText: "OVERWRITE",
+                        confirmButtonTitle: "Overwrite"
+                    ) {
+                        Task {
+                            await tab.updateStringValue(key: key.key, value: value)
+                            await tab.refreshSelectedKey()
+                        }
                     }
                 }
             )
@@ -182,9 +246,17 @@ struct KeyDetailView: View {
                 },
                 onAddField: { showingAddHashField = true },
                 onSaveField: { field, value in
-                    Task {
-                        await tab.updateHashField(key: key.key, field: field, value: value)
-                        await tab.refreshSelectedKey()
+                    guardProductionWrite(
+                        title: "Overwrite Field?",
+                        message: "This will overwrite field \"(field)\" of \"(key.key)\""
+                            + "on a production server. This action cannot be undone.",
+                        confirmText: "OVERWRITE",
+                        confirmButtonTitle: "Overwrite"
+                    ) {
+                        Task {
+                            await tab.updateHashField(key: key.key, field: field, value: value)
+                            await tab.refreshSelectedKey()
+                        }
                     }
                 },
                 onDeleteField: { field in
@@ -200,11 +272,19 @@ struct KeyDetailView: View {
                     field: $newHashField,
                     value: $newHashValue,
                     onSave: { field, value in
-                        Task {
-                            await tab.addHashField(key: key.key, field: field, value: value)
-                            await tab.refreshSelectedKey()
-                        }
                         showingAddHashField = false
+                        guardProductionWrite(
+                            title: "Add Field?",
+                            message: "This will add field \"(field)\" to \"(key.key)\" on"
+                                + "a production server. This action cannot be undone.",
+                            confirmText: "ADD",
+                            confirmButtonTitle: "Add Field"
+                        ) {
+                            Task {
+                                await tab.addHashField(key: key.key, field: field, value: value)
+                                await tab.refreshSelectedKey()
+                            }
+                        }
                     },
                     onCancel: { showingAddHashField = false }
                 )
@@ -223,9 +303,17 @@ struct KeyDetailView: View {
                 },
                 onAddElement: { showingAddListElement = true },
                 onSaveElement: { index, value in
-                    Task {
-                        await tab.updateListElement(key: key.key, index: index, value: value)
-                        await tab.refreshSelectedKey()
+                    guardProductionWrite(
+                        title: "Overwrite Element?",
+                        message: "This will overwrite element \(index) of \"(key.key)\""
+                            + "on a production server. This action cannot be undone.",
+                        confirmText: "OVERWRITE",
+                        confirmButtonTitle: "Overwrite"
+                    ) {
+                        Task {
+                            await tab.updateListElement(key: key.key, index: index, value: value)
+                            await tab.refreshSelectedKey()
+                        }
                     }
                 },
                 onDeleteElement: { index, _ in
@@ -241,11 +329,18 @@ struct KeyDetailView: View {
                     value: $newListElement,
                     position: $newListInsertPosition,
                     onSave: { value, position in
-                        Task {
-                            await tab.addListElement(key: key.key, value: value, tail: position == .tail)
-                            await tab.refreshSelectedKey()
-                        }
                         showingAddListElement = false
+                        guardProductionWrite(
+                            title: "Add Element?",
+                            message: "This will add an element to \"(key.key)\" on a production server. This action cannot be undone.",
+                            confirmText: "ADD",
+                            confirmButtonTitle: "Add Element"
+                        ) {
+                            Task {
+                                await tab.addListElement(key: key.key, value: value, tail: position == .tail)
+                                await tab.refreshSelectedKey()
+                            }
+                        }
                     },
                     onCancel: { showingAddListElement = false }
                 )
@@ -279,11 +374,19 @@ struct KeyDetailView: View {
                     key: key.key,
                     member: $newSetMember,
                     onSave: { member in
-                        Task {
-                            await tab.addSetMember(key: key.key, member: member)
-                            await tab.refreshSelectedKey()
-                        }
                         showingAddSetMember = false
+                        guardProductionWrite(
+                            title: "Add Member?",
+                            message: "This will add member \"(member)\" to \"(key.key)\" on"
+                                + "a production server. This action cannot be undone.",
+                            confirmText: "ADD",
+                            confirmButtonTitle: "Add Member"
+                        ) {
+                            Task {
+                                await tab.addSetMember(key: key.key, member: member)
+                                await tab.refreshSelectedKey()
+                            }
+                        }
                     },
                     onCancel: { showingAddSetMember = false }
                 )
@@ -310,9 +413,17 @@ struct KeyDetailView: View {
                 },
                 onAddMember: { showingAddZSetMember = true },
                 onSaveMember: { member, score in
-                    Task {
-                        await tab.updateZSetScore(key: key.key, member: member, score: score)
-                        await tab.refreshSelectedKey()
+                    guardProductionWrite(
+                        title: "Overwrite Score?",
+                        message: "This will overwrite the score of member \"(member)\" in"
+                            + "\"(key.key)\" on a production server. This action cannot be undone.",
+                        confirmText: "OVERWRITE",
+                        confirmButtonTitle: "Overwrite"
+                    ) {
+                        Task {
+                            await tab.updateZSetScore(key: key.key, member: member, score: score)
+                            await tab.refreshSelectedKey()
+                        }
                     }
                 },
                 onDeleteMember: { member in
@@ -328,11 +439,19 @@ struct KeyDetailView: View {
                     member: $newZSetMember,
                     score: $newZSetScore,
                     onSave: { member, score in
-                        Task {
-                            await tab.addZSetMember(key: key.key, member: member, score: score)
-                            await tab.refreshSelectedKey()
-                        }
                         showingAddZSetMember = false
+                        guardProductionWrite(
+                            title: "Add Member?",
+                            message: "This will add member \"(member)\" to \"(key.key)\" on"
+                                + "a production server. This action cannot be undone.",
+                            confirmText: "ADD",
+                            confirmButtonTitle: "Add Member"
+                        ) {
+                            Task {
+                                await tab.addZSetMember(key: key.key, member: member, score: score)
+                                await tab.refreshSelectedKey()
+                            }
+                        }
                     },
                     onCancel: { showingAddZSetMember = false }
                 )
@@ -403,8 +522,10 @@ struct KeyDetailView: View {
                             let validatedValue = validatedTTLInput(newValue)
                             if validatedValue != newValue {
                                 ttlInput = validatedValue
+                                ttlEditorError = "Maximum TTL is 2,147,483,647 seconds."
+                            } else {
+                                ttlEditorError = nil
                             }
-                            ttlEditorError = nil
                         }
                     }
                     if let refreshedAt = tab.keyDetailLastRefreshedAt {
@@ -480,12 +601,23 @@ struct KeyDetailView: View {
 
         showingTTLEditor = false
         ttlEditorError = nil
-        Task {
-            let previousError = tab.keyDetailError
-            await tab.updateKeyTTL(key, ttl: ttl)
-            // Only fire success feedback when the operation didn't set a new error.
-            if tab.keyDetailError == previousError {
-                ttlFeedbackTrigger.toggle()
+        let ttlMessage =
+            ttl == -1
+            ? "This will remove the expiry of \"(key.key)\" on a production server. The key will persist."
+            : "This will set the TTL of \"(key.key)\" to \(ttl) seconds on a production server. This action cannot be undone."
+        guardProductionWrite(
+            title: "Change TTL?",
+            message: ttlMessage,
+            confirmText: "SET TTL",
+            confirmButtonTitle: "Save"
+        ) {
+            Task {
+                let previousError = tab.keyDetailError
+                await tab.updateKeyTTL(key, ttl: ttl)
+                // Only fire success feedback when the operation didn't set a new error.
+                if tab.keyDetailError == previousError {
+                    ttlFeedbackTrigger.toggle()
+                }
             }
         }
     }
@@ -499,6 +631,19 @@ struct KeyDetailView: View {
     }
 
     // MARK: - Generic Views
+    /// Header for the first column of the generic fallback table, used for key
+    /// types without a dedicated detail view (e.g. streams).
+    private var genericKeyHeader: String {
+        switch tab.keyType {
+        case "hash": "Field"
+        case "list": "Index"
+        case "set": "Member"
+        case "zset": "Score"
+        case "stream": "ID"
+        default: "Key"
+        }
+    }
+
     private var genericRowsView: some View {
         List {
             Section {
@@ -517,7 +662,7 @@ struct KeyDetailView: View {
                 }
             } header: {
                 HStack {
-                    Text(tab.keyType == "zset" ? "Score" : "Key")
+                    Text(genericKeyHeader)
                         .frame(width: 100, alignment: .leading)
                     Text("Value")
                     Spacer()
@@ -528,13 +673,24 @@ struct KeyDetailView: View {
         .listStyle(.inset)
     }
 
+    @ViewBuilder
     private var emptyValueView: some View {
-        ScrollView {
-            Text(tab.keyDetail)
-                .font(AppFont.dataCell)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(AppSpacing.large)
+        if tab.keyDetail.isEmpty {
+            Spacer()
+            ContentUnavailableView(
+                "Empty value",
+                systemImage: "doc.text",
+                description: Text("This key holds no data")
+            )
+            Spacer()
+        } else {
+            ScrollView {
+                Text(tab.keyDetail)
+                    .font(AppFont.dataCell)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(AppSpacing.large)
+            }
         }
     }
 }
@@ -546,6 +702,7 @@ private struct KeyTTLEditorPopover: View {
     let error: String?
     let onSave: () -> Void
     let onCancel: () -> Void
+    @FocusState private var inputFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
@@ -562,11 +719,16 @@ private struct KeyTTLEditorPopover: View {
                 TextField("No limit", text: $ttlInput)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 140)
+                    .focused($inputFocused)
                     .onSubmit(onSave)
                 Text("s")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+
+            Text("Empty means the key never expires.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             if let error {
                 Text(error)
@@ -584,5 +746,6 @@ private struct KeyTTLEditorPopover: View {
         }
         .padding(AppSpacing.large)
         .frame(width: AppSize.ttlEditorWidth)
+        .onAppear { inputFocused = true }
     }
 }

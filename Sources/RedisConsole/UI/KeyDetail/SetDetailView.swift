@@ -65,7 +65,7 @@ struct SetDetailView: View {
                 .help("Add member")
 
                 if hasMoreRows {
-                    Button("Load more") {
+                    Button("Load More") {
                         onLoadMore()
                     }
                     .buttonStyle(.borderless)
@@ -120,6 +120,7 @@ struct SetDetailView: View {
                     title: "Delete Member?",
                     message: "This permanently deletes member \"\(member)\" from \"\(key)\".",
                     confirmText: "DELETE",
+                    confirmButtonTitle: "Delete \"\(member)\"",
                     input: $productionConfirmText,
                     onConfirm: {
                         onDeleteMember(member)

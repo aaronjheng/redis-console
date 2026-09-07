@@ -25,34 +25,52 @@ struct SlowLogView: View {
                 FilterField("Filter command, client, or name", text: $filterText)
                     .frame(maxWidth: .infinity)
 
-                if tab.isLoadingSlowLog {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-
-                Button {
+                RefreshControl(
+                    autoRefreshInterval: $tab.slowLogConfig.autoRefreshInterval,
+                    isLoading: tab.isLoadingSlowLog,
+                    intervals: SlowLogConfig.autoRefreshOptions.map(\.value)
+                ) {
                     Task { await tab.fetchSlowLog() }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
                 }
-                .buttonStyle(SecondaryButtonStyle())
-                .disabled(tab.isLoadingSlowLog)
+                .onChange(of: tab.slowLogConfig) { _, _ in
+                    tab.saveSlowLogConfig()
+                }
             }
             .panelToolbar()
 
             Divider()
 
+            if let error = tab.slowLogError {
+                ErrorBanner(message: error, dismissAction: { tab.slowLogError = nil })
+                Divider()
+            }
+
             // Entries list
             if filteredEntries.isEmpty {
                 Spacer()
                 if tab.isLoadingSlowLog {
-                    LoadingState(message: "Loading slow log...")
-                } else {
+                    LoadingState(message: "Loading slow log…")
+                } else if filterText.isEmpty {
                     ContentUnavailableView(
                         "No slow log entries",
                         systemImage: "hourglass",
-                        description: Text("Slow queries will appear here")
+                        description: Text(
+                            "Queries slower than \(slowLogThresholdText) will appear here")
                     )
+                    Button("Refresh") {
+                        Task { await tab.fetchSlowLog() }
+                    }
+                    .padding(.top, AppSpacing.small)
+                } else {
+                    ContentUnavailableView(
+                        "No matching entries",
+                        systemImage: "magnifyingglass",
+                        description: Text("Try a different filter.")
+                    )
+                    Button("Clear Filter") {
+                        filterText = ""
+                    }
+                    .padding(.top, AppSpacing.small)
                 }
                 Spacer()
             } else {
@@ -109,15 +127,34 @@ struct SlowLogView: View {
         .task {
             await tab.fetchSlowLog()
         }
+        .task(id: tab.slowLogConfig.autoRefreshInterval) {
+            let interval = tab.slowLogConfig.autoRefreshInterval
+            guard interval > 0 else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(interval))
+                guard !Task.isCancelled, !tab.isLoadingSlowLog else { continue }
+                await tab.fetchSlowLog()
+            }
+        }
+    }
+
+    private var slowLogThresholdText: String {
+        let micros = tab.slowLogConfig.threshold
+        if micros >= 1_000_000 {
+            return String(format: "%.1f s", Double(micros) / 1_000_000)
+        } else if micros >= 1_000 {
+            return String(format: "%.0f ms", Double(micros) / 1_000)
+        }
+        return "\(micros) µs"
     }
 
     private var footerCountText: String {
         let total = tab.slowLogEntries.count
         let filtered = filteredEntries.count
         if filterText.isEmpty || filtered == total {
-            return "\(total) entries total"
+            return "\(total) entries"
         }
-        return "\(filtered) of \(total) entries"
+        return "Showing \(filtered) of \(total) entries"
     }
 
     private func durationColor(_ duration: Int) -> Color {

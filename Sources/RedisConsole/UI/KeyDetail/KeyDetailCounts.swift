@@ -4,7 +4,7 @@ import Foundation
 
 func detailCountText(loaded: Int, total: Int?, noun: String) -> String {
     if let total {
-        return "\(loaded) / \(total) \(noun)"
+        return "Showing \(loaded) of \(total) \(noun)"
     }
     return "\(loaded) \(noun)"
 }

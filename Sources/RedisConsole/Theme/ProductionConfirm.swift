@@ -3,12 +3,15 @@ import SwiftUI
 
 // MARK: - Production Confirmation
 
-/// A typed-confirmation sheet for destructive actions on production databases.
+/// A typed-confirmation sheet for consequential actions on production databases.
 /// Shared by Browser, Key Detail views, and Function Library views.
 struct ProductionConfirmView: View {
     let title: String
     let message: String
     let confirmText: String
+    /// Title of the destructive confirm button, e.g. `Delete "mykey"`, `Save`, `Load`.
+    /// Always names the action so it never contradicts the title.
+    let confirmButtonTitle: String
     @Binding var input: String
     let onConfirm: () -> Void
     let onCancel: () -> Void
@@ -53,7 +56,7 @@ struct ProductionConfirmView: View {
                 Button("Cancel", role: .cancel, action: onCancel)
                     .keyboardShortcut(.cancelAction)
                 Spacer()
-                Button("Delete", role: .destructive, action: onConfirm)
+                Button(confirmButtonTitle, role: .destructive, action: onConfirm)
                     .keyboardShortcut(.defaultAction)
                     .disabled(input != confirmText)
             }
