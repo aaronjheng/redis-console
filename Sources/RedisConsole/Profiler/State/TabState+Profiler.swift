@@ -212,11 +212,11 @@ extension TabState {
     private func startClusterProfilerStream(
         config: RedisConnectionConfig
     ) async throws -> RedisProfilerStream {
-        guard let clusterClient = activeSession as? RedisClusterClient else {
+        guard let client = activeSession, client.mode == .cluster else {
             throw RedisError.commandError("Profiler requires an active Redis Cluster connection")
         }
 
-        let nodes = try await clusterClient.clusterNodes()
+        let nodes = try await client.clusterNodes()
         let endpoints = RedisEndpoint.unique(nodes.map(\.endpoint))
         guard !endpoints.isEmpty else {
             throw RedisError.commandError("Redis Cluster topology has no nodes")

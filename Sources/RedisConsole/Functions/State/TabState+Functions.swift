@@ -24,12 +24,12 @@ extension TabState {
         functionsError = nil
 
         do {
-            if let clusterClient = client as? RedisClusterClient {
-                let nodes = try await clusterClient.clusterNodes()
+            if client.mode == .cluster {
+                let nodes = try await client.clusterNodes()
                 let primaries = nodes.filter { $0.role == .primary }.map(\.endpoint)
                 var merged: [String: RedisFunctionLibrary] = [:]
                 for endpoint in primaries {
-                    let result = try await clusterClient.send(
+                    let result = try await client.send(
                         ["FUNCTION", "LIST", "WITHCODE"], to: endpoint
                     )
                     try throwIfRedisError(result)
@@ -95,13 +95,13 @@ extension TabState {
     /// all nodes, so partial failures are not silently swallowed from the UI.
     private func sendToAllPrimaries(_ args: [String]) async throws {
         guard let client = activeSession else { return }
-        if let clusterClient = client as? RedisClusterClient {
-            let nodes = try await clusterClient.clusterNodes()
+        if client.mode == .cluster {
+            let nodes = try await client.clusterNodes()
             let primaries = nodes.filter { $0.role == .primary }.map(\.endpoint)
             var firstError: Error?
             for endpoint in primaries {
                 do {
-                    let result = try await clusterClient.send(args, to: endpoint)
+                    let result = try await client.send(args, to: endpoint)
                     try throwIfRedisError(result)
                 } catch {
                     if firstError == nil { firstError = error }
@@ -166,11 +166,11 @@ extension TabState {
             return "Not connected"
         }
         do {
-            if let clusterClient = client as? RedisClusterClient {
-                let nodes = try await clusterClient.clusterNodes()
+            if client.mode == .cluster {
+                let nodes = try await client.clusterNodes()
                 let primaries = nodes.filter { $0.role == .primary }.map(\.endpoint)
                 for endpoint in primaries {
-                    let result = try await clusterClient.send(
+                    let result = try await client.send(
                         ["FUNCTION", "DRYRUN", code], to: endpoint
                     )
                     if case .error(let message) = result {

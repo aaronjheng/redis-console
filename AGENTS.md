@@ -10,7 +10,7 @@ Root files: `RedisConsoleApp` (process entry), `AppDelegate` + `AppMenu` (window
 
 Area folders:
 
-- Feature areas, each holding `Models/` + `State/` (`TabState` extensions) + `Views/`, plus `Services/` only for area-private persistence (e.g. Shell history): `Analysis`, `Browser`, `Connection`, `Functions`, `KeyDetail`, `Profiler`, `ServerInfo`, `Shell`, `SlowLog`, `Workspace`
+- Feature areas, each holding `Models/` + `State/` (`TabState` extensions and use cases) + `Views/`, plus `Services/` only for area-private persistence (e.g. Shell history): `Analysis`, `Browser`, `Connection`, `Functions`, `KeyDetail`, `Profiler`, `ServerInfo`, `Shell`, `SlowLog`, `Workspace`
 - Backends: `Redis/` (client, cluster client, RESP parser, MONITOR client), `SSH/` (tunnel facade, `BuiltIn/` NIO implementation, `System/` `ssh(1)` multiplexing, `Cluster/`)
 - Shared toolkit: `Components/` (reusable views + the pasteboard helper their copy buttons use), `Concurrency/` (`withTimeout`), `Editor/` (syntax-highlighting code editor), `Theme/` (color/font/metrics tokens + light/dark switching)
 - `Session/` (`TabState` core, `ConnectionStore`, `TabManager`)

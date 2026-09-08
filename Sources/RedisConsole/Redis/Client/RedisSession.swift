@@ -164,6 +164,14 @@ protocol RedisSession: AnyObject, Sendable {
     func sendPipeline(_ commands: [[String]]) async throws -> [RESPValue]
     func scan(cursor: String, match: String, count: Int) async throws -> RedisScanResult
     func totalKeyCount() async throws -> Int?
+
+    /// Known node topology. Standalone sessions report the single node they
+    /// serve; cluster sessions report every known node. Lets callers stay on
+    /// the protocol instead of downcasting to the cluster client.
+    func clusterNodes() async throws -> [RedisClusterNodeSummary]
+    /// Sends a command to a specific node. Standalone sessions serve their
+    /// single node and reject any other endpoint.
+    func send(_ args: [String], to endpoint: RedisEndpoint) async throws -> RESPValue
 }
 
 protocol RedisClusterEndpointResolver: Sendable {
@@ -184,6 +192,26 @@ extension RedisClient: RedisSession {
         try await fetchRedisTotalKeyCount { command in
             try await self.send(command)
         }
+    }
+
+    func clusterNodes() async throws -> [RedisClusterNodeSummary] {
+        [
+            RedisClusterNodeSummary(
+                endpoint: RedisEndpoint(host: host, port: port),
+                role: .primary,
+                slotRanges: [],
+                replicaOf: nil
+            )
+        ]
+    }
+
+    func send(_ args: [String], to endpoint: RedisEndpoint) async throws -> RESPValue {
+        guard endpoint.host == host, endpoint.port == port else {
+            throw RedisError.commandError(
+                "Standalone session serves \(host):\(port); cannot target \(endpoint.address)"
+            )
+        }
+        return try await send(args)
     }
 }
 

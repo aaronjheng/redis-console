@@ -12,8 +12,8 @@ extension TabState {
             let result: RESPValue
             var capabilityEndpoint: RedisEndpoint?
 
-            if let clusterClient = client as? RedisClusterClient {
-                let nodes = try await clusterClient.clusterNodes()
+            if client.mode == .cluster {
+                let nodes = try await client.clusterNodes()
                 clusterNodes = nodes
 
                 let selectedEndpoint =
@@ -24,7 +24,7 @@ extension TabState {
                     ?? nodes.first?.endpoint
                 selectedServerInfoNode = selectedEndpoint
 
-                let clusterInfoResult = try await clusterClient.send(["CLUSTER", "INFO"])
+                let clusterInfoResult = try await client.send(["CLUSTER", "INFO"])
                 if case .error(let message) = clusterInfoResult {
                     throw RedisError.commandError(message)
                 }
@@ -38,7 +38,7 @@ extension TabState {
                     return
                 }
                 capabilityEndpoint = selectedEndpoint
-                result = try await clusterClient.send(["INFO"], to: selectedEndpoint)
+                result = try await client.send(["INFO"], to: selectedEndpoint)
             } else {
                 clusterInfo = [:]
                 clusterNodes = []
@@ -71,13 +71,13 @@ extension TabState {
     /// re-fetched here, so switching nodes stays responsive.
     func loadServerInfoForSelectedNode() async {
         guard let client = activeSession else { return }
-        guard let clusterClient = client as? RedisClusterClient else { return }
+        guard client.mode == .cluster else { return }
         guard let endpoint = selectedServerInfoNode else { return }
         isLoadingServerInfo = true
         serverInfoError = nil
         defer { isLoadingServerInfo = false }
         do {
-            let result = try await clusterClient.send(["INFO"], to: endpoint)
+            let result = try await client.send(["INFO"], to: endpoint)
             if case .error(let message) = result {
                 throw RedisError.commandError(message)
             }
@@ -127,8 +127,8 @@ extension TabState {
     ) async -> [RedisServerCapability]? {
         do {
             let result: RESPValue
-            if let clusterClient = client as? RedisClusterClient, let endpoint {
-                result = try await clusterClient.send(["MODULE", "LIST"], to: endpoint)
+            if client.mode == .cluster, let endpoint {
+                result = try await client.send(["MODULE", "LIST"], to: endpoint)
             } else {
                 result = try await client.send("MODULE", "LIST")
             }

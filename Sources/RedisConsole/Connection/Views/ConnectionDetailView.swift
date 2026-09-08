@@ -235,7 +235,7 @@ struct ConnectionDetailView: View {
                     .help(submitDisabledReason ?? "Save connection")
 
                     Button("Test Connection") {
-                        Task { await testConnection() }
+                        Task { await runConnectionProbe() }
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
@@ -263,7 +263,7 @@ struct ConnectionDetailView: View {
                     .help(submitDisabledReason ?? "Save connection")
 
                     Button("Test Connection") {
-                        Task { await testConnection() }
+                        Task { await runConnectionProbe() }
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
@@ -373,134 +373,20 @@ struct ConnectionDetailView: View {
         }
     }
 
-    func testConnection() async {
-        AppLogger.info(
-            "test connection requested mode=\(connectionMode.rawValue) redis=\(host):\(port) "
-                + "sshEnabled=\(ssh.enabled) tlsEnabled=\(tls.enabled) "
-                + "ssh=\(ssh.host):\(ssh.port) user=\(ssh.user)",
-            category: "ConnectionTest"
-        )
+    private func runConnectionProbe() async {
         isTesting = true
         testResult = nil
-        var client: (any RedisSession)?
-        var tunnel: SSHTunnel?
-        var clusterTunnelManager: SSHClusterTunnelManager?
-        defer {
-            let manager = clusterTunnelManager
-            client?.disconnect()
-            tunnel?.stop()
-            Task { await manager?.disconnect() }
-            isTesting = false
-        }
-
-        var connectHost = host
-        var connectPort = port
-        var clusterEndpointResolver: (any RedisClusterEndpointResolver)?
-
-        if ssh.enabled {
-            let trimmedSSHHost = ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
-            let trimmedSSHUser = ssh.user.trimmingCharacters(in: .whitespacesAndNewlines)
-            let effectiveSSHUser = trimmedSSHUser.isEmpty ? NSUserName() : trimmedSSHUser
-            guard !trimmedSSHHost.isEmpty else {
-                testResult = "Failed — SSH host is required"
-                AppLogger.error("test failed: empty ssh host", category: "ConnectionTest")
-                return
-            }
-
-            switch connectionMode {
-            case .standalone:
-                let createdTunnel = SSHTunnel()
-                createdTunnel.setupTimeoutSeconds = ssh.setupTimeout
-                createdTunnel.connectionAttemptTimeout = .seconds(Int64(ssh.connectionAttemptTimeout))
-                createdTunnel.maxConnectionAttempts = ssh.maxConnectionAttempts
-                createdTunnel.authTimeoutSeconds = ssh.authTimeout
-                tunnel = createdTunnel
-                do {
-                    try await withTimeout(createdTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
-                        try await createdTunnel.start(
-                            sshHost: trimmedSSHHost,
-                            sshPort: ssh.port,
-                            sshUser: trimmedSSHUser,
-                            sshPassword: ssh.password.isEmpty ? nil : ssh.password,
-                            privateKeyPath: ssh.privateKeyPath.isEmpty ? nil : ssh.privateKeyPath,
-                            remoteHost: host,
-                            remotePort: port,
-                            mode: ssh.mode
-                        )
-                    }
-                    connectHost = "127.0.0.1"
-                    connectPort = createdTunnel.localPort
-                    AppLogger.info(
-                        "test ssh tunnel ready mode=\(createdTunnel.mode.rawValue) local=127.0.0.1:\(connectPort)",
-                        category: "ConnectionTest"
-                    )
-                } catch {
-                    testResult = "Failed — SSH tunnel: \(error.localizedDescription)"
-                    AppLogger.error("test ssh tunnel failed error=\(error)", category: "ConnectionTest")
-                    return
-                }
-            case .cluster:
-                let manager = SSHClusterTunnelManager(ssh: ssh)
-                clusterTunnelManager = manager
-                clusterEndpointResolver = manager
-                AppLogger.info(
-                    "test cluster ssh tunnel manager ready ssh=\(trimmedSSHHost):\(ssh.port) user=\(effectiveSSHUser)",
-                    category: "ConnectionTest"
-                )
-            }
-        }
-
-        let createdClient: any RedisSession
-        switch connectionMode {
-        case .standalone:
-            createdClient = RedisClient(
-                host: connectHost,
-                port: connectPort,
-                username: username.isEmpty ? nil : username,
-                password: password.isEmpty ? nil : password,
-                tlsEnabled: tls.enabled,
-                verifyServerCertificate: tls.verifyServerCertificate,
-                caCertificatePath: tls.caCertificatePath,
-                clientCertificatePath: tls.clientCertificatePath,
-                clientKeyPath: tls.clientKeyPath,
-                connectionTimeout: connectionTimeout
-            )
-        case .cluster:
-            createdClient = RedisClusterClient(
-                seedNodes: [RedisEndpoint(host: connectHost, port: connectPort)],
-                username: username.isEmpty ? nil : username,
-                password: password.isEmpty ? nil : password,
-                tlsEnabled: tls.enabled,
-                verifyServerCertificate: tls.verifyServerCertificate,
-                caCertificatePath: tls.caCertificatePath,
-                clientCertificatePath: tls.clientCertificatePath,
-                clientKeyPath: tls.clientKeyPath,
-                connectionTimeout: connectionTimeout,
-                endpointResolver: clusterEndpointResolver
-            )
-        }
-        client = createdClient
-        do {
-            try await withTimeout(connectionTimeout, context: "Redis connection") {
-                try await createdClient.connect()
-            }
-            let start = Date()
-            let pong = try await withTimeout(pingTimeout, context: "Redis PING") {
-                try await createdClient.send("PING")
-            }
-            if case .error(let message) = pong {
-                throw RedisError.commandError(message)
-            }
-            let elapsed = Date().timeIntervalSince(start) * 1000
-            if let reply = pong.string, reply != "PONG" {
-                testResult = "OK — \(reply) (\(String(format: "%.2f", elapsed)) ms)"
+        defer { isTesting = false }
+        switch await ConnectionProbe(config: createConfig()).run() {
+        case .success(let latencyMs, let reply):
+            let elapsed = String(format: "%.2f", latencyMs)
+            if let reply, reply != "PONG" {
+                testResult = "OK — \(reply) (\(elapsed) ms)"
             } else {
-                testResult = "OK (\(String(format: "%.2f", elapsed)) ms)"
+                testResult = "OK (\(elapsed) ms)"
             }
-            AppLogger.info("test succeeded result=\(pong.string ?? "PONG") elapsed=\(elapsed)ms", category: "ConnectionTest")
-        } catch {
-            testResult = "Failed — \(error.localizedDescription)"
-            AppLogger.error("test redis failed error=\(error)", category: "ConnectionTest")
+        case .failure(let message):
+            testResult = "Failed — \(message)"
         }
     }
 }
