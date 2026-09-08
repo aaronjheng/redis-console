@@ -1,21 +1,21 @@
 import SwiftUI
 
 struct BrowserView: View {
-    @Environment(TabState.self) private var tab
+    @Environment(TabState.self) var tab
     @State private var searchText = ""
     @State private var showingAddKey = false
     @State private var keyPendingDeletion: RedisKeyEntry?
-    @State private var newKeyName = ""
-    @State private var newKeyType = "string"
-    @State private var newKeyValue = ""
+    @State var newKeyName = ""
+    @State var newKeyType = "string"
+    @State var newKeyValue = ""
     @State private var expandedNamespaces: Set<String> = []
-    @State private var keyListScrollTarget: String?
+    @State var keyListScrollTarget: String?
     @State private var productionConfirmText = ""
     @State private var autoRefreshInterval: TimeInterval = 0
     @State private var deleteFeedbackTrigger = false
 
-    private let listScanCount = 500
-    private let treeScanCount = 10_000
+    let listScanCount = 500
+    let treeScanCount = 10_000
 
     var body: some View {
         @Bindable var tab = tab
@@ -254,7 +254,7 @@ struct BrowserView: View {
     // MARK: - Subviews
 
     @ViewBuilder
-    private var loadMoreOrScanningView: some View {
+    var loadMoreOrScanningView: some View {
         if tab.hasMoreKeys {
             if tab.isLoadingKeys {
                 HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
@@ -278,31 +278,31 @@ struct BrowserView: View {
 
     // MARK: - Helpers
 
-    private var filteredKeys: [RedisKeyEntry] {
+    var filteredKeys: [RedisKeyEntry] {
         tab.keys.filter { tab.keyTypeFilter.isEmpty || $0.type.isEmpty || $0.type == tab.keyTypeFilter }
     }
 
-    private func typeFilterTitle(_ filter: String) -> String {
+    func typeFilterTitle(_ filter: String) -> String {
         filter.isEmpty ? "All Types" : redisKeyTypeTitle(filter)
     }
 
-    private var currentScanCount: Int {
+    var currentScanCount: Int {
         tab.isNamespaceGroupingEnabled ? treeScanCount : listScanCount
     }
 
-    private var isProduction: Bool {
+    var isProduction: Bool {
         tab.selectedConnection?.environment == .production
     }
 
-    private var autoRefreshTaskID: String {
+    var autoRefreshTaskID: String {
         "\(autoRefreshInterval)"
     }
 
-    private func copyKeyToPasteboard(_ entry: RedisKeyEntry) {
+    func copyKeyToPasteboard(_ entry: RedisKeyEntry) {
         copyToPasteboard(entry.key)
     }
 
-    private func expandNamespaces(containing key: String) {
+    func expandNamespaces(containing key: String) {
         var namespacePath: [String] = []
         for namespace in KeyNamespaceTree.namespaceSegments(for: key, separator: tab.namespaceSeparator) {
             namespacePath.append(namespace)
@@ -310,7 +310,7 @@ struct BrowserView: View {
         }
     }
 
-    private func browserFooterText(displayedCount: Int) -> String {
+    func browserFooterText(displayedCount: Int) -> String {
         let totalText = tab.keyTotalCount.map(String.init) ?? "unknown"
         let limitText = tab.keyScanLimitReached ? " · threshold reached" : ""
         let loadedText = "\(tab.keys.count) of \(totalText) loaded\(limitText)"
@@ -320,315 +320,5 @@ struct BrowserView: View {
             return "Showing \(displayedCount) · scanned \(tab.keyScannedCount) of \(totalText) · \(loadedText)"
         }
         return loadedText
-    }
-
-    private func addKey(name: String, type: String, value: String) async {
-        guard let client = tab.activeSession else { return }
-        do {
-            let existsResult = try await client.send("EXISTS", name)
-            try throwIfRedisError(existsResult)
-            guard existsResult.intValue == 0 else {
-                throw RedisError.commandError("Key \"\(name)\" already exists")
-            }
-
-            switch type {
-            case "string":
-                let result = try await client.send("SET", name, value, "NX")
-                try throwIfRedisError(result)
-                guard result.string != nil else {
-                    throw RedisError.commandError("Key \"\(name)\" already exists")
-                }
-            case "list":
-                let values = value.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
-                guard !values.isEmpty else {
-                    throw RedisError.commandError("List key requires at least one value")
-                }
-                let result = try await client.send(["RPUSH", name] + values)
-                try throwIfRedisError(result)
-            case "hash":
-                var args = ["HSET", name]
-                for (offset, line) in value.split(separator: "\n", omittingEmptySubsequences: true).enumerated() {
-                    let parts = line.split(separator: ":", maxSplits: 1)
-                    if parts.count == 2 {
-                        args.append(String(parts[0]))
-                        args.append(String(parts[1]))
-                    } else {
-                        // Blank form rows produce a bare ":" — skip those, but never
-                        // silently drop a line the user actually typed.
-                        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !trimmed.isEmpty, trimmed != ":" {
-                            throw RedisError.commandError(
-                                "Line \(offset + 1) needs \"field:value\" format")
-                        }
-                    }
-                }
-                guard args.count > 2 else {
-                    throw RedisError.commandError("Hash key requires at least one field")
-                }
-                let result = try await client.send(args)
-                try throwIfRedisError(result)
-            case "set":
-                let members = value.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
-                guard !members.isEmpty else {
-                    throw RedisError.commandError("Set key requires at least one member")
-                }
-                let result = try await client.send(["SADD", name] + members)
-                try throwIfRedisError(result)
-            case "zset":
-                var args = ["ZADD", name, "NX"]
-                for (offset, line) in value.split(separator: "\n", omittingEmptySubsequences: true).enumerated() {
-                    let parts = line.split(separator: ":", maxSplits: 1)
-                    if parts.count == 2 {
-                        args.append(String(parts[0]))
-                        args.append(String(parts[1]))
-                    } else {
-                        // Blank form rows produce a bare ":" — skip those, but never
-                        // silently drop a line the user actually typed.
-                        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !trimmed.isEmpty, trimmed != ":" {
-                            throw RedisError.commandError(
-                                "Line \(offset + 1) needs \"score:member\" format")
-                        }
-                    }
-                }
-                guard args.count > 3 else {
-                    throw RedisError.commandError("Sorted set key requires at least one member")
-                }
-                let result = try await client.send(args)
-                try throwIfRedisError(result)
-            default:
-                let result = try await client.send("SET", name, value, "NX")
-                try throwIfRedisError(result)
-                guard result.string != nil else {
-                    throw RedisError.commandError("Key \"\(name)\" already exists")
-                }
-            }
-            tab.connectionError = nil
-            let createdKey = tab.insertCreatedKey(name: name, type: type)
-            let isCreatedKeyVisible = tab.keyTypeFilter.isEmpty || tab.keyTypeFilter == type
-            if let createdKey, isCreatedKeyVisible {
-                tab.selectedKey = createdKey
-                keyListScrollTarget = createdKey.key
-            }
-        } catch {
-            tab.connectionError = error.localizedDescription
-            tab.keyDetailError = error.localizedDescription
-        }
-    }
-}
-
-private func scrollToKey(_ key: String?, using proxy: ScrollViewProxy) {
-    guard let key else { return }
-    proxy.scrollTo(key, anchor: .top)
-}
-
-private struct KeyFlatList: View {
-    let keys: [RedisKeyEntry]
-    @Binding var selectedKey: RedisKeyEntry?
-    let scrollTargetKey: String?
-    let onDeleteKey: (RedisKeyEntry) -> Void
-    let onCopyKey: (RedisKeyEntry) -> Void
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(keys) { entry in
-                        KeyRow(entry: entry)
-                            .fullWidthListRow(selected: selectedKey?.key == entry.key)
-                            .id(entry.key)
-                            .contentShape(Rectangle())
-                            .onTapGesture { selectedKey = entry }
-                            .contextMenu {
-                                Button("Copy Key") {
-                                    onCopyKey(entry)
-                                }
-                                Divider()
-                                Button("Delete", role: .destructive) {
-                                    onDeleteKey(entry)
-                                }
-                            }
-                    }
-                }
-            }
-            .onAppear {
-                scrollToKey(scrollTargetKey, using: proxy)
-            }
-            .onChange(of: scrollTargetKey) { _, newValue in
-                scrollToKey(newValue, using: proxy)
-            }
-        }
-    }
-}
-
-private struct KeyNamespaceList: View {
-    let tree: KeyNamespaceTree
-    @Binding var selectedKey: RedisKeyEntry?
-    @Binding var expandedNamespaces: Set<String>
-    let scrollTargetKey: String?
-    let onDeleteKey: (RedisKeyEntry) -> Void
-    let onCopyKey: (RedisKeyEntry) -> Void
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(tree.rootKeys) { entry in
-                        KeyRow(entry: entry)
-                            .fullWidthListRow(selected: selectedKey?.key == entry.key)
-                            .id(entry.key)
-                            .contentShape(Rectangle())
-                            .onTapGesture { selectedKey = entry }
-                            .contextMenu {
-                                Button("Copy Key") {
-                                    onCopyKey(entry)
-                                }
-                                Divider()
-                                Button("Delete", role: .destructive) {
-                                    onDeleteKey(entry)
-                                }
-                            }
-                    }
-
-                    ForEach(tree.namespaces) { namespace in
-                        KeyNamespaceNodeView(
-                            namespace: namespace,
-                            depth: 0,
-                            separator: tree.separator,
-                            selectedKey: $selectedKey,
-                            expandedNamespaces: $expandedNamespaces,
-                            onDeleteKey: onDeleteKey,
-                            onCopyKey: onCopyKey
-                        )
-                    }
-                }
-            }
-            .onAppear {
-                scrollToKey(scrollTargetKey, using: proxy)
-            }
-            .onChange(of: scrollTargetKey) { _, newValue in
-                scrollToKey(newValue, using: proxy)
-            }
-        }
-    }
-}
-
-private struct KeyNamespaceNodeView: View {
-    let namespace: KeyNamespaceNode
-    let depth: Int
-    let separator: String
-    @Binding var selectedKey: RedisKeyEntry?
-    @Binding var expandedNamespaces: Set<String>
-    let onDeleteKey: (RedisKeyEntry) -> Void
-    let onCopyKey: (RedisKeyEntry) -> Void
-
-    private let pageSize = 500
-    private var isExpanded: Bool { expandedNamespaces.contains(namespace.id) }
-
-    var body: some View {
-        Group {
-            folderRow
-            if isExpanded {
-                childrenSection
-                keysSection
-            }
-        }
-    }
-
-    private var folderRow: some View {
-        KeyNamespaceRow(namespace: namespace, isExpanded: isExpanded)
-            .contentShape(Rectangle())
-            .onTapGesture(perform: toggleExpansion)
-            .padding(.leading, CGFloat(depth) * AppSpacing.small)
-            .fullWidthListRow(selected: false)
-            .id("folder:\(namespace.id)")
-    }
-
-    private var childrenSection: some View {
-        ForEach(namespace.children) { childNamespace in
-            KeyNamespaceNodeView(
-                namespace: childNamespace,
-                depth: depth + 1,
-                separator: separator,
-                selectedKey: $selectedKey,
-                expandedNamespaces: $expandedNamespaces,
-                onDeleteKey: onDeleteKey,
-                onCopyKey: onCopyKey
-            )
-        }
-    }
-
-    private var keysSection: some View {
-        let namespaceKeys = namespace.keys
-        let displayedKeys = Array(namespaceKeys.prefix(pageSize))
-        let hasMore = namespaceKeys.count > pageSize
-        let childIndent = CGFloat(depth + 1) * AppSpacing.small
-        return Group {
-            ForEach(displayedKeys) { entry in
-                KeyRow(entry: entry, displayName: KeyNamespaceTree.leafName(for: entry.key, separator: separator))
-                    .padding(.leading, childIndent)
-                    .fullWidthListRow(selected: selectedKey?.key == entry.key)
-                    .id(entry.key)
-                    .contentShape(Rectangle())
-                    .onTapGesture { selectedKey = entry }
-                    .contextMenu {
-                        Button("Copy Key") {
-                            onCopyKey(entry)
-                        }
-                        Divider()
-                        Button("Delete", role: .destructive) {
-                            onDeleteKey(entry)
-                        }
-                    }
-            }
-
-            if hasMore {
-                HStack {
-                    Spacer()
-                    Text("\(namespaceKeys.count - pageSize) more keys…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .padding(.vertical, AppSpacing.xSmall)
-                .padding(.leading, childIndent)
-                .fullWidthListRow(selected: false)
-                .id("more:\(namespace.id)")
-            }
-        }
-    }
-
-    private func toggleExpansion() {
-        if isExpanded {
-            expandedNamespaces.remove(namespace.id)
-        } else {
-            expandedNamespaces.insert(namespace.id)
-        }
-    }
-}
-
-private struct KeyNamespaceRow: View {
-    let namespace: KeyNamespaceNode
-    let isExpanded: Bool
-
-    var body: some View {
-        HStack(spacing: AppSpacing.small) {
-            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                .foregroundStyle(.secondary)
-                .frame(width: 12, alignment: .leading)
-            Image(systemName: "folder")
-                .foregroundStyle(.tint)
-            Text(namespace.name)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer()
-            Text("\(namespace.keyCount)")
-                .font(.subheadline)
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, AppSpacing.medium)
-        .padding(.horizontal, AppSpacing.small)
-        .accessibilityLabel("\(namespace.name), \(namespace.keyCount) keys")
     }
 }
