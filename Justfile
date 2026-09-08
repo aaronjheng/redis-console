@@ -25,6 +25,7 @@ clean:
     rm -rf .build
 
 run: build
+    @osascript -e 'quit app "RedisConsole"' 2>/dev/null || true
     @open '{{ app_bundle }}'
 
 install: build
