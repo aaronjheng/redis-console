@@ -2,6 +2,10 @@ import SwiftUI
 
 // MARK: - Edit Sheets
 
+enum ListInsertPosition {
+    case head, tail
+}
+
 struct AddHashFieldSheet: View {
     let key: String
     @Binding var field: String
