@@ -1,0 +1,8 @@
+Behavior notes (from post-refactor review):
+
+- Fixed a latent display bug: production-write confirmation messages used
+  "(key.key)" / "(field)" / "(member)" without string interpolation, so the
+  dialogs showed the literal placeholder instead of the real name. All eight
+  messages (overwrites, adds, TTL set/remove) now interpolate correctly.
+- Dropped unused @State vars editingString and stringValue; they had no
+  references in the original file.
