@@ -226,17 +226,18 @@ struct RefreshControl: View {
                 }
             }
         } label: {
-            HStack(spacing: 0) {
+            HStack(spacing: AppSpacing.xxSmall) {
                 if isAutoRefreshEnabled {
                     Text(Self.intervalTitle(autoRefreshInterval))
                         .font(.caption2)
                         .monospacedDigit()
                         .foregroundStyle(.tint)
-                        .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
-                } else {
-                    Color.clear.frame(width: 18, height: AppSize.refreshControlHeight)
                 }
+                Image(systemName: "chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(isMenuHovering && !isLoading ? .primary : .secondary)
             }
+            .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
             .frame(height: AppSize.refreshControlHeight)
             .contentShape(Rectangle())
             .background(
@@ -253,9 +254,10 @@ struct RefreshControl: View {
                     style: .continuous
                 )
             )
+            .animation(.easeOut(duration: 0.12), value: isMenuHovering)
         }
         .menuStyle(.borderlessButton)
-        .menuIndicator(.visible)
+        .menuIndicator(.hidden)
         .fixedSize()
         .disabled(isLoading)
         .onHover { isMenuHovering = $0 }
