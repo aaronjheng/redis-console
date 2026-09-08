@@ -1,0 +1,9 @@
+Behavior notes (from post-refactor review):
+
+- Standalone SSH tunnel startup now runs through SSHTunnel.connect and publishes
+  to TabState.sshTunnel only after success; during startup cancel arrives via
+  cooperative cancellation (checkCancellation between retries, NIOTS attempt
+  timeout) instead of a synchronous stop(). Worst-case cancel latency during an
+  in-flight attempt is bounded by connectionAttemptTimeout (~10s), not a hang.
+- Shell-session tunnel startup is now wrapped in withTimeout(setupTimeout) and
+  rejects an empty SSH host upfront; previously it had neither bound.
