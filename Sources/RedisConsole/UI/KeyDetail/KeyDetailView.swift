@@ -581,6 +581,7 @@ struct KeyDetailView: View {
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(IconButtonStyle(isDestructive: true))
+                .foregroundStyle(.red)
                 .disabled(tab.isLoadingDetail)
                 .help("Delete key")
             }

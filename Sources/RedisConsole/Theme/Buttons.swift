@@ -27,7 +27,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 
     private func pressedBrightness(_ configuration: Configuration) -> Double {
         if configuration.isPressed { return -0.08 }
-        return isHovering ? 0.08 : 0
+        return isHovering ? 0.12 : 0
     }
 }
 
@@ -118,7 +118,7 @@ struct IconButtonStyle: ButtonStyle {
             return isDestructive ? Color.red.opacity(0.16) : Color.primary.opacity(0.12)
         }
         if isHovering {
-            return isDestructive ? Color.red.opacity(0.1) : Color.primary.opacity(0.08)
+            return isDestructive ? Color.red.opacity(0.1) : AppColor.iconHoverBackground
         }
         return Color.clear
     }
@@ -128,13 +128,12 @@ struct IconButtonStyle: ButtonStyle {
 
 private struct HoverBackgroundModifier: ViewModifier {
     var cornerRadius: CGFloat = AppRadius.small
-    var hoverOpacity: Double = 0.06
     @State private var isHovering = false
 
     func body(content: Content) -> some View {
         content
             .background(
-                Color.primary.opacity(isHovering ? hoverOpacity : 0),
+                isHovering ? AppColor.hoverBackground : Color.clear,
                 in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             )
             .onHover { isHovering = $0 }
@@ -146,9 +145,8 @@ extension View {
     /// Subtle hover wash for custom tappable rows/cards that don't use a
     /// `ButtonStyle` (e.g. `onTapGesture` rows, section headers).
     func hoverBackground(
-        cornerRadius: CGFloat = AppRadius.small,
-        hoverOpacity: Double = 0.06
+        cornerRadius: CGFloat = AppRadius.small
     ) -> some View {
-        modifier(HoverBackgroundModifier(cornerRadius: cornerRadius, hoverOpacity: hoverOpacity))
+        modifier(HoverBackgroundModifier(cornerRadius: cornerRadius))
     }
 }

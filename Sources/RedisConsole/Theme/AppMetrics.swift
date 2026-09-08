@@ -42,4 +42,7 @@ enum AppSize {
     /// Horizontal inset of the native sidebar selection rect, mirrored by
     /// `sidebarHoverWash` so hover matches selection geometry.
     static let sidebarSelectionInset: CGFloat = 10
+    /// Height of a default rounded-border text field; `FilterField` icon
+    /// buttons use it so their hover wash matches the field height.
+    static let filterFieldHeight: CGFloat = 22
 }

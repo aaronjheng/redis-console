@@ -236,6 +236,8 @@ struct StringDetailView: View {
                                     .font(.system(size: 8))
                             }
                             .foregroundStyle(.primary)
+                            .contentShape(Rectangle())
+                            .hoverBackground()
                         }
                         .menuStyle(.borderlessButton)
                         .menuIndicator(.hidden)

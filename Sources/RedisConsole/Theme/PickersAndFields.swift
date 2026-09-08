@@ -115,10 +115,13 @@ struct FilterField: View {
     }
 
     /// Right-side inset so typed text never slides underneath the overlay icons.
-    /// One icon visible when empty (magnifying glass ≈ 16 pt + 8 pt trailing + 6 pt gap = 30),
-    /// two icons when text is present (clear + glass ≈ 16 + 4 + 16 + 8 + 6 gap = 50).
+    /// Icon buttons are full field height (22pt) with 8pt trailing padding
+    /// and a 6pt text gap; the static glass icon is ~16pt wide.
     private var trailingInset: CGFloat {
-        text.isEmpty ? 30 : 50
+        if !text.isEmpty {
+            return onSearch != nil ? 62 : 56
+        }
+        return onSearch != nil ? 36 : 30
     }
 
     var body: some View {
@@ -130,24 +133,22 @@ struct FilterField: View {
 
             HStack(spacing: AppSpacing.xSmall) {
                 if !text.isEmpty {
-                    Button("Clear Filter", systemImage: "xmark.circle.fill") {
+                    FilterFieldIconButton(
+                        title: "Clear Filter",
+                        systemImage: "xmark.circle.fill",
+                        helpText: "Clear filter"
+                    ) {
                         text = ""
                         onSearch?()
                     }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(IconButtonStyle())
-                    .foregroundStyle(.secondary)
-                    .contentShape(Rectangle())
-                    .help("Clear filter")
                 }
                 if let onSearch {
-                    Button("Search", systemImage: "magnifyingglass") {
-                        onSearch()
-                    }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(IconButtonStyle())
-                    .contentShape(Rectangle())
-                    .help("Search")
+                    FilterFieldIconButton(
+                        title: "Search",
+                        systemImage: "magnifyingglass",
+                        helpText: "Search",
+                        action: onSearch
+                    )
                 } else {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
@@ -155,6 +156,33 @@ struct FilterField: View {
             }
             .padding(.trailing, AppSpacing.small)
         }
+    }
+}
+
+/// Trailing icon button inside `FilterField`, sized to the full height of the
+/// rounded-border field so its hover wash lines up with the field top to
+/// bottom instead of floating as a smaller square.
+private struct FilterFieldIconButton: View {
+    let title: String
+    let systemImage: String
+    let helpText: String
+    let action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(title, systemImage: systemImage, action: action)
+            .labelStyle(.iconOnly)
+            .buttonStyle(.plain)
+            .foregroundStyle(isHovering ? .primary : .secondary)
+            .frame(width: AppSize.filterFieldHeight, height: AppSize.filterFieldHeight)
+            .contentShape(Rectangle())
+            .background(
+                Color.primary.opacity(isHovering ? 0.08 : 0),
+                in: RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
+            )
+            .onHover { isHovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .help(helpText)
     }
 }
 

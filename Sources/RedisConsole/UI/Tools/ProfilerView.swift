@@ -195,6 +195,7 @@ private struct ProfilerEmptyStateView: View {
                     systemImage: "waveform.path.ecg"
                 )
                 Button("Start Profiler", action: onStart)
+                    .buttonStyle(PrimaryButtonStyle())
                     .padding(.top, AppSpacing.small)
             }
             if !isRunning && !isStarting {

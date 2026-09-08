@@ -128,6 +128,9 @@ struct DeleteIconButton: View {
         }
         .labelStyle(.iconOnly)
         .buttonStyle(IconButtonStyle(isDestructive: true))
+        // Custom ButtonStyles can't see the button role, so the red must
+        // be explicit — otherwise the icon renders in primary.
+        .foregroundStyle(.red)
         .help(helpText ?? "Delete")
     }
 }

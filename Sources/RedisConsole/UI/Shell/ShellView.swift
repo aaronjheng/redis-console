@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ShellView: View {
     @Environment(TabState.self) private var tab
+    @Environment(\.controlActiveState) private var controlActiveState
     @State private var input = ""
     @State private var historyIndex = -1
     @State private var historyDraft = ""
@@ -10,6 +11,7 @@ struct ShellView: View {
     @State private var showProductionConfirm = false
     @State private var productionConfirmText = ""
     @State private var pendingCommand = ""
+    @State private var isSendHovering = false
     @FocusState private var inputFocused: Bool
 
     /// Commands that require confirmation only in production environments.
@@ -24,6 +26,12 @@ struct ShellView: View {
         "FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "SHUTDOWN", "SWAPDB",
         "DEL", "UNLINK",
     ]
+
+    /// Accent border only while focused in an active window; dims with the
+    /// rest of the UI on window blur like a native focus ring.
+    private var pillBorderColor: Color {
+        inputFocused && controlActiveState != .inactive ? Color.accentColor : Color.secondary.opacity(0.18)
+    }
 
     var filteredCompletions: [String] {
         guard !input.isEmpty else { return [] }
@@ -182,6 +190,10 @@ struct ShellView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .scaleEffect(isSendHovering && !input.isEmpty ? 1.06 : 1)
+                    .brightness(isSendHovering && !input.isEmpty ? 0.08 : 0)
+                    .onHover { isSendHovering = $0 }
+                    .animation(.easeOut(duration: 0.12), value: isSendHovering)
                     .disabled(input.isEmpty)
                     .help(input.isEmpty ? "Type a command to send" : "Send command (Return)")
                 }
@@ -193,8 +205,8 @@ struct ShellView: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous)
                                 .stroke(
-                                    inputFocused ? Color.accentColor : Color.secondary.opacity(0.18),
-                                    lineWidth: inputFocused ? 1.5 : 1
+                                    pillBorderColor,
+                                    lineWidth: inputFocused && controlActiveState != .inactive ? 1.5 : 1
                                 )
                         )
                 )

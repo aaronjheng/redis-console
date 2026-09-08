@@ -4,6 +4,7 @@ import SwiftUI
 
 struct WorkspaceSidebarView: View {
     @Environment(TabState.self) private var tab
+    @State private var isDisconnectHovering = false
 
     var body: some View {
         @Bindable var tab = tab
@@ -73,8 +74,9 @@ struct WorkspaceSidebarView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(.red)
-                .hoverBackground()
+                .foregroundStyle(isDisconnectHovering ? .red : .secondary)
+                .onHover { isDisconnectHovering = $0 }
+                .animation(.easeOut(duration: 0.12), value: isDisconnectHovering)
                 .help("Disconnect")
             }
         }

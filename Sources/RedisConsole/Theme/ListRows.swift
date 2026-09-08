@@ -170,18 +170,13 @@ extension View {
     /// row-background layer with the same inset rounded-rectangle geometry
     /// as the system sidebar selection — same shape, different fill.
     ///
-    /// When `active` is false the background is empty, so the system
-    /// selection highlight keeps rendering untouched (selection is painted
-    /// by the row view, independently of the cell background).
+    /// When `active` is false the wash is fully transparent, so the system
+    /// selection highlight underneath keeps rendering untouched.
     func sidebarHoverWash(active: Bool) -> some View {
         listRowBackground(
-            Group {
-                if active {
-                    RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous)
-                        .fill(AppColor.hoverBackground)
-                        .padding(.horizontal, AppSize.sidebarSelectionInset)
-                }
-            }
+            RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous)
+                .fill(active ? AppColor.hoverBackground : Color.clear)
+                .padding(.horizontal, AppSize.sidebarSelectionInset)
         )
     }
 }
@@ -207,11 +202,15 @@ struct InlineTextField: NSViewRepresentable {
         if nsView.stringValue != text {
             nsView.stringValue = text
         }
-        // Only steal first responder on appearance, not on every SwiftUI
-        // re-evaluation — otherwise typing elsewhere re-focuses the cell
-        // and blur (Esc, click-away) never sticks.
-        if nsView.window?.firstResponder != nsView {
-            nsView.window?.makeFirstResponder(nsView)
+        // Claim first responder exactly once per cell lifetime. Re-claiming
+        // on every update would yank focus back after an intentional blur
+        // (click-away), making it impossible to leave the cell.
+        let coordinator = context.coordinator
+        if !coordinator.didClaimFocus, let window = nsView.window {
+            window.makeFirstResponder(nsView)
+            if window.firstResponder == nsView {
+                coordinator.didClaimFocus = true
+            }
         }
     }
 
@@ -223,6 +222,7 @@ struct InlineTextField: NSViewRepresentable {
         let parent: InlineTextField
         private var isCancelling = false
         private var isSubmitting = false
+        var didClaimFocus = false
 
         init(_ parent: InlineTextField) {
             self.parent = parent
