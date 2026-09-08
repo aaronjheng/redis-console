@@ -27,7 +27,7 @@ struct ClusterTopologyView: View {
                     } label: {
                         nodeView(item)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(TopologyNodeButtonStyle())
                     .position(item.position)
                     .accessibilityLabel(nodeAccessibilityLabel(item.node))
                 }
@@ -142,6 +142,21 @@ struct ClusterTopologyView: View {
 }
 
 // MARK: - Layout Types
+
+/// Press + hover feedback for topology nodes. Hover scales the node up
+/// slightly so the small 44pt hit area reads as tappable.
+private struct TopologyNodeButtonStyle: ButtonStyle {
+    @State private var isHovering = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.93 : isHovering ? 1.06 : 1)
+            .brightness(configuration.isPressed ? -0.06 : 0)
+            .onHover { isHovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
 
 private struct TopologyNodeItem: Identifiable {
     var id: String { node.id }

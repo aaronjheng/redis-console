@@ -32,6 +32,28 @@ struct ConnectionDetailView: View {
     private var canSubmit: Bool {
         !host.isEmpty && portError == nil && (!ssh.enabled || sshPortError == nil)
     }
+
+    /// Why the footer actions are disabled, for tooltips. Nil means submittable.
+    private var submitDisabledReason: String? {
+        if isTesting {
+            return "Testing connection…"
+        }
+        if host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Enter a host to enable"
+        }
+        if portError != nil {
+            return "Fix the Redis port to enable"
+        }
+        if ssh.enabled {
+            if ssh.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return "Enter the SSH host to enable"
+            }
+            if sshPortError != nil {
+                return "Fix the SSH port to enable"
+            }
+        }
+        return nil
+    }
     @State private var connectionTimeout: TimeInterval = 10
     @State private var pingTimeout: TimeInterval = 5
 
@@ -210,12 +232,14 @@ struct ConnectionDetailView: View {
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(!canSubmit || isTesting)
+                    .help(submitDisabledReason ?? "Save connection")
 
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
+                    .help(submitDisabledReason ?? "Test connection")
 
                     testResultView
                 } else if let config = editingConfig {
@@ -236,12 +260,14 @@ struct ConnectionDetailView: View {
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(!canSubmit || isTesting)
+                    .help(submitDisabledReason ?? "Save connection")
 
                     Button("Test Connection") {
                         Task { await testConnection() }
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
+                    .help(submitDisabledReason ?? "Test connection")
 
                     testResultView
                 }
@@ -261,6 +287,7 @@ struct ConnectionDetailView: View {
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
+                .help(submitDisabledReason ?? "Connect")
             }
             .padding(AppSpacing.large)
         }

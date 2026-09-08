@@ -41,8 +41,8 @@ struct FunctionLibraryDetailView: View {
                     showingEditSheet = true
                 }
                 .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .help("Edit library source")
+                .buttonStyle(IconButtonStyle())
+                .help("Edit library source (or double-click code)")
                 .padding(AppSpacing.small)
             }
 
@@ -216,6 +216,7 @@ struct FunctionLibraryDetailView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .hoverBackground()
             .help(isFunctionsExpanded ? "Hide functions" : "Show functions")
 
             if isFunctionsExpanded {

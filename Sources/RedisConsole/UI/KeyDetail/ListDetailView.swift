@@ -27,6 +27,7 @@ struct EditableListCell: View {
                 .font(AppFont.dataCell)
                 .lineLimit(2)
                 .copyableCell(row.value, row: rowValue)
+                .help("Double-click to edit")
                 .onTapGesture(count: 2) {
                     editingIndex = row.index
                     editValue = row.value
@@ -86,7 +87,7 @@ struct ListDetailView: View {
                             editValue = row.value
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
+                        .buttonStyle(IconButtonStyle())
                         .help("Edit element")
 
                         DeleteIconButton(
@@ -106,7 +107,7 @@ struct ListDetailView: View {
                 }
                 .labelStyle(.iconOnly)
                 .font(.body)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .help("Add element")
 
                 if hasMoreRows {

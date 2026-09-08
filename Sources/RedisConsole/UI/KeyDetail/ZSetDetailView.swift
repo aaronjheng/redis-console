@@ -93,7 +93,7 @@ struct ZSetDetailView: View {
                             editScore = row.score
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
+                        .buttonStyle(IconButtonStyle())
                         .help("Edit score")
 
                         DeleteIconButton(
@@ -113,7 +113,7 @@ struct ZSetDetailView: View {
                 }
                 .labelStyle(.iconOnly)
                 .font(.body)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .help("Add member")
 
                 if hasMoreRows {
@@ -209,6 +209,7 @@ struct EditableZSetCell: View {
                 .font(AppFont.dataCell)
                 .lineLimit(1)
                 .copyableCell(row.score, row: rowValue)
+                .help("Double-click to edit")
                 .onTapGesture(count: 2) {
                     editingMember = row.member
                     editScore = row.score

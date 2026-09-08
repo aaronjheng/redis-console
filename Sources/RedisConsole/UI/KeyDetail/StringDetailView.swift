@@ -208,7 +208,7 @@ struct StringDetailView: View {
                             isEditing = true
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
+                        .buttonStyle(IconButtonStyle())
                         .help("Edit value")
                         .padding(AppSpacing.large)
                     }
@@ -267,6 +267,7 @@ private struct PlainTextEditor: NSViewRepresentable {
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isRichText = false
         textView.allowsUndo = true
+        textView.focusRingType = .default
         textView.delegate = context.coordinator
         return scrollView
     }

@@ -27,9 +27,15 @@ struct AddHashFieldSheet: View {
                 Button("Cancel") { onCancel() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
+                if field.isEmpty {
+                    Text("Enter a field name.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Button("Add") { onSave(field, value) }
                     .disabled(field.isEmpty)
                     .keyboardShortcut(.defaultAction)
+                    .help(field.isEmpty ? "Enter a field name to enable" : "Add field")
             }
         }
         .padding(AppSpacing.large)
@@ -65,9 +71,15 @@ struct AddListElementSheet: View {
                 Button("Cancel") { onCancel() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
+                if value.isEmpty {
+                    Text("Enter a value.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Button("Add") { onSave(value, position) }
                     .disabled(value.isEmpty)
                     .keyboardShortcut(.defaultAction)
+                    .help(value.isEmpty ? "Enter a value to enable" : "Add element")
             }
         }
         .padding(AppSpacing.large)
@@ -98,9 +110,15 @@ struct AddSetMemberSheet: View {
                 Button("Cancel") { onCancel() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
+                if member.isEmpty {
+                    Text("Enter a member.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Button("Add") { onSave(member) }
                     .disabled(member.isEmpty)
                     .keyboardShortcut(.defaultAction)
+                    .help(member.isEmpty ? "Enter a member to enable" : "Add member")
             }
         }
         .padding(AppSpacing.large)
@@ -132,9 +150,15 @@ struct AddZSetMemberSheet: View {
                 Button("Cancel") { onCancel() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
+                if member.isEmpty || score.isEmpty {
+                    Text("Enter a score and member.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Button("Add") { onSave(member, score) }
                     .disabled(member.isEmpty || score.isEmpty)
                     .keyboardShortcut(.defaultAction)
+                    .help(member.isEmpty || score.isEmpty ? "Enter a score and member to enable" : "Add member")
             }
         }
         .padding(AppSpacing.large)
@@ -226,7 +250,7 @@ struct AddKeySheet: View {
             } label: {
                 Image(systemName: "xmark.circle.fill")
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(IconButtonStyle())
             .foregroundStyle(.secondary)
             .keyboardShortcut(.cancelAction)
             .help("Close (Esc)")
@@ -436,8 +460,9 @@ struct AddKeySheet: View {
             Button(action: action) {
                 Label(addLabel, systemImage: "plus")
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(IconButtonStyle())
             .font(.caption)
+            .help(addLabel)
         }
     }
 
@@ -445,9 +470,10 @@ struct AddKeySheet: View {
         Button(action: action) {
             Image(systemName: "minus.circle.fill")
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(IconButtonStyle())
         .foregroundStyle(.secondary)
         .disabled(disabled)
+        .help("Remove row")
     }
 
     // MARK: Actions

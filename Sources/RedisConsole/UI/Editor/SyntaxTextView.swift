@@ -34,6 +34,7 @@ struct SyntaxTextEditor: NSViewRepresentable {
         textView.allowsImageEditing = false
         textView.allowsUndo = true
         textView.usesRuler = false
+        textView.focusRingType = .default
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticLinkDetectionEnabled = false

@@ -512,9 +512,13 @@ struct KeyDetailView: View {
                             Image(systemName: "pencil")
                                 .imageScale(.small)
                         }
+                        .padding(.horizontal, AppSpacing.xSmall)
+                        .padding(.vertical, AppSpacing.xxSmall)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(key.hasExpiry ? AppColor.warning : .secondary)
+                    .hoverBackground()
                     .disabled(tab.isLoadingDetail)
                     .accessibilityLabel("Edit TTL, \(key.ttlText)")
                     .help("Edit TTL")
@@ -568,7 +572,7 @@ struct KeyDetailView: View {
                 }
                 .labelStyle(.iconOnly)
                 .foregroundStyle(didCopyKey ? AppColor.success : .primary)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .disabled(tab.isLoadingDetail)
                 .help("Copy key")
 
@@ -576,7 +580,7 @@ struct KeyDetailView: View {
                     keyPendingDeletion = key
                 }
                 .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle(isDestructive: true))
                 .disabled(tab.isLoadingDetail)
                 .help("Delete key")
             }

@@ -371,6 +371,8 @@ private struct ProfilerEntryRow: View {
     let showLibraryColumn: Bool
     let isSelected: Bool
     let onSelect: () -> Void
+    @State private var isHovering = false
+    @Environment(\.controlActiveState) private var controlActiveState
 
     private var libraryText: String? {
         entry.fcallLibraryName(in: libraries)
@@ -411,9 +413,16 @@ private struct ProfilerEntryRow: View {
             .padding(.horizontal, AppSpacing.large)
             .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
             .contentShape(Rectangle())
-            .background(isSelected ? AppColor.selectionBackground : Color.clear)
+            .background(
+                isSelected
+                    ? (controlActiveState == .inactive
+                        ? Color.primary.opacity(0.08) : AppColor.selectionBackground)
+                    : isHovering ? AppColor.hoverBackground : Color.clear
+            )
+            .onHover { isHovering = $0 }
         }
         .buttonStyle(.plain)
+        .help("Select to preview raw line")
         .contextMenu {
             Button("Copy Raw Line") {
                 copyToPasteboard(entry.rawLine)

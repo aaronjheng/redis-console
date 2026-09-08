@@ -74,7 +74,7 @@ struct FunctionCallView: View {
             } label: {
                 Image(systemName: "xmark.circle.fill")
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(IconButtonStyle())
             .foregroundStyle(.secondary)
             .help("Close (Esc)")
         }
@@ -186,8 +186,9 @@ struct FunctionCallView: View {
                 } label: {
                     Label("Add Key", systemImage: "plus")
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .font(.caption)
+                .help("Add key row")
             }
             ForEach(keys.indices, id: \.self) { index in
                 HStack(spacing: AppSpacing.small) {
@@ -205,9 +206,10 @@ struct FunctionCallView: View {
                     } label: {
                         Image(systemName: "minus.circle.fill")
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(IconButtonStyle())
                     .foregroundStyle(.secondary)
                     .disabled(keys.count <= 1)
+                    .help("Remove row")
                 }
             }
         }
@@ -224,8 +226,9 @@ struct FunctionCallView: View {
                 } label: {
                     Label("Add Arg", systemImage: "plus")
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .font(.caption)
+                .help("Add arg row")
             }
             ForEach(args.indices, id: \.self) { index in
                 HStack(spacing: AppSpacing.small) {
@@ -243,9 +246,10 @@ struct FunctionCallView: View {
                     } label: {
                         Image(systemName: "minus.circle.fill")
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(IconButtonStyle())
                     .foregroundStyle(.secondary)
                     .disabled(args.count <= 1)
+                    .help("Remove row")
                 }
             }
         }

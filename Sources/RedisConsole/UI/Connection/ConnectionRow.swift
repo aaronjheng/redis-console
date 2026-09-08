@@ -5,6 +5,10 @@ import SwiftUI
 struct ConnectionRow: View {
     let config: RedisConnectionConfig
     let isConnected: Bool
+    var isSelected: Bool = false
+    /// Hover is driven by the owner's `DoubleClickHandler` overlay, which
+    /// covers the row and occludes `.onHover` — do not track hover here.
+    var isHovering: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
@@ -36,5 +40,9 @@ struct ConnectionRow: View {
         }
         .padding(.vertical, AppSpacing.xSmall)
         .contentShape(Rectangle())
+        .sidebarHoverWash(active: isHovering && !isSelected)
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .help("Single-click to edit — double-click to connect")
+        .accessibilityLabel("\(config.name), \(config.address)")
     }
 }

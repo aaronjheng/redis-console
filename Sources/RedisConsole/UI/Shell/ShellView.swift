@@ -113,6 +113,8 @@ struct ShellView: View {
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
+                                .hoverBackground(cornerRadius: AppRadius.pill)
+                                .help("Complete with \(cmd)")
                             }
                         }
                         .padding(.horizontal, AppSpacing.large)
@@ -181,6 +183,7 @@ struct ShellView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(input.isEmpty)
+                    .help(input.isEmpty ? "Type a command to send" : "Send command (Return)")
                 }
                 .padding(.horizontal, AppSpacing.medium)
                 .padding(.vertical, AppSpacing.small)
@@ -189,7 +192,10 @@ struct ShellView: View {
                         .fill(.background)
                         .overlay(
                             RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous)
-                                .stroke(Color.secondary.opacity(0.18), lineWidth: 1)
+                                .stroke(
+                                    inputFocused ? Color.accentColor : Color.secondary.opacity(0.18),
+                                    lineWidth: inputFocused ? 1.5 : 1
+                                )
                         )
                 )
                 .padding(.horizontal, AppSpacing.large)

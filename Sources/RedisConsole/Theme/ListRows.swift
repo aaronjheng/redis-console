@@ -4,22 +4,48 @@ import SwiftUI
 // MARK: - Double Click Handler
 
 /// A SwiftUI wrapper for detecting double-clicks on views, backed by AppKit.
+///
+/// The overlay view covers its entire container, which occludes SwiftUI's
+/// `onHover` tracking underneath — so it also reports hover via an
+/// `NSTrackingArea`. Owners drive hover-driven chrome (e.g. row wash) from
+/// the `onHover` callback instead of `.onHover`, which would never fire.
 struct DoubleClickHandler: NSViewRepresentable {
     let onDoubleClick: () -> Void
+    var onHover: ((Bool) -> Void)?
 
     func makeNSView(context: Context) -> DoubleClickView {
         let view = DoubleClickView()
         view.onDoubleClick = onDoubleClick
+        view.onHover = onHover
         return view
     }
 
     func updateNSView(_ nsView: DoubleClickView, context: Context) {
         nsView.onDoubleClick = onDoubleClick
+        nsView.onHover = onHover
     }
 }
 
 class DoubleClickView: NSView {
     var onDoubleClick: (() -> Void)?
+    var onHover: ((Bool) -> Void)?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas {
+            removeTrackingArea(area)
+        }
+        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect]
+        addTrackingArea(NSTrackingArea(rect: .zero, options: options, owner: self, userInfo: nil))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        onHover?(true)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        onHover?(false)
+    }
 
     override func mouseDown(with event: NSEvent) {
         super.mouseDown(with: event)
@@ -89,19 +115,44 @@ extension View {
     /// published through the `listRowIsSelected` environment value, letting row
     /// content flip to on-selection foreground colors (white) like native lists.
     ///
+    /// Hover is tracked internally and paints a subtle wash when the row is
+    /// neither selected nor pressed, so `LazyVStack` rows match the hover
+    /// feedback of `RefreshControl` and icon buttons without callers managing
+    /// hover state. Dense data rows (Profiler, cluster nodes) use the
+    /// translucent `AppColor/selectionBackground` instead — see those views.
+    ///
     /// The separator is drawn as an overlay, except on the selected row where
     /// it is hidden: the selection highlight already marks the row boundary,
     /// and a line painted over the opaque selection color would read much
     /// heavier than the neighboring separators. Hiding it matches native
     /// table behavior, where no separator is drawn at the selection edge.
     func fullWidthListRow(selected: Bool) -> some View {
-        self
+        modifier(FullWidthListRowModifier(selected: selected))
+    }
+}
+
+private struct FullWidthListRowModifier: ViewModifier {
+    let selected: Bool
+    @State private var isHovering = false
+    @Environment(\.controlActiveState) private var controlActiveState
+
+    func body(content: Content) -> some View {
+        content
             .listRowSeparator(.hidden)
             .environment(\.listRowIsSelected, selected)
             .background {
-                Color(nsColor: .selectedContentBackgroundColor)
-                    .containerRelativeFrame(.horizontal)
+                ZStack {
+                    Color.primary.opacity(isHovering && !selected ? 0.06 : 0)
+                    // Dim to the unemphasized (gray) selection when the window
+                    // loses key status, matching native list blur behavior.
+                    Color(
+                        nsColor: controlActiveState == .inactive
+                            ? .unemphasizedSelectedContentBackgroundColor
+                            : .selectedContentBackgroundColor
+                    )
                     .opacity(selected ? 1 : 0)
+                }
+                .containerRelativeFrame(.horizontal)
             }
             .overlay(alignment: .bottom) {
                 Color(nsColor: .separatorColor)
@@ -109,6 +160,29 @@ extension View {
                     .containerRelativeFrame(.horizontal)
                     .opacity(selected ? 0 : 1)
             }
+            .onHover { isHovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: isHovering)
+    }
+}
+
+extension View {
+    /// Hover wash for native (`List`) sidebar rows, painted in the
+    /// row-background layer with the same inset rounded-rectangle geometry
+    /// as the system sidebar selection — same shape, different fill.
+    ///
+    /// When `active` is false the background is empty, so the system
+    /// selection highlight keeps rendering untouched (selection is painted
+    /// by the row view, independently of the cell background).
+    func sidebarHoverWash(active: Bool) -> some View {
+        listRowBackground(
+            Group {
+                if active {
+                    RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous)
+                        .fill(AppColor.hoverBackground)
+                        .padding(.horizontal, AppSize.sidebarSelectionInset)
+                }
+            }
+        )
     }
 }
 
@@ -125,7 +199,7 @@ struct InlineTextField: NSViewRepresentable {
         textField.bezelStyle = .roundedBezel
         textField.font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
         textField.delegate = context.coordinator
-        textField.focusRingType = .none
+        textField.focusRingType = .default
         return textField
     }
 
@@ -133,7 +207,12 @@ struct InlineTextField: NSViewRepresentable {
         if nsView.stringValue != text {
             nsView.stringValue = text
         }
-        nsView.window?.makeFirstResponder(nsView)
+        // Only steal first responder on appearance, not on every SwiftUI
+        // re-evaluation — otherwise typing elsewhere re-focuses the cell
+        // and blur (Esc, click-away) never sticks.
+        if nsView.window?.firstResponder != nsView {
+            nsView.window?.makeFirstResponder(nsView)
+        }
     }
 
     func makeCoordinator() -> Coordinator {

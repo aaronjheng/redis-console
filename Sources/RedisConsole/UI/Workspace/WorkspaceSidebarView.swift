@@ -49,8 +49,12 @@ struct WorkspaceSidebarView: View {
 
             List(selection: $tab.currentSection) {
                 ForEach(WorkspaceSection.allCases, id: \.self) { view in
-                    Label(view.rawValue, systemImage: view.icon)
-                        .tag(view)
+                    WorkspaceNavRow(
+                        title: view.rawValue,
+                        systemImage: view.icon,
+                        isSelected: tab.currentSection == view
+                    )
+                    .tag(view)
                 }
             }
             .listStyle(.sidebar)
@@ -64,10 +68,36 @@ struct WorkspaceSidebarView: View {
                 } label: {
                     Label("Disconnect", systemImage: "power")
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, AppSpacing.xSmall)
+                        .padding(.vertical, AppSpacing.xxSmall)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .foregroundStyle(.red)
+                .hoverBackground()
                 .help("Disconnect")
             }
         }
+    }
+}
+
+/// Sidebar nav row with the same hover wash as connection rows and data rows.
+/// System List selection still paints the selected state; this only adds the
+/// missing hover so the sidebar matches `fullWidthListRow` behavior.
+private struct WorkspaceNavRow: View {
+    let title: String
+    let systemImage: String
+    var isSelected: Bool = false
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Label(title, systemImage: systemImage)
+            Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+        .sidebarHoverWash(active: isHovering && !isSelected)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
     }
 }

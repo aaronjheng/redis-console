@@ -61,7 +61,7 @@ struct SetDetailView: View {
                 }
                 .labelStyle(.iconOnly)
                 .font(.body)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .help("Add member")
 
                 if hasMoreRows {

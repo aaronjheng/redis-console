@@ -24,7 +24,17 @@ enum AppColor {
     }
 
     /// Highlight background for selected rows/items in lists and tables.
+    /// Subtle variant for dense data rows (Profiler, cluster nodes) where the
+    /// emphasized system selection would overwhelm the content.
     static let selectionBackground: Color = Color.accentColor.opacity(0.14)
+
+    /// Hover wash for custom rows. Matches `RefreshControl` so hover feels
+    /// identical across toolbars, lists, and icon buttons.
+    static let hoverBackground: Color = Color.primary.opacity(0.06)
+
+    /// Hover wash for icon buttons. Slightly stronger than rows so small
+    /// hit areas read clearly.
+    static let iconHoverBackground: Color = Color.primary.opacity(0.08)
 
     // MARK: - Selection content
 

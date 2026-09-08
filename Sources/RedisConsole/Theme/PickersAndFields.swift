@@ -74,6 +74,7 @@ private struct ToggleButton<Label: View>: View {
     let backgroundShape: UnevenRoundedRectangle
     let action: () -> Void
     @ViewBuilder let label: Label
+    @State private var isHovering = false
 
     var body: some View {
         Button(action: action) {
@@ -83,7 +84,14 @@ private struct ToggleButton<Label: View>: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(isSelected ? .primary : .secondary)
-        .background(isSelected ? Color.primary.opacity(0.12) : Color.clear, in: backgroundShape)
+        .background(
+            isSelected
+                ? Color.primary.opacity(0.12)
+                : isHovering ? Color.primary.opacity(0.06) : Color.clear,
+            in: backgroundShape
+        )
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
         .help(helpText ?? "")
         .accessibilityLabel(helpText ?? "")
     }
@@ -127,7 +135,7 @@ struct FilterField: View {
                         onSearch?()
                     }
                     .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
+                    .buttonStyle(IconButtonStyle())
                     .foregroundStyle(.secondary)
                     .contentShape(Rectangle())
                     .help("Clear filter")
@@ -137,7 +145,7 @@ struct FilterField: View {
                         onSearch()
                     }
                     .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
+                    .buttonStyle(IconButtonStyle())
                     .contentShape(Rectangle())
                     .help("Search")
                 } else {
@@ -158,6 +166,7 @@ struct OptionsPicker<Option: Hashable & Sendable>: View {
     let options: [Option]
     @Binding var selection: Option
     let label: (Option) -> String
+    @State private var isHovering = false
 
     init(
         _ title: String,
@@ -192,7 +201,13 @@ struct OptionsPicker<Option: Hashable & Sendable>: View {
             .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
             .foregroundStyle(.primary)
             .background(.background.secondary)
+            .background(
+                Color.primary.opacity(isHovering ? 0.06 : 0),
+                in: RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+            )
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+            .contentShape(Rectangle())
+            .onHover { isHovering = $0 }
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)

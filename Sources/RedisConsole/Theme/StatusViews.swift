@@ -69,7 +69,7 @@ struct ErrorBanner: View {
                     dismissAction()
                 }
                 .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .help("Dismiss")
             }
         }
@@ -127,7 +127,7 @@ struct DeleteIconButton: View {
             action()
         }
         .labelStyle(.iconOnly)
-        .buttonStyle(.borderless)
+        .buttonStyle(IconButtonStyle(isDestructive: true))
         .help(helpText ?? "Delete")
     }
 }

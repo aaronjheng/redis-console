@@ -9,6 +9,7 @@ struct ConnectionHubSidebarView: View {
     @State private var isExporting = false
     @State private var isImporting = false
     @State private var exportDocument: ConnectionsDocument?
+    @State private var hoveredConnectionID: RedisConnectionConfig.ID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,20 +21,20 @@ struct ConnectionHubSidebarView: View {
                     beginExport(store.connections)
                 }
                 .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .help("Export All Connections")
                 Button("Import Connections", systemImage: "square.and.arrow.down") {
                     isImporting = true
                 }
                 .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .help("Import Connections")
                 Button("New Connection", systemImage: "plus") {
                     tab.selectedConnection = nil
                     tab.connectionPanel = .newConnection
                 }
                 .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .help("New Connection")
             }
             .padding(AppSpacing.large)
@@ -52,50 +53,64 @@ struct ConnectionHubSidebarView: View {
                 )
             ) {
                 ForEach(store.connections) { config in
-                    ConnectionRow(config: config, isConnected: false)
-                        .tag(config)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .overlay(
-                            DoubleClickHandler {
+                    ConnectionRow(
+                        config: config,
+                        isConnected: false,
+                        isSelected: tab.selectedConnection?.id == config.id,
+                        isHovering: hoveredConnectionID == config.id
+                    )
+                    .tag(config)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .overlay(
+                        DoubleClickHandler(
+                            onDoubleClick: {
                                 Task { await tab.connect(to: config) }
+                            },
+                            onHover: { hovering in
+                                if hovering {
+                                    hoveredConnectionID = config.id
+                                } else if hoveredConnectionID == config.id {
+                                    hoveredConnectionID = nil
+                                }
                             }
                         )
-                        .contextMenu {
-                            Button("Duplicate") {
-                                var copy = config
-                                copy.id = UUID()
-                                copy.name = "\(config.name) Copy"
-                                store.addConnection(copy)
-                                tab.selectedConnection = copy
-                                tab.connectionPanel = .editConnection(copy)
-                            }
-                            Button("Delete", role: .destructive) {
-                                connectionPendingDeletion = config
-                            }
-                            Divider()
-                            Button("Copy Address") {
-                                copyToPasteboard(config.address)
-                            }
-                            Button("Copy URI") {
-                                var uri = "redis://"
-                                if !config.username.isEmpty || !config.password.isEmpty {
-                                    if !config.username.isEmpty {
-                                        uri += config.username
-                                    }
-                                    if !config.password.isEmpty {
-                                        uri += ":\(config.password)"
-                                    }
-                                    uri += "@"
-                                }
-                                uri += "\(config.host):\(config.port)"
-                                copyToPasteboard(uri)
-                            }
-                            Divider()
-                            Button("Export...") {
-                                beginExport([config])
-                            }
+                    )
+                    .contextMenu {
+                        Button("Duplicate") {
+                            var copy = config
+                            copy.id = UUID()
+                            copy.name = "\(config.name) Copy"
+                            store.addConnection(copy)
+                            tab.selectedConnection = copy
+                            tab.connectionPanel = .editConnection(copy)
                         }
+                        Button("Delete", role: .destructive) {
+                            connectionPendingDeletion = config
+                        }
+                        Divider()
+                        Button("Copy Address") {
+                            copyToPasteboard(config.address)
+                        }
+                        Button("Copy URI") {
+                            var uri = "redis://"
+                            if !config.username.isEmpty || !config.password.isEmpty {
+                                if !config.username.isEmpty {
+                                    uri += config.username
+                                }
+                                if !config.password.isEmpty {
+                                    uri += ":\(config.password)"
+                                }
+                                uri += "@"
+                            }
+                            uri += "\(config.host):\(config.port)"
+                            copyToPasteboard(uri)
+                        }
+                        Divider()
+                        Button("Export...") {
+                            beginExport([config])
+                        }
+                    }
                 }
             }
             .listStyle(.sidebar)

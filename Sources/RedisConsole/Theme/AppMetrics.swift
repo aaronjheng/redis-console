@@ -39,4 +39,7 @@ enum AppSize {
     static let refreshSeparatorHeight: CGFloat = 14
     /// Unified width for the small type/engine badge in key and library rows.
     static let typeBadgeWidth: CGFloat = 64
+    /// Horizontal inset of the native sidebar selection rect, mirrored by
+    /// `sidebarHoverWash` so hover matches selection geometry.
+    static let sidebarSelectionInset: CGFloat = 10
 }

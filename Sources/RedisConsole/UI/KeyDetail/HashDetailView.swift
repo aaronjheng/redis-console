@@ -66,7 +66,7 @@ struct HashDetailView: View {
                             editValue = row.value
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
+                        .buttonStyle(IconButtonStyle())
                         .help("Edit field")
 
                         DeleteIconButton(
@@ -86,7 +86,7 @@ struct HashDetailView: View {
                 }
                 .labelStyle(.iconOnly)
                 .font(.body)
-                .buttonStyle(.borderless)
+                .buttonStyle(IconButtonStyle())
                 .help("Add field")
 
                 if hasMoreRows {
@@ -182,6 +182,7 @@ struct EditableHashCell: View {
                 .font(AppFont.dataCell)
                 .lineLimit(2)
                 .copyableCell(row.value, row: rowValue)
+                .help("Double-click to edit")
                 .onTapGesture(count: 2) {
                     editingField = row.field
                     editValue = row.value

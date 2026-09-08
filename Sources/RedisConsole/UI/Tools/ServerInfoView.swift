@@ -306,7 +306,9 @@ struct ServerInfoView: View {
         .padding(.horizontal, AppSpacing.small)
         .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
         .background(isSelected ? AppColor.selectionBackground : Color.clear)
+        .hoverBackground()
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
+        .help("\(node.endpoint.address) — select to load node info")
     }
 
     private func summaryItem(_ title: String, _ value: String) -> some View {
