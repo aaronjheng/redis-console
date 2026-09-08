@@ -46,29 +46,17 @@ extension TabState {
 
                     switch resolvedConfig.mode {
                     case .standalone:
-                        let tunnel = SSHTunnel()
-                        tunnel.setupTimeoutSeconds = resolvedConfig.ssh.setupTimeout
-                        tunnel.connectionAttemptTimeout = .seconds(Int64(resolvedConfig.ssh.connectionAttemptTimeout))
-                        tunnel.maxConnectionAttempts = resolvedConfig.ssh.maxConnectionAttempts
-                        tunnel.authTimeoutSeconds = resolvedConfig.ssh.authTimeout
-                        sshTunnel = tunnel
                         AppLogger.info(
                             "starting ssh tunnel ssh=\(sshHost):\(resolvedConfig.ssh.port) "
                                 + "user=\(effectiveSSHUser) remote=\(resolvedConfig.host):\(resolvedConfig.port)",
                             category: "Connection"
                         )
-                        try await withTimeout(tunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
-                            try await tunnel.start(
-                                sshHost: sshHost,
-                                sshPort: resolvedConfig.ssh.port,
-                                sshUser: resolvedConfig.ssh.user,
-                                sshPassword: resolvedConfig.ssh.password.isEmpty ? nil : resolvedConfig.ssh.password,
-                                privateKeyPath: resolvedConfig.ssh.privateKeyPath.isEmpty ? nil : resolvedConfig.ssh.privateKeyPath,
-                                remoteHost: resolvedConfig.host,
-                                remotePort: resolvedConfig.port,
-                                mode: resolvedConfig.ssh.mode
-                            )
-                        }
+                        let tunnel = try await SSHTunnel.connect(
+                            config: resolvedConfig.ssh,
+                            remoteHost: resolvedConfig.host,
+                            remotePort: resolvedConfig.port
+                        )
+                        sshTunnel = tunnel
                         connectHost = "127.0.0.1"
                         connectPort = tunnel.localPort
                         AppLogger.info(
@@ -90,35 +78,13 @@ extension TabState {
 
                 try Task.checkCancellation()
 
-                let redis: any RedisSession
-                switch resolvedConfig.mode {
-                case .standalone:
-                    redis = RedisClient(
-                        host: connectHost,
-                        port: connectPort,
-                        username: resolvedConfig.username.isEmpty ? nil : resolvedConfig.username,
-                        password: resolvedConfig.password.isEmpty ? nil : resolvedConfig.password,
-                        tlsEnabled: resolvedConfig.tls.enabled,
-                        verifyServerCertificate: resolvedConfig.tls.verifyServerCertificate,
-                        caCertificatePath: resolvedConfig.tls.caCertificatePath,
-                        clientCertificatePath: resolvedConfig.tls.clientCertificatePath,
-                        clientKeyPath: resolvedConfig.tls.clientKeyPath,
-                        connectionTimeout: resolvedConfig.connectionTimeout
-                    )
-                case .cluster:
-                    redis = RedisClusterClient(
-                        seedNodes: resolvedConfig.effectiveSeedNodes,
-                        username: resolvedConfig.username.isEmpty ? nil : resolvedConfig.username,
-                        password: resolvedConfig.password.isEmpty ? nil : resolvedConfig.password,
-                        tlsEnabled: resolvedConfig.tls.enabled,
-                        verifyServerCertificate: resolvedConfig.tls.verifyServerCertificate,
-                        caCertificatePath: resolvedConfig.tls.caCertificatePath,
-                        clientCertificatePath: resolvedConfig.tls.clientCertificatePath,
-                        clientKeyPath: resolvedConfig.tls.clientKeyPath,
-                        connectionTimeout: resolvedConfig.connectionTimeout,
-                        endpointResolver: clusterEndpointResolver
-                    )
-                }
+                let redis = makeRedisSession(
+                    config: resolvedConfig,
+                    host: connectHost,
+                    port: connectPort,
+                    seedNodes: resolvedConfig.effectiveSeedNodes,
+                    endpointResolver: clusterEndpointResolver
+                )
                 client = redis
 
                 try await withTimeout(resolvedConfig.connectionTimeout, context: "Redis connection") {

@@ -166,7 +166,11 @@ extension TabState {
         // references. Any failure path cleans up the locally owned resources.
         do {
             if config.ssh.enabled {
-                let createdTunnel = try await startProfilerSSHTunnel(config: config, remoteHost: config.host, remotePort: config.port)
+                let createdTunnel = try await SSHTunnel.connect(
+                    config: config.ssh,
+                    remoteHost: config.host,
+                    remotePort: config.port
+                )
                 tunnel = createdTunnel
                 connectHost = "127.0.0.1"
                 connectPort = createdTunnel.localPort
@@ -298,41 +302,6 @@ extension TabState {
             clientKeyPath: config.tls.clientKeyPath,
             connectionTimeout: config.connectionTimeout
         )
-    }
-
-    private func startProfilerSSHTunnel(
-        config: RedisConnectionConfig,
-        remoteHost: String,
-        remotePort: UInt16
-    ) async throws -> SSHTunnel {
-        let sshHost = config.ssh.host.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !sshHost.isEmpty else {
-            throw SSHTunnelError.connectionFailed("SSH host is required")
-        }
-
-        let tunnel = SSHTunnel()
-        tunnel.setupTimeoutSeconds = config.ssh.setupTimeout
-        tunnel.connectionAttemptTimeout = .seconds(Int64(config.ssh.connectionAttemptTimeout))
-        tunnel.maxConnectionAttempts = config.ssh.maxConnectionAttempts
-        tunnel.authTimeoutSeconds = config.ssh.authTimeout
-        do {
-            try await withTimeout(config.ssh.setupTimeout, context: "SSH tunnel setup") {
-                try await tunnel.start(
-                    sshHost: sshHost,
-                    sshPort: config.ssh.port,
-                    sshUser: config.ssh.user,
-                    sshPassword: config.ssh.password.isEmpty ? nil : config.ssh.password,
-                    privateKeyPath: config.ssh.privateKeyPath.isEmpty ? nil : config.ssh.privateKeyPath,
-                    remoteHost: remoteHost,
-                    remotePort: remotePort,
-                    mode: config.ssh.mode
-                )
-            }
-            return tunnel
-        } catch {
-            tunnel.stop()
-            throw error
-        }
     }
 
     private nonisolated func monitorStreamTask(

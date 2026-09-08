@@ -50,25 +50,13 @@ struct ConnectionProbe {
 
             switch config.mode {
             case .standalone:
-                let createdTunnel = SSHTunnel()
-                createdTunnel.setupTimeoutSeconds = config.ssh.setupTimeout
-                createdTunnel.connectionAttemptTimeout = .seconds(Int64(config.ssh.connectionAttemptTimeout))
-                createdTunnel.maxConnectionAttempts = config.ssh.maxConnectionAttempts
-                createdTunnel.authTimeoutSeconds = config.ssh.authTimeout
-                tunnel = createdTunnel
                 do {
-                    try await withTimeout(createdTunnel.setupTimeoutSeconds, context: "SSH tunnel setup") {
-                        try await createdTunnel.start(
-                            sshHost: trimmedSSHHost,
-                            sshPort: config.ssh.port,
-                            sshUser: trimmedSSHUser,
-                            sshPassword: config.ssh.password.isEmpty ? nil : config.ssh.password,
-                            privateKeyPath: config.ssh.privateKeyPath.isEmpty ? nil : config.ssh.privateKeyPath,
-                            remoteHost: config.host,
-                            remotePort: config.port,
-                            mode: config.ssh.mode
-                        )
-                    }
+                    let createdTunnel = try await SSHTunnel.connect(
+                        config: config.ssh,
+                        remoteHost: config.host,
+                        remotePort: config.port
+                    )
+                    tunnel = createdTunnel
                     connectHost = "127.0.0.1"
                     connectPort = createdTunnel.localPort
                     AppLogger.info(
@@ -90,35 +78,13 @@ struct ConnectionProbe {
             }
         }
 
-        let createdClient: any RedisSession
-        switch config.mode {
-        case .standalone:
-            createdClient = RedisClient(
-                host: connectHost,
-                port: connectPort,
-                username: config.username.isEmpty ? nil : config.username,
-                password: config.password.isEmpty ? nil : config.password,
-                tlsEnabled: config.tls.enabled,
-                verifyServerCertificate: config.tls.verifyServerCertificate,
-                caCertificatePath: config.tls.caCertificatePath,
-                clientCertificatePath: config.tls.clientCertificatePath,
-                clientKeyPath: config.tls.clientKeyPath,
-                connectionTimeout: config.connectionTimeout
-            )
-        case .cluster:
-            createdClient = RedisClusterClient(
-                seedNodes: [RedisEndpoint(host: connectHost, port: connectPort)],
-                username: config.username.isEmpty ? nil : config.username,
-                password: config.password.isEmpty ? nil : config.password,
-                tlsEnabled: config.tls.enabled,
-                verifyServerCertificate: config.tls.verifyServerCertificate,
-                caCertificatePath: config.tls.caCertificatePath,
-                clientCertificatePath: config.tls.clientCertificatePath,
-                clientKeyPath: config.tls.clientKeyPath,
-                connectionTimeout: config.connectionTimeout,
-                endpointResolver: clusterEndpointResolver
-            )
-        }
+        let createdClient = makeRedisSession(
+            config: config,
+            host: connectHost,
+            port: connectPort,
+            seedNodes: [RedisEndpoint(host: connectHost, port: connectPort)],
+            endpointResolver: clusterEndpointResolver
+        )
         client = createdClient
         do {
             try await withTimeout(config.connectionTimeout, context: "Redis connection") {

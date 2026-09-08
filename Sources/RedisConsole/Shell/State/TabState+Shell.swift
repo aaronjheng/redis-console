@@ -25,20 +25,10 @@ extension TabState {
                 } else {
                     // Create a dedicated tunnel for shell in its own slot so it
                     // never clobbers the main connection's tunnel reference.
-                    let tunnel = SSHTunnel()
-                    tunnel.setupTimeoutSeconds = config.ssh.setupTimeout
-                    tunnel.connectionAttemptTimeout = .seconds(Int64(config.ssh.connectionAttemptTimeout))
-                    tunnel.maxConnectionAttempts = config.ssh.maxConnectionAttempts
-                    tunnel.authTimeoutSeconds = config.ssh.authTimeout
-                    try await tunnel.start(
-                        sshHost: config.ssh.host,
-                        sshPort: config.ssh.port,
-                        sshUser: config.ssh.user,
-                        sshPassword: config.ssh.password.isEmpty ? nil : config.ssh.password,
-                        privateKeyPath: config.ssh.privateKeyPath.isEmpty ? nil : config.ssh.privateKeyPath,
+                    let tunnel = try await SSHTunnel.connect(
+                        config: config.ssh,
                         remoteHost: config.host,
-                        remotePort: config.port,
-                        mode: config.ssh.mode
+                        remotePort: config.port
                     )
                     shellSSHTunnel?.stop()
                     shellSSHTunnel = tunnel
@@ -47,35 +37,13 @@ extension TabState {
                 }
             }
 
-            let client: any RedisSession
-            switch config.mode {
-            case .standalone:
-                client = RedisClient(
-                    host: connectHost,
-                    port: connectPort,
-                    username: config.username.isEmpty ? nil : config.username,
-                    password: config.password.isEmpty ? nil : config.password,
-                    tlsEnabled: config.tls.enabled,
-                    verifyServerCertificate: config.tls.verifyServerCertificate,
-                    caCertificatePath: config.tls.caCertificatePath,
-                    clientCertificatePath: config.tls.clientCertificatePath,
-                    clientKeyPath: config.tls.clientKeyPath,
-                    connectionTimeout: config.connectionTimeout
-                )
-            case .cluster:
-                client = RedisClusterClient(
-                    seedNodes: config.effectiveSeedNodes,
-                    username: config.username.isEmpty ? nil : config.username,
-                    password: config.password.isEmpty ? nil : config.password,
-                    tlsEnabled: config.tls.enabled,
-                    verifyServerCertificate: config.tls.verifyServerCertificate,
-                    caCertificatePath: config.tls.caCertificatePath,
-                    clientCertificatePath: config.tls.clientCertificatePath,
-                    clientKeyPath: config.tls.clientKeyPath,
-                    connectionTimeout: config.connectionTimeout,
-                    endpointResolver: sshClusterTunnelManager
-                )
-            }
+            let client = makeRedisSession(
+                config: config,
+                host: connectHost,
+                port: connectPort,
+                seedNodes: config.effectiveSeedNodes,
+                endpointResolver: sshClusterTunnelManager
+            )
 
             try await client.connect()
             shellSession = client

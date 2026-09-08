@@ -259,6 +259,49 @@ func throwIfRedisError(_ value: RESPValue) throws {
     }
 }
 
+/// Builds the session for a connection, standalone or cluster, from one
+/// place: the credential/TLS mapping and the mode switch shared by the main
+/// connection, the shell session, and the connection probe.
+///
+/// `seedNodes` is taken as given (callers pass the resolved seeds) so this
+/// helper changes no routing behavior.
+func makeRedisSession(
+    config: RedisConnectionConfig,
+    host: String,
+    port: UInt16,
+    seedNodes: [RedisEndpoint],
+    endpointResolver: (any RedisClusterEndpointResolver)?
+) -> any RedisSession {
+    switch config.mode {
+    case .standalone:
+        RedisClient(
+            host: host,
+            port: port,
+            username: config.username.isEmpty ? nil : config.username,
+            password: config.password.isEmpty ? nil : config.password,
+            tlsEnabled: config.tls.enabled,
+            verifyServerCertificate: config.tls.verifyServerCertificate,
+            caCertificatePath: config.tls.caCertificatePath,
+            clientCertificatePath: config.tls.clientCertificatePath,
+            clientKeyPath: config.tls.clientKeyPath,
+            connectionTimeout: config.connectionTimeout
+        )
+    case .cluster:
+        RedisClusterClient(
+            seedNodes: seedNodes,
+            username: config.username.isEmpty ? nil : config.username,
+            password: config.password.isEmpty ? nil : config.password,
+            tlsEnabled: config.tls.enabled,
+            verifyServerCertificate: config.tls.verifyServerCertificate,
+            caCertificatePath: config.tls.caCertificatePath,
+            clientCertificatePath: config.tls.clientCertificatePath,
+            clientKeyPath: config.tls.clientKeyPath,
+            connectionTimeout: config.connectionTimeout,
+            endpointResolver: endpointResolver
+        )
+    }
+}
+
 enum RedisError: LocalizedError {
     case notConnected
     case parseError(String)
