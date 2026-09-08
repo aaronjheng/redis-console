@@ -10,7 +10,7 @@ Root files: `RedisConsoleApp` (process entry), `AppDelegate` + `AppMenu` (window
 
 Area folders:
 
-- Feature areas, each holding `Models/` + `State/` (`TabState` extensions and use cases) + `Views/`, plus `Services/` only for area-private persistence (e.g. Shell history): `Analysis`, `Browser`, `Connection`, `Functions`, `KeyDetail`, `Profiler`, `ServerInfo`, `Shell`, `SlowLog`, `Workspace`
+- Feature areas, each holding whichever of `Models/` / `State/` (`TabState` extensions and use cases) / `Views/` it needs, plus `Services/` only for area-private persistence (e.g. Shell history, browser preferences): `Analysis`, `Browser`, `Connection`, `Functions`, `KeyDetail`, `Profiler`, `ServerInfo`, `Shell`, `SlowLog`, `Workspace`
 - Backends: `Redis/` (client, cluster client, RESP parser, MONITOR client), `SSH/` (tunnel facade, `BuiltIn/` NIO implementation, `System/` `ssh(1)` multiplexing, `Cluster/`)
 - Shared toolkit: `Components/` (reusable views + the pasteboard helper their copy buttons use), `Concurrency/` (`withTimeout`), `Editor/` (syntax-highlighting code editor), `Theme/` (color/font/metrics tokens + light/dark switching)
 - `Session/` (`TabState` core, `ConnectionStore`, `TabManager`)
@@ -33,6 +33,9 @@ Outer layers may use inner layers, never the reverse:
 - Concurrency primitives: `Mutex`, `actor`, `CheckedContinuation`; `DispatchQueue` is reserved for `RedisClient` I/O only.
 - Errors use the unified `RedisError` enum conforming to `LocalizedError`.
 - Dangerous operations on production environments require confirmation via `ProductionConfirmView` by typing a keyword.
+- Construct tunnels and Redis sessions only through the shared factories `SSHTunnel.connect` and `makeRedisSession`; target cluster capabilities through `RedisSession` (`mode`, `clusterNodes()`, `send(_:to:)`), never `as? RedisClusterClient` downcasts.
+- UserDefaults access lives only in the per-area persistence types (`ConnectionStore`, `ShellHistoryStore`, `BrowserPreferencesStore`, `SlowLogConfigStore`, `AppAppearance`); `State/` extensions go through them.
+- Swift `private` is file-scoped: when a type is split across files, members shared by those files must drop `private` (stay module-internal); keep `private` for within-file helpers.
 
 ## Git Workflow
 
