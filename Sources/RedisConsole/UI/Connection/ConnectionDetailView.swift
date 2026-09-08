@@ -354,7 +354,15 @@ struct ConnectionDetailView: View {
 
     @ViewBuilder
     private var testResultView: some View {
-        if let result = testResult {
+        if isTesting {
+            HStack(spacing: AppSpacing.xSmall) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Testing…")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        } else if let result = testResult {
             HStack(spacing: AppSpacing.xSmall) {
                 Image(systemName: result.hasPrefix("OK") ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(result.hasPrefix("OK") ? AppColor.success : AppColor.error)
@@ -484,7 +492,11 @@ struct ConnectionDetailView: View {
                 throw RedisError.commandError(message)
             }
             let elapsed = Date().timeIntervalSince(start) * 1000
-            testResult = "OK — \(pong.string ?? "PONG") (\(String(format: "%.2f", elapsed)) ms)"
+            if let reply = pong.string, reply != "PONG" {
+                testResult = "OK — \(reply) (\(String(format: "%.2f", elapsed)) ms)"
+            } else {
+                testResult = "OK (\(String(format: "%.2f", elapsed)) ms)"
+            }
             AppLogger.info("test succeeded result=\(pong.string ?? "PONG") elapsed=\(elapsed)ms", category: "ConnectionTest")
         } catch {
             testResult = "Failed — \(error.localizedDescription)"

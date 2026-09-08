@@ -6,12 +6,16 @@ import SwiftUI
 enum ConnectionEnvironment: String, Codable, CaseIterable {
     case unspecified = "Unspecified"
     case development = "Development"
+    case testing = "Testing"
+    case staging = "Staging"
     case production = "Production"
 
     var color: Color {
         switch self {
         case .unspecified: return .secondary
         case .development: return AppColor.success
+        case .testing: return AppColor.info
+        case .staging: return AppColor.warning
         case .production: return AppColor.error
         }
     }
@@ -20,6 +24,8 @@ enum ConnectionEnvironment: String, Codable, CaseIterable {
         switch self {
         case .unspecified: return "circle"
         case .development: return "hammer"
+        case .testing: return "testtube.2"
+        case .staging: return "flask"
         case .production: return "shield"
         }
     }
