@@ -2,6 +2,30 @@
 
 macOS native Redis client with SSH tunnel support, written in Swift/SwiftUI.
 
+## Directory Layout
+
+`Sources/RedisConsole/` is flat: four process-level files at the root plus one folder per concrete area, mirrored 1:1 by Xcode groups in the project.
+
+Root files: `RedisConsoleApp` (process entry), `AppDelegate` + `AppMenu` (windows, tabs, menu bar), `AppLogger` (unified logging, used everywhere).
+
+Area folders:
+
+- Feature areas, each holding `Models/` + `State/` (`TabState` extensions) + `Views/`, plus `Services/` only for area-private persistence (e.g. Shell history): `Analysis`, `Browser`, `Connection`, `Functions`, `KeyDetail`, `Profiler`, `ServerInfo`, `Shell`, `SlowLog`, `Workspace`
+- Backends: `Redis/` (client, cluster client, RESP parser, MONITOR client), `SSH/` (tunnel facade, `BuiltIn/` NIO implementation, `System/` `ssh(1)` multiplexing, `Cluster/`)
+- Shared toolkit: `Components/` (reusable views + the pasteboard helper their copy buttons use), `Concurrency/` (`withTimeout`), `Editor/` (syntax-highlighting code editor), `Theme/` (color/font/metrics tokens + light/dark switching)
+- `Session/` (`TabState` core, `ConnectionStore`, `TabManager`)
+
+Naming rule: no bucket names (`Tools`, `Utilities`, `Core`, `DesignSystem`, `Inspector`, …). If a folder needs "and misc" to describe it, split it instead.
+
+## Dependency Rule
+
+Outer layers may use inner layers, never the reverse:
+
+- `Views/` (SwiftUI) may use anything below it.
+- Area `State/`, `Session/`, and persistence may use `Models/`, `Redis/`, `SSH/`, `Concurrency/`.
+- `Models/`, `Redis/`, `SSH/`, `Concurrency/` must never `import SwiftUI`. Presentation mapping for a domain type lives in a `Type+Presentation.swift` next to the views that need it.
+- `Redis/` and `SSH/` never reference views, `TabState`, or areas; areas never reference each other's `State/`.
+
 ## Code Conventions
 
 - Use the `@Observable` macro (macOS 14+); no `@Published` / ObservableObject, and no Combine dependency.

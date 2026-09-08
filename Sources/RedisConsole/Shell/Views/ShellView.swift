@@ -37,7 +37,7 @@ struct ShellView: View {
         guard !input.isEmpty else { return [] }
         let parts = input.split(separator: " ")
         if parts.count <= 1 {
-            return tab.completions(for: String(parts.first ?? ""))
+            return RedisCommandCatalog.completions(for: String(parts.first ?? ""))
         }
         return []
     }
