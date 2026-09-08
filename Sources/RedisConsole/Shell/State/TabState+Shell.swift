@@ -305,6 +305,69 @@ extension TabState {
     /// history storage.
     private func truncateForHistory(_ string: String) -> String {
         guard string.utf8.count > Self.maxShellResultBytes else { return string }
-        return String(string.prefix(Self.maxShellResultBytes)) + "\u{2026}"
+        return String(string.prefix(Self.maxShellResultBytes)) + "…"
+    }
+
+    // MARK: - Shell History (SQLite-backed)
+
+    /// URL of the JSON history file used before history moved to SQLite.
+    private func legacyShellHistoryURL(for connection: RedisConnectionConfig) -> URL? {
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        return
+            appSupport
+            .appendingPathComponent("redis.console", isDirectory: true)
+            .appendingPathComponent("shell-history-\(connection.id.uuidString).json")
+    }
+
+    func loadShellHistory(for connection: RedisConnectionConfig) async {
+        shellHistory = await ShellHistoryStore.shared.load(connectionID: connection.id, limit: shellHistoryLimit)
+        shellHistoryConnectionID = connection.id
+        if shellHistory.isEmpty {
+            await migrateLegacyJSONFile(for: connection)
+        }
+    }
+
+    /// One-shot migration from the JSON file used before history moved to
+    /// SQLite. The file is removed after a successful import.
+    private func migrateLegacyJSONFile(for connection: RedisConnectionConfig) async {
+        guard
+            let url = legacyShellHistoryURL(for: connection),
+            let data = try? Data(contentsOf: url),
+            let decoded = try? JSONDecoder().decode([ShellHistoryEntry].self, from: data)
+        else {
+            return
+        }
+        await ShellHistoryStore.shared.importEntries(decoded, connectionID: connection.id)
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    func appendShellHistory(_ entry: ShellHistoryEntry) {
+        shellHistory.append(entry)
+        if shellHistory.count > shellHistoryLimit {
+            shellHistory.removeFirst(shellHistory.count - shellHistoryLimit)
+        }
+        guard let connectionID = shellHistoryConnectionID else { return }
+        let limit = shellHistoryLimit
+        Task {
+            await ShellHistoryStore.shared.append(entry, connectionID: connectionID, limit: limit)
+        }
+    }
+
+    func deleteShellHistoryEntry(_ entry: ShellHistoryEntry) {
+        shellHistory.removeAll { $0.id == entry.id }
+        guard let connectionID = shellHistoryConnectionID else { return }
+        Task {
+            await ShellHistoryStore.shared.delete(id: entry.id, connectionID: connectionID)
+        }
+    }
+
+    func clearShellHistory() {
+        shellHistory = []
+        guard let connectionID = shellHistoryConnectionID else { return }
+        Task {
+            await ShellHistoryStore.shared.clear(connectionID: connectionID)
+        }
     }
 }

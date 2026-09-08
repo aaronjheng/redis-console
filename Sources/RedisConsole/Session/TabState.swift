@@ -176,7 +176,6 @@ class TabState {
     let stringDetailTruncationLimit = 1_000_000
     let keyPatternScanIterationLimit = 1_000
     let shellHistoryLimit = 200
-    static let browserPreferencesKey = "com.redisconsole.browserPreferences"
 
     init() {
         loadBrowserPreferences()

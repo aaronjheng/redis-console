@@ -3,22 +3,13 @@ import Foundation
 extension TabState {
     // MARK: - Slow Log
 
-    var slowLogConfigKey: String {
-        guard let connection = selectedConnection else { return "com.redisconsole.slowlog.default" }
-        return "com.redisconsole.slowlog.\(connection.id.uuidString)"
-    }
-
     func loadSlowLogConfig() {
-        guard
-            let data = UserDefaults.standard.data(forKey: slowLogConfigKey),
-            let config = try? JSONDecoder().decode(SlowLogConfig.self, from: data)
-        else { return }
+        guard let config = SlowLogConfigStore.load(connectionID: selectedConnection?.id) else { return }
         slowLogConfig = config
     }
 
     func saveSlowLogConfig() {
-        guard let data = try? JSONEncoder().encode(slowLogConfig) else { return }
-        UserDefaults.standard.set(data, forKey: slowLogConfigKey)
+        SlowLogConfigStore.save(slowLogConfig, connectionID: selectedConnection?.id)
     }
 
     func fetchSlowLog() async {
