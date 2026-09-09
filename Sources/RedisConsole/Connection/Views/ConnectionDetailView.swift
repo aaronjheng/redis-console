@@ -1,6 +1,21 @@
 import Foundation
 import SwiftUI
 
+// MARK: - Save Feedback
+
+/// Outcome of the most recent Save action, shown next to the Save button.
+/// `token` increments on every attempt so a repeated outcome still restarts
+/// the auto-dismiss task keyed on this value.
+private struct SaveFeedback: Equatable {
+    enum Kind {
+        case saved
+        case failed
+    }
+
+    let kind: Kind
+    let token: Int
+}
+
 // MARK: - Connection Detail View
 
 struct ConnectionDetailView: View {
@@ -27,6 +42,15 @@ struct ConnectionDetailView: View {
     @State private var sshPortError: String?
     @State private var isNew = false
     @State private var editingConfig: RedisConnectionConfig?
+
+    /// Outcome of the most recent Save action. Success auto-dismisses after
+    /// a short delay; failure stays until the next save or a different
+    /// connection is loaded.
+    @State private var saveFeedback: SaveFeedback?
+    /// The connection whose successful save switched the panel to it. Keeps
+    /// that save's feedback visible across the panel switch instead of
+    /// clearing it as stale state.
+    @State private var lastSavedConfigID: RedisConnectionConfig.ID?
 
     /// The form submits only with a host, valid ports, and no test in flight.
     private var canSubmit: Bool {
@@ -226,13 +250,19 @@ struct ConnectionDetailView: View {
                 if isNew {
                     Button("Save") {
                         let config = createConfig()
-                        store.addConnection(config)
-                        tab.selectedConnection = config
-                        tab.connectionPanel = .editConnection(config)
+                        if store.addConnection(config) {
+                            presentSaveFeedback(.saved, configID: config.id)
+                            tab.selectedConnection = config
+                            tab.connectionPanel = .editConnection(config)
+                        } else {
+                            presentSaveFeedback(.failed, configID: nil)
+                        }
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(!canSubmit || isTesting)
                     .help(submitDisabledReason ?? "Save connection")
+
+                    saveFeedbackView
 
                     Button("Test Connection") {
                         Task { await runConnectionProbe() }
@@ -255,12 +285,18 @@ struct ConnectionDetailView: View {
                         updated.ssh = ssh
                         updated.tls = tls
                         updated.environment = environment
-                        store.updateConnection(updated)
-                        tab.selectedConnection = updated
+                        if store.updateConnection(updated) {
+                            presentSaveFeedback(.saved, configID: updated.id)
+                            tab.selectedConnection = updated
+                        } else {
+                            presentSaveFeedback(.failed, configID: nil)
+                        }
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(!canSubmit || isTesting)
                     .help(submitDisabledReason ?? "Save connection")
+
+                    saveFeedbackView
 
                     Button("Test Connection") {
                         Task { await runConnectionProbe() }
@@ -275,15 +311,14 @@ struct ConnectionDetailView: View {
                 Spacer()
 
                 Button("Connect") {
-                    let config = createConfig()
+                    // Connecting is intentionally transient: it neither saves a
+                    // new connection nor persists edits to an existing one.
+                    // Only the Save button writes to the store.
+                    var config = createConfig()
                     if let existing = editingConfig {
-                        var temp = config
-                        temp.id = existing.id
-                        Task { await tab.connect(to: temp) }
-                    } else {
-                        store.addConnection(config)
-                        Task { await tab.connect(to: config) }
+                        config.id = existing.id
                     }
+                    Task { await tab.connect(to: config) }
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
@@ -315,6 +350,12 @@ struct ConnectionDetailView: View {
         testResult = nil
         switch panel {
         case .editConnection(let config):
+            // Keep the feedback of a save that just switched this panel to
+            // the saved connection; arriving at any other connection clears
+            // stale feedback.
+            if lastSavedConfigID != config.id {
+                saveFeedback = nil
+            }
             isNew = false
             editingConfig = config
             portText = "\(config.port)"
@@ -333,6 +374,8 @@ struct ConnectionDetailView: View {
             connectionTimeout = config.connectionTimeout
             pingTimeout = config.pingTimeout
         case .newConnection:
+            saveFeedback = nil
+            lastSavedConfigID = nil
             isNew = true
             editingConfig = nil
             name = ""
@@ -349,6 +392,33 @@ struct ConnectionDetailView: View {
             tls = TLSConfig()
             environment = .unspecified
         default: break
+        }
+    }
+
+    /// Records the outcome of a Save action. `configID` is the connection
+    /// saved on success; it lets `loadConfig` keep this feedback visible
+    /// across the panel switch that follows.
+    private func presentSaveFeedback(_ kind: SaveFeedback.Kind, configID: RedisConnectionConfig.ID?) {
+        lastSavedConfigID = configID
+        saveFeedback = SaveFeedback(kind: kind, token: (saveFeedback?.token ?? 0) + 1)
+    }
+
+    @ViewBuilder
+    private var saveFeedbackView: some View {
+        if let saveFeedback {
+            HStack(spacing: AppSpacing.xSmall) {
+                Image(systemName: saveFeedback.kind == .saved ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .foregroundStyle(saveFeedback.kind == .saved ? AppColor.success : AppColor.error)
+                Text(saveFeedback.kind == .saved ? "Saved" : "Save failed")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .task(id: saveFeedback) {
+                guard saveFeedback.kind == .saved else { return }
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                self.saveFeedback = nil
+            }
         }
     }
 

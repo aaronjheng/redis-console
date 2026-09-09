@@ -18,16 +18,28 @@ class ConnectionStore {
         }
     }
 
-    func addConnection(_ config: RedisConnectionConfig) {
+    /// Adds a connection. Returns false (and leaves the in-memory list
+    /// untouched) when the database write fails, so callers can surface the
+    /// failure instead of showing a connection that will vanish on relaunch.
+    @discardableResult
+    func addConnection(_ config: RedisConnectionConfig) -> Bool {
+        guard database.insertConnection(config) else { return false }
         connections.append(config)
-        database.insertConnection(config)
+        return true
     }
 
-    func updateConnection(_ config: RedisConnectionConfig) {
+    /// Saves edits to a connection, inserting the row when it does not exist
+    /// yet (matching the database upsert). Returns false when the write fails;
+    /// the in-memory list is only mutated on success.
+    @discardableResult
+    func updateConnection(_ config: RedisConnectionConfig) -> Bool {
+        guard database.updateConnection(config) else { return false }
         if let idx = connections.firstIndex(where: { $0.id == config.id }) {
             connections[idx] = config
-            database.updateConnection(config)
+        } else {
+            connections.append(config)
         }
+        return true
     }
 
     func deleteConnection(_ config: RedisConnectionConfig) {
@@ -47,8 +59,9 @@ class ConnectionStore {
         for config in configs {
             var newConfig = config
             newConfig.id = UUID()
-            connections.append(newConfig)
-            database.insertConnection(newConfig)
+            if database.insertConnection(newConfig) {
+                connections.append(newConfig)
+            }
         }
     }
 }

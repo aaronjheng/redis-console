@@ -95,8 +95,10 @@ final class AppDatabase: Sendable {
         }
     }
 
-    /// Inserts a connection config at the end of the saved order.
-    func insertConnection(_ config: RedisConnectionConfig) {
+    /// Inserts a connection config at the end of the saved order. Returns
+    /// false when the row was not written.
+    @discardableResult
+    func insertConnection(_ config: RedisConnectionConfig) -> Bool {
         write(
             config,
             sql: """
@@ -106,9 +108,24 @@ final class AppDatabase: Sendable {
         )
     }
 
-    /// Updates an existing connection config in place.
-    func updateConnection(_ config: RedisConnectionConfig) {
-        write(config, sql: "UPDATE connections SET name = ?, environment = ?, payload = ? WHERE id = ?")
+    /// Saves a connection config in place, inserting the row when it does not
+    /// exist yet. The insert case matters for configs that live only in memory
+    /// (e.g. the seeded default connection on a fresh database): a bare UPDATE
+    /// would match zero rows and silently drop the edit. Returns false when
+    /// the row was not written.
+    @discardableResult
+    func updateConnection(_ config: RedisConnectionConfig) -> Bool {
+        write(
+            config,
+            sql: """
+                INSERT INTO connections (name, environment, payload, id, sort_order)
+                VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM connections))
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    environment = excluded.environment,
+                    payload = excluded.payload
+                """
+        )
     }
 
     /// Deletes a connection config.
@@ -116,20 +133,44 @@ final class AppDatabase: Sendable {
         execute("DELETE FROM connections WHERE id = ?", [id.uuidString])
     }
 
-    private func write(_ config: RedisConnectionConfig, sql: String) {
+    @discardableResult
+    private func write(_ config: RedisConnectionConfig, sql: String) -> Bool {
         guard let payload = try? JSONEncoder().encode(config),
             let json = String(data: payload, encoding: .utf8)
-        else { return }
-        db.withLock { handle in
-            guard let handle else { return }
+        else {
+            AppLogger.error("connection write failed: encoding error name=\(config.name)", category: "Database")
+            return false
+        }
+        return db.withLock { handle in
+            guard let handle else {
+                AppLogger.error(
+                    "connection write failed: database unavailable name=\(config.name)", category: "Database"
+                )
+                return false
+            }
             var stmt: OpaquePointer?
-            guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK else { return }
+            guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK else {
+                AppLogger.error(
+                    "connection write failed: prepare name=\(config.name) error=\(String(cString: sqlite3_errmsg(handle)))",
+                    category: "Database"
+                )
+                return false
+            }
             defer { sqlite3_finalize(stmt) }
             sqlite3_bind_text(stmt, 1, config.name, -1, Self.sqliteTransient)
             sqlite3_bind_text(stmt, 2, config.environment.rawValue, -1, Self.sqliteTransient)
             sqlite3_bind_text(stmt, 3, json, -1, Self.sqliteTransient)
             sqlite3_bind_text(stmt, 4, config.id.uuidString, -1, Self.sqliteTransient)
-            sqlite3_step(stmt)
+            let rc = sqlite3_step(stmt)
+            if rc != SQLITE_DONE {
+                AppLogger.error(
+                    "connection write failed: step rc=\(rc) name=\(config.name) "
+                        + "error=\(String(cString: sqlite3_errmsg(handle)))",
+                    category: "Database"
+                )
+                return false
+            }
+            return true
         }
     }
 
