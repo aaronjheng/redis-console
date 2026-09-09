@@ -278,8 +278,8 @@ extension TabState {
 
     // MARK: - Shell History (SQLite-backed)
 
-    func loadShellHistory(for connection: RedisConnectionConfig) async {
-        shellHistory = await ShellHistoryStore.shared.load(connectionID: connection.id, limit: shellHistoryLimit)
+    func loadShellHistory(for connection: RedisConnectionConfig) {
+        shellHistory = AppDatabase.shared.loadHistory(connectionID: connection.id, limit: shellHistoryLimit)
         shellHistoryConnectionID = connection.id
     }
 
@@ -289,25 +289,18 @@ extension TabState {
             shellHistory.removeFirst(shellHistory.count - shellHistoryLimit)
         }
         guard let connectionID = shellHistoryConnectionID else { return }
-        let limit = shellHistoryLimit
-        Task {
-            await ShellHistoryStore.shared.append(entry, connectionID: connectionID, limit: limit)
-        }
+        AppDatabase.shared.appendHistory(entry, connectionID: connectionID, limit: shellHistoryLimit)
     }
 
     func deleteShellHistoryEntry(_ entry: ShellHistoryEntry) {
         shellHistory.removeAll { $0.id == entry.id }
         guard let connectionID = shellHistoryConnectionID else { return }
-        Task {
-            await ShellHistoryStore.shared.delete(id: entry.id, connectionID: connectionID)
-        }
+        AppDatabase.shared.deleteHistory(id: entry.id, connectionID: connectionID)
     }
 
     func clearShellHistory() {
         shellHistory = []
         guard let connectionID = shellHistoryConnectionID else { return }
-        Task {
-            await ShellHistoryStore.shared.clear(connectionID: connectionID)
-        }
+        AppDatabase.shared.clearHistory(connectionID: connectionID)
     }
 }

@@ -120,21 +120,21 @@
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
-		<key>0F00B57A3C4E5D6F7A8B9C01</key>
+		<key>7A3F2C91D4E85B06A1C94F32</key>
 		<dict>
 			<key>isa</key>
 			<string>PBXFileReference</string>
 			<key>lastKnownFileType</key>
 			<string>sourcecode.swift</string>
 			<key>path</key>
-			<string>ShellHistoryStore.swift</string>
+			<string>AppDatabase.swift</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
-		<key>0F00B57A3C4E5D6F7A8B9C02</key>
+		<key>5C82E1A9B47D3F6092E7C148</key>
 		<dict>
 			<key>fileRef</key>
-			<string>0F00B57A3C4E5D6F7A8B9C01</string>
+			<string>7A3F2C91D4E85B06A1C94F32</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -733,6 +733,7 @@
 				<string>F59767EE7E02A667EEC3A156</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>D620F14F7D75D74C01119464</string>
+				<string>7A3F2C91D4E85B06A1C94F32</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -746,7 +747,6 @@
 			<key>children</key>
 			<array>
 				<string>5FBF297E0F8D9B8D00E0E442</string>
-				<string>FDA06C00EBABC5685228D67C</string>
 				<string>09721BC6363A4855C01D7FEE</string>
 				<string>B057146081AE3685C7D8DECA</string>
 			</array>
@@ -768,19 +768,6 @@
 			<string>PBXGroup</string>
 			<key>path</key>
 			<string>Models</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
-		</dict>
-		<key>FDA06C00EBABC5685228D67C</key>
-		<dict>
-			<key>children</key>
-			<array>
-				<string>0F00B57A3C4E5D6F7A8B9C01</string>
-			</array>
-			<key>isa</key>
-			<string>PBXGroup</string>
-			<key>path</key>
-			<string>Services</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
@@ -1531,6 +1518,7 @@
 				<string>F59767EE7E02A667EEC3A156</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>D620F14F7D75D74C01119464</string>
+				<string>7A3F2C91D4E85B06A1C94F32</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -1573,7 +1561,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>0F00B57A3C4E5D6F7A8B9C01</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -2361,6 +2348,7 @@
 				<string>F59767EE7E02A667EEC3A156</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>D620F14F7D75D74C01119464</string>
+				<string>7A3F2C91D4E85B06A1C94F32</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -2403,7 +2391,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>0F00B57A3C4E5D6F7A8B9C01</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -3204,6 +3191,7 @@
 				<string>F59767EE7E02A667EEC3A156</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>D620F14F7D75D74C01119464</string>
+				<string>7A3F2C91D4E85B06A1C94F32</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -3246,7 +3234,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>0F00B57A3C4E5D6F7A8B9C01</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -3991,6 +3978,7 @@
 				<string>F59767EE7E02A667EEC3A156</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>D620F14F7D75D74C01119464</string>
+				<string>7A3F2C91D4E85B06A1C94F32</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -4033,7 +4021,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>0F00B57A3C4E5D6F7A8B9C01</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -4793,6 +4780,7 @@
 				<string>F59767EE7E02A667EEC3A156</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>D620F14F7D75D74C01119464</string>
+				<string>7A3F2C91D4E85B06A1C94F32</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -4835,7 +4823,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>0F00B57A3C4E5D6F7A8B9C01</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -5558,6 +5545,7 @@
 				<string>F59767EE7E02A667EEC3A156</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>D620F14F7D75D74C01119464</string>
+				<string>7A3F2C91D4E85B06A1C94F32</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -5600,7 +5588,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>0F00B57A3C4E5D6F7A8B9C01</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -6507,6 +6494,7 @@
 				<string>F59767EE7E02A667EEC3A156</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>D620F14F7D75D74C01119464</string>
+				<string>7A3F2C91D4E85B06A1C94F32</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -6549,7 +6537,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>0F00B57A3C4E5D6F7A8B9C01</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -7244,6 +7231,7 @@
 				<string>F59767EE7E02A667EEC3A156</string>
 				<string>A6015014E8B5470484133293</string>
 				<string>D620F14F7D75D74C01119464</string>
+				<string>7A3F2C91D4E85B06A1C94F32</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -7286,7 +7274,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>0F00B57A3C4E5D6F7A8B9C01</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -8299,7 +8286,7 @@
 				<string>ACB9A5A0F74DD02D7C5C6927</string>
 				<string>7EEE9F0E74615C5D4FBC55CD</string>
 				<string>D88BEDDC62ACB7432ACD4694</string>
-				<string>0F00B57A3C4E5D6F7A8B9C02</string>
+				<string>5C82E1A9B47D3F6092E7C148</string>
 				<string>A1B2C3D4E5F6789012345678</string>
 				<string>08CAE39503D01547D187531D</string>
 				<string>C1A5F0E7A4B94C3D9E613002</string>

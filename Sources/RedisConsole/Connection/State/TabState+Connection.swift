@@ -96,7 +96,7 @@ extension TabState {
 
                 activeSession = redis
                 selectedConnection = resolvedConfig
-                await loadShellHistory(for: resolvedConfig)
+                loadShellHistory(for: resolvedConfig)
                 isConnecting = false
                 pendingConnection = nil
                 await loadServerInfo()

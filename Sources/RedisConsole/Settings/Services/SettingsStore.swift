@@ -5,8 +5,8 @@ import Observation
 
 /// File-backed gateway for app-level configuration.
 ///
-/// Owns `settings.json` next to `connections.json` in Application Support, so
-/// `TabState` and the Settings panel only map between `AppSettings` and live
+/// Owns `settings.json` next to `redis-console.sqlite` in Application Support,
+/// so `TabState` and the Settings panel only map between `AppSettings` and live
 /// properties. Missing or corrupt files fall back to defaults; the file is
 /// written on every change.
 ///
