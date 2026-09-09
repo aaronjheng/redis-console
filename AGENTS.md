@@ -15,7 +15,7 @@ Area folders:
 - Shared toolkit: `Components/` (reusable views + the pasteboard helper their copy buttons use), `Concurrency/` (`withTimeout`), `Editor/` (syntax-highlighting code editor), `Theme/` (color/font/metrics tokens + light/dark switching)
 - `Session/` (`TabState` core, `ConnectionStore`, `TabManager`)
 
-Naming rule: no bucket names (`Tools`, `Utilities`, `Core`, `DesignSystem`, `Inspector`, …). If a folder needs "and misc" to describe it, split it instead.
+Naming rule (for the main program under `Sources/RedisConsole/` only, not top-level engineering dirs like `Tools/`, `Vendor/`): no bucket names (`Tools`, `Utilities`, `Core`, `DesignSystem`, `Inspector`, …). If a folder needs "and misc" to describe it, split it instead.
 
 ## Dependency Rule
 
