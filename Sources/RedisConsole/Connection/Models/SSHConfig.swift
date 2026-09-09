@@ -84,17 +84,17 @@ struct SSHConfig: Codable, Hashable {
         self.authTimeout = authTimeout
     }
 
-    // Custom decoding with `decodeIfPresent` everywhere so connections saved
-    // before a field existed (e.g. `mode`) still load with sane defaults.
+    // Custom decoding only to keep `CodingKeys` in control of the persisted
+    // fields; every field is required and a missing key fails the decode.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? false
-        mode = try container.decodeIfPresent(SSHTunnelMode.self, forKey: .mode) ?? .builtIn
-        host = try container.decodeIfPresent(String.self, forKey: .host) ?? ""
-        port = try container.decodeIfPresent(UInt16.self, forKey: .port) ?? 22
-        user = try container.decodeIfPresent(String.self, forKey: .user) ?? ""
-        password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
-        privateKeyPath = try container.decodeIfPresent(String.self, forKey: .privateKeyPath) ?? ""
-        privateKeyPassphrase = try container.decodeIfPresent(String.self, forKey: .privateKeyPassphrase) ?? ""
+        enabled = try container.decode(Bool.self, forKey: .enabled)
+        mode = try container.decode(SSHTunnelMode.self, forKey: .mode)
+        host = try container.decode(String.self, forKey: .host)
+        port = try container.decode(UInt16.self, forKey: .port)
+        user = try container.decode(String.self, forKey: .user)
+        password = try container.decode(String.self, forKey: .password)
+        privateKeyPath = try container.decode(String.self, forKey: .privateKeyPath)
+        privateKeyPassphrase = try container.decode(String.self, forKey: .privateKeyPassphrase)
     }
 }

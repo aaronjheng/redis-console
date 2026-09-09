@@ -142,32 +142,6 @@ actor ShellHistoryStore {
         sqlite3_step(stmt)
     }
 
-    /// Inserts a batch of entries in a single transaction. Used by the
-    /// one-shot migration from the legacy JSON file.
-    func importEntries(_ entries: [ShellHistoryEntry], connectionID: UUID) {
-        guard let db, !entries.isEmpty else { return }
-        _ = sqlite3_exec(db, "BEGIN", nil, nil, nil)
-        defer { _ = sqlite3_exec(db, "COMMIT", nil, nil, nil) }
-
-        var stmt: OpaquePointer?
-        let sql = """
-            INSERT OR REPLACE INTO shell_history (id, connection_id, command, result, timestamp, is_error)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return }
-        defer { sqlite3_finalize(stmt) }
-        for entry in entries {
-            sqlite3_bind_text(stmt, 1, entry.id.uuidString, -1, Self.sqliteTransient)
-            sqlite3_bind_text(stmt, 2, connectionID.uuidString, -1, Self.sqliteTransient)
-            sqlite3_bind_text(stmt, 3, entry.command, -1, Self.sqliteTransient)
-            sqlite3_bind_text(stmt, 4, entry.result, -1, Self.sqliteTransient)
-            sqlite3_bind_double(stmt, 5, entry.timestamp.timeIntervalSince1970)
-            sqlite3_bind_int(stmt, 6, entry.isError ? 1 : 0)
-            sqlite3_step(stmt)
-            sqlite3_reset(stmt)
-        }
-    }
-
     // MARK: - Private
 
     /// Drops rows beyond the newest `limit` for a connection.

@@ -45,6 +45,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         true
     }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Flush async state (SSH socket dir in /tmp) before quitting. The wait
+        // is capped so logout/shutdown can never hang on a stuck tunnel; crash
+        // or `kill -9` exits skip this and rely on the next launch's sweep.
+        Task {
+            try? await withTimeout(3, context: "SSH pool shutdown") {
+                await SystemSSHConnectionPool.shared.shutdownAll()
+            }
+            sender.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
+
     @objc func openNewTab() {
         let state = tabManager.createTab()
         createWindow(for: state, tabbed: true)

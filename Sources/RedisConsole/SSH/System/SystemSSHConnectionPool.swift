@@ -73,8 +73,8 @@ actor SystemSSHConnectionPool {
     /// Private directory for control sockets, created once per process.
     /// Unix domain socket paths are limited to ~104 bytes and macOS
     /// per-user temp dirs alone already eat ~50 of them, so sockets live in
-    /// a short `mkdtemp` dir under `/tmp` (e.g. `/tmp/rc-ssh-aB3x9Q/s-…`,
-    /// ~34 bytes) instead of `FileManager.temporaryDirectory`.
+    /// a short `mkdtemp` dir under `/tmp` (e.g. `/tmp/redis-console-ssh-aB3x9Q/3f96365b5a12.sock`,
+    /// ~49 bytes) instead of `FileManager.temporaryDirectory`.
     private var socketDir: String?
     private var didSweepStaleSocketDirs = false
 
@@ -361,6 +361,24 @@ actor SystemSSHConnectionPool {
         connections[key]?.errorHandle = nil
     }
 
+    /// Terminates every master and removes the process-private socket dir, so
+    /// no socket or log files are left in `/tmp` on quit. Crash or `kill -9`
+    /// exits skip this and still rely on the next launch's sweep.
+    func shutdownAll() {
+        for key in Array(connections.keys) {
+            if let entry = connections[key], entry.process.isRunning {
+                entry.process.terminate()
+            }
+            closeLogHandle(for: key)
+            connections.removeValue(forKey: key)
+        }
+        if let socketDir {
+            try? FileManager.default.removeItem(atPath: socketDir)
+            self.socketDir = nil
+        }
+        AppLogger.info("system ssh pool shut down", category: "SSHTunnel")
+    }
+
     private func connectionFailureMessage(key: Key, status: Int32, tail: String) -> String {
         var message =
             "System ssh connection failed (exit \(status)). It uses your keys, certificates and ssh-agent "
@@ -395,13 +413,15 @@ actor SystemSSHConnectionPool {
     /// unlinking before rebind is safe.
     private func controlPaths(key: Key) throws -> (socket: String, log: String) {
         let dir = try ensureSocketDir()
+        // Fingerprint of the SSH destination (`user@host:port#keyPath`), so
+        // each destination gets its own socket/log pair in the shared dir.
         let fingerprint = String(stableHash("\(key.user)@\(key.host):\(key.port)#\(key.keyPath)").prefix(12))
-        let socket = (dir as NSString).appendingPathComponent("s-\(fingerprint)")
+        let socket = (dir as NSString).appendingPathComponent("\(fingerprint).sock")
         if FileManager.default.fileExists(atPath: socket) {
             AppLogger.debug("system ssh removing leftover control socket \(socket)", category: "SSHTunnel")
             try? FileManager.default.removeItem(atPath: socket)
         }
-        let log = (dir as NSString).appendingPathComponent("ssh-\(fingerprint).log")
+        let log = (dir as NSString).appendingPathComponent("\(fingerprint).log")
         return (socket, log)
     }
 
@@ -417,7 +437,7 @@ actor SystemSSHConnectionPool {
     /// component prevents other local users from squatting predictable socket
     /// paths in the shared `/tmp`.
     private func makePrivateSocketDir() throws -> String {
-        var template = Array("/tmp/rc-ssh-XXXXXXXX".utf8CString)
+        var template = Array("/tmp/redis-console-ssh-XXXXXXXX".utf8CString)
         let created: String? = template.withUnsafeMutableBufferPointer { buffer in
             guard let base = buffer.baseAddress, mkdtemp(base) != nil else { return nil }
             return String(validatingCString: base)
@@ -437,7 +457,7 @@ actor SystemSSHConnectionPool {
         didSweepStaleSocketDirs = true
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: "/tmp") else { return }
         let uid = getuid()
-        for name in names where name.hasPrefix("rc-ssh-") {
+        for name in names where name.hasPrefix("redis-console-ssh-") {
             let dir = "/tmp/\(name)"
             guard
                 let attributes = try? FileManager.default.attributesOfItem(atPath: dir),

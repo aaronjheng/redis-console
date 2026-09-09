@@ -114,19 +114,19 @@ struct RedisConnectionConfig: Identifiable, Codable, Hashable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
-        mode = try container.decodeIfPresent(RedisConnectionMode.self, forKey: .mode) ?? .standalone
+        mode = try container.decode(RedisConnectionMode.self, forKey: .mode)
         host = try container.decode(String.self, forKey: .host)
-        port = try container.decodeIfPresent(UInt16.self, forKey: .port) ?? 6379
-        seedNodes = try container.decodeIfPresent([RedisEndpoint].self, forKey: .seedNodes) ?? []
-        username = try container.decodeIfPresent(String.self, forKey: .username) ?? ""
-        password = try container.decodeIfPresent(String.self, forKey: .password) ?? ""
-        ssh = try container.decodeIfPresent(SSHConfig.self, forKey: .ssh) ?? SSHConfig()
-        tls = try container.decodeIfPresent(TLSConfig.self, forKey: .tls) ?? TLSConfig()
-        environment = try container.decodeIfPresent(ConnectionEnvironment.self, forKey: .environment) ?? .unspecified
-        connectionTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .connectionTimeout) ?? 10
-        pingTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .pingTimeout) ?? 5
+        port = try container.decode(UInt16.self, forKey: .port)
+        seedNodes = try container.decode([RedisEndpoint].self, forKey: .seedNodes)
+        username = try container.decode(String.self, forKey: .username)
+        password = try container.decode(String.self, forKey: .password)
+        ssh = try container.decode(SSHConfig.self, forKey: .ssh)
+        tls = try container.decode(TLSConfig.self, forKey: .tls)
+        environment = try container.decode(ConnectionEnvironment.self, forKey: .environment)
+        connectionTimeout = try container.decode(TimeInterval.self, forKey: .connectionTimeout)
+        pingTimeout = try container.decode(TimeInterval.self, forKey: .pingTimeout)
     }
 
     func encode(to encoder: Encoder) throws {
