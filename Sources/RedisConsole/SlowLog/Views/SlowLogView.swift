@@ -88,11 +88,12 @@ struct SlowLogView: View {
                     .width(90)
 
                     TableColumn("Time") { entry in
-                        Text(entry.timestamp, style: .time)
-                            .font(.subheadline)
+                        Text(entry.timestampText)
+                            .font(AppFont.monoSubheadline)
                             .foregroundStyle(.secondary)
+                            .help(entry.relativeTimestampText)
                     }
-                    .width(70)
+                    .width(190)
 
                     TableColumn("Command") { entry in
                         Text(entry.commandText)

@@ -24,6 +24,29 @@ struct SlowLogEntry: Identifiable, Sendable {
         }
     }
 
+    /// ISO 8601 timestamp in local time, e.g. `2026-09-09T14:23:05+08:00`.
+    var timestampText: String {
+        Self.iso8601Formatter.string(from: timestamp)
+    }
+
+    /// Relative age for tooltips, e.g. `3 minutes ago`.
+    var relativeTimestampText: String {
+        Self.relativeFormatter.localizedString(for: timestamp, relativeTo: .now)
+    }
+
+    private nonisolated(unsafe) static let iso8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        formatter.timeZone = .current
+        return formatter
+    }()
+
+    private nonisolated(unsafe) static let relativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.dateTimeStyle = .numeric
+        return formatter
+    }()
+
     var commandText: String {
         command.joined(separator: " ")
     }
