@@ -26,6 +26,7 @@ clean:
 
 run: build
     @osascript -e 'quit app "RedisConsole"' 2>/dev/null || true
+    @n=0; while pgrep -x RedisConsole >/dev/null 2>&1 && [ $n -lt 50 ]; do sleep 0.1; n=$((n+1)); done
     @open '{{ app_bundle }}'
 
 install: build

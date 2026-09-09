@@ -52,6 +52,12 @@ struct ConnectionDetailView: View {
     /// clearing it as stale state.
     @State private var lastSavedConfigID: RedisConnectionConfig.ID?
 
+    /// In-flight connection test. Cancelled by Cancel Test or by loading a
+    /// different connection; a superseded probe (generation mismatch)
+    /// discards its outcome instead of writing it into the form.
+    @State private var probeTask: Task<Void, Never>?
+    @State private var probeGeneration = 0
+
     /// The form submits only with a host, valid ports, and no test in flight.
     private var canSubmit: Bool {
         !host.isEmpty && portError == nil && (!ssh.enabled || sshPortError == nil)
@@ -264,12 +270,7 @@ struct ConnectionDetailView: View {
 
                     saveFeedbackView
 
-                    Button("Test Connection") {
-                        Task { await runConnectionProbe() }
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
-                    .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
-                    .help(submitDisabledReason ?? "Test connection")
+                    testConnectionButton
 
                     testResultView
                 } else if let config = editingConfig {
@@ -298,12 +299,7 @@ struct ConnectionDetailView: View {
 
                     saveFeedbackView
 
-                    Button("Test Connection") {
-                        Task { await runConnectionProbe() }
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
-                    .disabled(!canSubmit || isTesting || (ssh.enabled && ssh.host.isEmpty))
-                    .help(submitDisabledReason ?? "Test connection")
+                    testConnectionButton
 
                     testResultView
                 }
@@ -347,6 +343,13 @@ struct ConnectionDetailView: View {
     }
 
     private func loadConfig(from panel: ConnectionPanel) {
+        // A probe launched for the previous form is now stale: cancel it and
+        // supersede its outcome so it can neither keep the footer locked nor
+        // write its result into this form.
+        probeTask?.cancel()
+        probeGeneration += 1
+        probeTask = nil
+        isTesting = false
         testResult = nil
         switch panel {
         case .editConnection(let config):
@@ -443,20 +446,60 @@ struct ConnectionDetailView: View {
         }
     }
 
-    private func runConnectionProbe() async {
+    /// Test Connection swaps to Cancel while a probe runs, so a hung test
+    /// (e.g. a wrong address mid-TCP-connect) never locks the form without
+    /// an escape hatch.
+    @ViewBuilder
+    private var testConnectionButton: some View {
+        if isTesting {
+            Button("Cancel Test") {
+                cancelConnectionProbe()
+            }
+            .buttonStyle(SecondaryButtonStyle())
+            .help("Cancel the running connection test")
+        } else {
+            Button("Test Connection") {
+                startConnectionProbe()
+            }
+            .buttonStyle(SecondaryButtonStyle())
+            .disabled(!canSubmit || (ssh.enabled && ssh.host.isEmpty))
+            .help(submitDisabledReason ?? "Test connection")
+        }
+    }
+
+    /// Runs the connection probe for the form as it was when the button was
+    /// pressed. The generation token makes the finished task a no-op if the
+    /// form has since moved on (panel switch or supersede).
+    private func startConnectionProbe() {
+        guard probeTask == nil else { return }
+        let config = createConfig()
         isTesting = true
         testResult = nil
-        defer { isTesting = false }
-        switch await ConnectionProbe(config: createConfig()).run() {
-        case .success(let latencyMs, let reply):
-            let elapsed = String(format: "%.2f", latencyMs)
-            if let reply, reply != "PONG" {
-                testResult = "OK — \(reply) (\(elapsed) ms)"
-            } else {
-                testResult = "OK (\(elapsed) ms)"
+        probeGeneration += 1
+        let generation = probeGeneration
+
+        probeTask = Task {
+            let outcome = await ConnectionProbe(config: config).run()
+            guard generation == probeGeneration else { return }
+            probeTask = nil
+            isTesting = false
+            switch outcome {
+            case .success(let latencyMs, let reply):
+                let elapsed = String(format: "%.2f", latencyMs)
+                if let reply, reply != "PONG" {
+                    testResult = "OK — \(reply) (\(elapsed) ms)"
+                } else {
+                    testResult = "OK (\(elapsed) ms)"
+                }
+            case .failure(let message):
+                testResult = "Failed — \(message)"
+            case .cancelled:
+                break
             }
-        case .failure(let message):
-            testResult = "Failed — \(message)"
         }
+    }
+
+    private func cancelConnectionProbe() {
+        probeTask?.cancel()
     }
 }
