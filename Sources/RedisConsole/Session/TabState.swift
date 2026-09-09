@@ -66,37 +66,19 @@ class TabState {
     var scanCursor: String = "0"
     var hasMoreKeys = true
     var keyFilter: String = "*"
-    /// True while `loadBrowserPreferences()` restores persisted values, so the
-    /// `didSet` hooks below don't write them straight back to UserDefaults.
-    @ObservationIgnored
-    var isRestoringPreferences = false
     var keyTypeFilter: String = "" {
-        didSet {
-            guard !isRestoringPreferences else { return }
-            keyNamespaceTreeCache = nil
-            saveBrowserPreferences()
-        }
+        didSet { keyNamespaceTreeCache = nil }
     }
     var keyScanCount = 500
     var keyTotalCount: Int?
     var keyScannedCount = 0
     var keyScanIterationCount = 0
     var keyScanLimitReached = false
-    var isNamespaceGroupingEnabled = false {
-        didSet {
-            guard !isRestoringPreferences else { return }
-            saveBrowserPreferences()
-        }
-    }
+    var isNamespaceGroupingEnabled = false
     var namespaceSeparator = ":" {
         didSet { keyNamespaceTreeCache = nil }
     }
-    var stringValueFormat: StringValueFormat = .json {
-        didSet {
-            guard !isRestoringPreferences else { return }
-            saveBrowserPreferences()
-        }
-    }
+    var stringValueFormat: StringValueFormat = .json
     var keyDetailLastRefreshedAt: Date?
 
     var shellHistory: [ShellHistoryEntry] = []
@@ -176,10 +158,6 @@ class TabState {
     let stringDetailTruncationLimit = 1_000_000
     let keyPatternScanIterationLimit = 1_000
     let shellHistoryLimit = 200
-
-    init() {
-        loadBrowserPreferences()
-    }
 
     var windowTitle: String {
         if let config = selectedConnection {

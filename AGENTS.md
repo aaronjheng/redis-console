@@ -34,7 +34,7 @@ Outer layers may use inner layers, never the reverse:
 - Errors use the unified `RedisError` enum conforming to `LocalizedError`.
 - Dangerous operations on production environments require confirmation via `ProductionConfirmView` by typing a keyword.
 - Construct tunnels and Redis sessions only through the shared factories `SSHTunnel.connect` and `makeRedisSession`; target cluster capabilities through `RedisSession` (`mode`, `clusterNodes()`, `send(_:to:)`), never `as? RedisClusterClient` downcasts.
-- UserDefaults access lives only in the per-area persistence types (`ConnectionStore`, `ShellHistoryStore`, `BrowserPreferencesStore`, `AppAppearance`); `State/` extensions go through them.
+- App-level configuration lives in `settings.json` in Application Support, owned solely by `SettingsStore`. It is local file storage with no sync today; if sync is ever needed it must be designed explicitly per item. `UserDefaults` holds only AppKit-managed UI state (split positions, panel geometry), enforced by the `no_direct_userdefaults` SwiftLint rule. `State/` extensions read settings through `SettingsStore.shared`.
 - Swift `private` is file-scoped: when a type is split across files, members shared by those files must drop `private` (stay module-internal); keep `private` for within-file helpers.
 
 ## Git Workflow

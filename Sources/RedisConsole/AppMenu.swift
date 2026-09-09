@@ -12,6 +12,11 @@ extension AppDelegate {
             action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
             keyEquivalent: "")
         appMenu.addItem(.separator())
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.keyEquivalentModifierMask = [.command]
+        settingsItem.target = self
+        appMenu.addItem(settingsItem)
+        appMenu.addItem(.separator())
         appMenu.addItem(
             withTitle: "Quit Redis Console",
             action: #selector(NSApplication.terminate(_:)),
@@ -74,7 +79,7 @@ extension AppDelegate {
         fsItem.keyEquivalentModifierMask = [.command, .control]
         viewMenu.addItem(fsItem)
         viewMenu.addItem(.separator())
-        let currentAppearance = AppAppearance.current
+        let currentAppearance = AppAppearance(rawValue: SettingsStore.shared.settings.appearance) ?? .system
         for appearance in AppAppearance.allCases {
             let item = NSMenuItem(
                 title: appearance.name,

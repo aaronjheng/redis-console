@@ -45,4 +45,8 @@ enum AppSize {
     /// Height of a default rounded-border text field; `FilterField` icon
     /// buttons use it so their hover wash matches the field height.
     static let filterFieldHeight: CGFloat = 22
+    /// Fixed width of the settings sidebar column.
+    static let settingsSidebarWidth: CGFloat = 215
+    /// Minimum width of the settings detail column.
+    static let settingsDetailMinimumWidth: CGFloat = 420
 }

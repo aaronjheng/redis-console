@@ -22,12 +22,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var stateToWindow: [UUID: NSWindow] = [:]
     let tabShortcutLimit = 9
     private var tabRefreshScheduled = false
+    private var settingsWindow: NSWindow?
+    private var settingsToolbarController: SettingsToolbarController?
     private let delegateManager = WindowDelegateManager()
+
+    private var currentAppearance: AppAppearance {
+        AppAppearance(rawValue: SettingsStore.shared.settings.appearance) ?? .system
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
-        AppAppearance.current.apply()
+        currentAppearance.apply()
         buildMenuBar()
         NotificationCenter.default.addObserver(
             self,
@@ -37,7 +43,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         openNewTab()
         if let window = NSApp.keyWindow {
-            AppAppearance.current.applyToWindow(window)
+            currentAppearance.applyToWindow(window)
         }
     }
 
@@ -72,19 +78,52 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.keyWindow?.toggleFullScreen(nil)
     }
 
+    @objc func openSettings() {
+        if let settingsWindow {
+            settingsWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate()
+            return
+        }
+        let navigation = SettingsNavigationState()
+        let split = SettingsSplitViewController(
+            sidebar: SettingsSidebarView().environment(navigation),
+            detail: SettingsView().environment(navigation)
+        )
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 780, height: 520),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = split
+        window.tabbingMode = .disallowed
+        window.minSize = NSSize(width: 780, height: 520)
+        window.setContentSize(NSSize(width: 780, height: 520))
+        let toolbarController = SettingsToolbarController(navigation: navigation)
+        toolbarController.install(in: window)
+        settingsToolbarController = toolbarController
+        window.center()
+        currentAppearance.applyToWindow(window)
+        settingsWindow = window
+        window.makeKeyAndOrderFront(nil)
+    }
+
     @objc func setAppearance(_ sender: NSMenuItem) {
         guard let appearance = AppAppearance(rawValue: sender.tag) else { return }
+        SettingsStore.shared.settings.appearance = appearance.rawValue
+        SettingsStore.shared.save()
         appearance.apply()
         for window in NSApp.windows {
             appearance.applyToWindow(window)
         }
-        if let menu = sender.menu {
-            for item in menu.items where item.tag >= 0 {
-                item.state = item.tag == sender.tag ? .on : .off
-            }
-        }
     }
 
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(setAppearance(_:)) {
+            menuItem.state = menuItem.tag == SettingsStore.shared.settings.appearance ? .on : .off
+        }
+        return true
+    }
     @objc func newWindowForTab(_ sender: Any?) {
         openNewTab()
     }
@@ -137,7 +176,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
         }
 
-        AppAppearance.current.applyToWindow(window)
+        currentAppearance.applyToWindow(window)
         stateToWindow[state.id] = window
         requestTabChromeRefresh()
 
