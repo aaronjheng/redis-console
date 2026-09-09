@@ -214,8 +214,11 @@ struct OptionsPicker<Option: Hashable & Sendable>: View {
                 Button {
                     selection = option
                 } label: {
-                    Text(label(option))
-                        .foregroundStyle(selection == option ? .primary : .secondary)
+                    if selection == option {
+                        Label(label(option), systemImage: "checkmark")
+                    } else {
+                        Text(label(option))
+                    }
                 }
             }
         } label: {
