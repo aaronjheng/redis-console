@@ -3,15 +3,6 @@ import Foundation
 extension TabState {
     // MARK: - Slow Log
 
-    func loadSlowLogConfig() {
-        guard let config = SlowLogConfigStore.load(connectionID: selectedConnection?.id) else { return }
-        slowLogConfig = config
-    }
-
-    func saveSlowLogConfig() {
-        SlowLogConfigStore.save(slowLogConfig, connectionID: selectedConnection?.id)
-    }
-
     func fetchSlowLog() async {
         guard let client = activeSession, client.isConnected else { return }
         isLoadingSlowLog = true

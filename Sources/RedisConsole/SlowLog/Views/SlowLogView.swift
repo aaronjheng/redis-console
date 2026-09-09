@@ -32,9 +32,6 @@ struct SlowLogView: View {
                 ) {
                     Task { await tab.fetchSlowLog() }
                 }
-                .onChange(of: tab.slowLogConfig) { _, _ in
-                    tab.saveSlowLogConfig()
-                }
             }
             .panelToolbar()
 
@@ -125,9 +122,8 @@ struct SlowLogView: View {
             }
         }
         .task(id: tab.slowLogConfig.autoRefreshInterval) {
-            // Restore persisted settings, fetch once, then keep the refresh
-            // loop alive. Changing the interval restarts this task.
-            tab.loadSlowLogConfig()
+            // Fetch once, then keep the refresh loop alive while an interval
+            // is set. Changing the interval restarts this task.
             await tab.fetchSlowLog()
             let interval = tab.slowLogConfig.autoRefreshInterval
             guard interval > 0 else { return }

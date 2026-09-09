@@ -851,7 +851,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>62018E143519C8A52180B43A</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -1651,7 +1650,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>62018E143519C8A52180B43A</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -2483,7 +2481,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>62018E143519C8A52180B43A</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -3328,7 +3325,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>62018E143519C8A52180B43A</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -4117,7 +4113,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>62018E143519C8A52180B43A</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -4921,7 +4916,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>62018E143519C8A52180B43A</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -5688,7 +5682,6 @@
 		<dict>
 			<key>children</key>
 			<array>
-				<string>62018E143519C8A52180B43A</string>
 			</array>
 			<key>isa</key>
 			<string>PBXGroup</string>
@@ -5796,24 +5789,6 @@
 		<dict>
 			<key>fileRef</key>
 			<string>CF5397B5CBA0AA9E10349C97</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-		</dict>
-		<key>62018E143519C8A52180B43A</key>
-		<dict>
-			<key>isa</key>
-			<string>PBXFileReference</string>
-			<key>lastKnownFileType</key>
-			<string>sourcecode.swift</string>
-			<key>path</key>
-			<string>SlowLogConfigStore.swift</string>
-			<key>sourceTree</key>
-			<string>&lt;group&gt;</string>
-		</dict>
-		<key>FC0C94BDD7BFAD96380B322A</key>
-		<dict>
-			<key>fileRef</key>
-			<string>62018E143519C8A52180B43A</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 		</dict>
@@ -8212,7 +8187,6 @@
 				<string>3AFB60CC0AD3DCDB2ABE6892</string>
 				<string>BD569051324F65466B7931B0</string>
 				<string>D97AB2F74DFD44364F196048</string>
-				<string>FC0C94BDD7BFAD96380B322A</string>
 				<string>571113050C3184EB82A8A8C1</string>
 				<string>A21756879C22D68704AAE5E9</string>
 				<string>4765267BE4803FE9BFAD6815</string>

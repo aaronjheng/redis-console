@@ -29,9 +29,13 @@ struct SlowLogEntry: Identifiable, Sendable {
     }
 }
 
-struct SlowLogConfig: Codable, Equatable {
+/// In-memory viewing parameters for the slow-log panel. Nothing here is
+/// persisted: `threshold` only feeds the empty-state hint and
+/// `autoRefreshInterval` is transient "am I watching" state.
+struct SlowLogConfig: Equatable {
     var threshold: Int = 10_000  // microseconds
-    var maxLen: Int = 128
+    /// Transient UI state ("am I watching right now"): every launch starts
+    /// with polling off.
     var autoRefreshInterval: TimeInterval = 0  // 0 = disabled
 
     static let autoRefreshOptions: [(title: String, value: TimeInterval)] = [
