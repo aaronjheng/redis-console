@@ -8,7 +8,7 @@ struct PersistentSplitView<Left: View, Right: View>: NSViewControllerRepresentab
     let rightMinWidth: CGFloat
 
     init(
-        autosaveName: String = "com.redisconsole.browserSplit",
+        autosaveName: String = "redis.console.browserSplit",
         leftMinWidth: CGFloat = 250,
         rightMinWidth: CGFloat = 250,
         @ViewBuilder left: () -> Left,

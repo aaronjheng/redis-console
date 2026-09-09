@@ -4,7 +4,7 @@ import Foundation
 
 /// UserDefaults-backed gateway for the per-connection slow-log view config.
 ///
-/// Owns the key scheme (`com.redisconsole.slowlog.<connection-UUID>`, with a
+/// Owns the key scheme (`redis.console.slowlog.<connection-UUID>`, with a
 /// `.default` fallback before any connection is selected) so `TabState` only
 /// maps between this DTO and its live property.
 enum SlowLogConfigStore {
@@ -22,7 +22,7 @@ enum SlowLogConfigStore {
     }
 
     private static func key(connectionID: UUID?) -> String {
-        guard let connectionID else { return "com.redisconsole.slowlog.default" }
-        return "com.redisconsole.slowlog.\(connectionID.uuidString)"
+        guard let connectionID else { return "redis.console.slowlog.default" }
+        return "redis.console.slowlog.\(connectionID.uuidString)"
     }
 }

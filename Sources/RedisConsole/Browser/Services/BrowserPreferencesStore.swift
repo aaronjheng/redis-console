@@ -14,7 +14,7 @@ enum BrowserPreferencesStore {
         var namespaceSeparator: String
     }
 
-    private static let key = "com.redisconsole.browserPreferences"
+    private static let key = "redis.console.browserPreferences"
 
     /// Returns `nil` when nothing is stored or the blob is corrupt, so
     /// defaults apply until the next save.

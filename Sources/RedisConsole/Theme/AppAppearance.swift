@@ -5,7 +5,7 @@ enum AppAppearance: Int, CaseIterable {
     case light = 1
     case dark = 2
 
-    private static let userDefaultsKey = "com.redisconsole.appearance"
+    private static let userDefaultsKey = "redis.console.appearance"
 
     var name: String {
         switch self {

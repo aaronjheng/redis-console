@@ -179,7 +179,7 @@ struct FunctionsView: View {
             Spacer()
         } else {
             PersistentSplitView(
-                autosaveName: "com.redisconsole.functionsSplit",
+                autosaveName: "redis.console.functionsSplit",
                 leftMinWidth: 220,
                 rightMinWidth: 320
             ) {
