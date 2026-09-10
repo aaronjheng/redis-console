@@ -244,7 +244,8 @@ struct AddKeySheet: View {
 
     private var header: some View {
         HStack(spacing: AppSpacing.small) {
-            Image(systemName: "plus.circle")
+            Image(systemName: "plus.circle.fill")
+                .font(.title3)
                 .foregroundStyle(.tint)
             Text("Add Key")
                 .font(.headline)
@@ -252,7 +253,7 @@ struct AddKeySheet: View {
             Button {
                 onCancel()
             } label: {
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: "xmark")
             }
             .buttonStyle(IconButtonStyle())
             .foregroundStyle(.secondary)

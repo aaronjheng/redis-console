@@ -64,7 +64,8 @@ struct FunctionCallView: View {
 
     private var header: some View {
         HStack(spacing: AppSpacing.small) {
-            Image(systemName: "play.circle")
+            Image(systemName: "play.circle.fill")
+                .font(.title3)
                 .foregroundStyle(.tint)
             Text("Call Function")
                 .font(.headline)
@@ -72,7 +73,7 @@ struct FunctionCallView: View {
             Button {
                 dismiss()
             } label: {
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: "xmark")
             }
             .buttonStyle(IconButtonStyle())
             .foregroundStyle(.secondary)
