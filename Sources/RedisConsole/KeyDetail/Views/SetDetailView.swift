@@ -24,7 +24,7 @@ struct SetDetailView: View {
     @State private var productionConfirmText = ""
 
     private var setEntries: [SetEntry] {
-        rows.map { SetEntry(member: $0.0) }
+        rows.map { SetEntry(member: $0.1) }
     }
 
     var body: some View {
