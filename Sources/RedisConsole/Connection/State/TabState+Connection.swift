@@ -190,7 +190,7 @@ extension TabState {
     /// without stale data from the previous one. Shared by `disconnect()` and
     /// `cancelConnection()` to keep both paths consistent.
     private func resetForDisconnect() {
-        // Key browser
+        // Keys
         keys = []
         selectedKey = nil
         scanCursor = "0"

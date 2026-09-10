@@ -21,7 +21,7 @@ struct ShellView: View {
     ]
 
     /// Commands that require confirmation in ALL environments, including non-production.
-    /// Key deletes always confirm, matching the Browser delete flow.
+    /// Key deletes always confirm, matching the Keys delete flow.
     private let alwaysConfirmCommands: Set<String> = [
         "FLUSHDB", "FLUSHALL", "FLUSHDB ASYNC", "FLUSHALL ASYNC", "SHUTDOWN", "SWAPDB",
         "DEL", "UNLINK",

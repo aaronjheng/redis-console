@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Navigation
 
 enum WorkspaceSection: String, CaseIterable {
-    case browser = "Browser"
+    case keys = "Keys"
     case functions = "Functions"
     case shell = "Shell"
     case profiler = "Profiler"
@@ -13,7 +13,7 @@ enum WorkspaceSection: String, CaseIterable {
 
     var icon: String {
         switch self {
-        case .browser: return "key"
+        case .keys: return "key"
         case .functions: return "curlybraces"
         case .shell: return "terminal"
         case .profiler: return "waveform.path.ecg"

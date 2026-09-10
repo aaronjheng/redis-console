@@ -129,7 +129,7 @@ class TabState {
     var functionCallHistory: [RedisFunctionCallResult] = []
     var isCallingFunction = false
 
-    var currentSection: WorkspaceSection = .browser
+    var currentSection: WorkspaceSection = .keys
     var connectionPanel: ConnectionPanel = .welcome
 
     var connectTask: Task<Void, Never>?

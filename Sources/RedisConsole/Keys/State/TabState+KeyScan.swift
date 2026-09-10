@@ -3,7 +3,7 @@ import Darwin
 import Foundation
 
 extension TabState {
-    // MARK: - Key Browser
+    // MARK: - Keys
 
     /// Memoized namespace tree for the current keys/filter/separator.
     func namespaceTree(for entries: [RedisKeyEntry]) -> KeyNamespaceTree {
@@ -151,7 +151,7 @@ extension TabState {
             keyTotalCount = try await client.totalKeyCount()
         } catch {
             keyTotalCount = nil
-            AppLogger.debug("failed to load key total: \(error)", category: "Browser")
+            AppLogger.debug("failed to load key total: \(error)", category: "Keys")
         }
     }
 

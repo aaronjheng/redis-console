@@ -2,10 +2,10 @@ import Foundation
 
 // MARK: - Add Key
 
-/// Creation flow for new keys from the browser's Add-Key sheet: existence
+/// Creation flow for new keys from the Keys pane's Add-Key sheet: existence
 /// check, per-type validation and creation (string/list/hash/set/zset), then
 /// selection of the created key.
-extension BrowserView {
+extension KeysView {
     func addKey(name: String, type: String, value: String) async {
         guard let client = tab.activeSession else { return }
         do {

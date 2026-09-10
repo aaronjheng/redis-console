@@ -4,7 +4,7 @@ import SwiftUI
 // MARK: - Production Confirmation
 
 /// A typed-confirmation sheet for consequential actions on production databases.
-/// Shared by Browser, Key Detail views, and Function Library views.
+/// Shared by Keys, Key Detail views, and Function Library views.
 struct ProductionConfirmView: View {
     let title: String
     let message: String

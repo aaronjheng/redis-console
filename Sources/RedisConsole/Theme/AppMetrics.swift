@@ -31,7 +31,7 @@ enum AppSize {
     /// Sized to fit the longest label ("Value") with a small margin.
     static let formLabelWidthCompact: CGFloat = 40
     static let footerHeight: CGFloat = 34
-    /// Unified minimum height for panel toolbars/headers (Browser, Shell, Profiler, Slow Log, Analysis, Server Info).
+    /// Unified minimum height for panel toolbars/headers (Keys, Shell, Profiler, Slow Log, Analysis, Server Info).
     /// Applied as a `minHeight` so headers stay consistent while still growing to fit taller content.
     static let toolbarHeight: CGFloat = 44
     static let refreshControlHeight: CGFloat = 28

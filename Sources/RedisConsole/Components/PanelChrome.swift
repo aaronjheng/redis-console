@@ -37,7 +37,7 @@ struct PanelFooterBar<Content: View>: View {
     }
 }
 
-/// Standard layout for panel toolbars/headers (Browser, Shell, Profiler, Slow Log, Analysis, Server Info).
+/// Standard layout for panel toolbars/headers (Keys, Shell, Profiler, Slow Log, Analysis, Server Info).
 /// Enforces a consistent minimum height while still letting a header grow to fit taller content.
 struct PanelToolbarModifier: ViewModifier {
     var horizontalPadding: CGFloat = AppSpacing.large

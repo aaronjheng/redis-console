@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Key Lists
 
-/// Flat and namespace-grouped key lists for the browser's left panel.
+/// Flat and namespace-grouped key lists for the Keys pane's left panel.
 private func scrollToKey(_ key: String?, using proxy: ScrollViewProxy) {
     guard let key else { return }
     proxy.scrollTo(key, anchor: .top)

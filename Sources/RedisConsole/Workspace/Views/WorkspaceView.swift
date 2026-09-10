@@ -8,7 +8,7 @@ struct WorkspaceView: View {
     var body: some View {
         Group {
             switch tab.currentSection {
-            case .browser: BrowserView().transition(.opacity)
+            case .keys: KeysView().transition(.opacity)
             case .functions: FunctionsView().transition(.opacity)
             case .shell: ShellView().transition(.opacity)
             case .profiler: ProfilerView().transition(.opacity)

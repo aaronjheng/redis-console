@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct BrowserView: View {
+struct KeysView: View {
     @Environment(TabState.self) var tab
     @State private var searchText = ""
     @State private var showingAddKey = false
@@ -159,7 +159,7 @@ struct BrowserView: View {
 
                     PanelFooterBar {
                         StatusFooterView(
-                            countText: browserFooterText(displayedCount: filteredKeys.count)
+                            countText: keysFooterText(displayedCount: filteredKeys.count)
                         )
                         Spacer()
                     }
@@ -310,7 +310,7 @@ struct BrowserView: View {
         }
     }
 
-    func browserFooterText(displayedCount: Int) -> String {
+    func keysFooterText(displayedCount: Int) -> String {
         let totalText = tab.keyTotalCount.map(String.init) ?? "unknown"
         let limitText = tab.keyScanLimitReached ? " · threshold reached" : ""
         let loadedText = "\(tab.keys.count) of \(totalText) loaded\(limitText)"
