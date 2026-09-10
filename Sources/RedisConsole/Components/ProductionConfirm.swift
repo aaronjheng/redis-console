@@ -9,7 +9,7 @@ struct ProductionConfirmView: View {
     let title: String
     let message: String
     let confirmText: String
-    /// Title of the destructive confirm button, e.g. `Delete "mykey"`, `Save`, `Load`.
+    /// Title of the destructive confirm button, e.g. `Delete`, `Save`, `Load`.
     /// Always names the action so it never contradicts the title.
     let confirmButtonTitle: String
     @Binding var input: String

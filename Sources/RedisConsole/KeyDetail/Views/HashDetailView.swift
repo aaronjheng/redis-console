@@ -114,7 +114,7 @@ struct HashDetailView: View {
             pendingSearchText = newValue
         }
         .confirmationDialog(
-            "Delete Field?",
+            "Delete Field",
             isPresented: Binding(
                 get: { fieldPendingDeletion != nil && !isProduction },
                 set: { if !$0 { fieldPendingDeletion = nil } }
@@ -122,7 +122,7 @@ struct HashDetailView: View {
             titleVisibility: .visible
         ) {
             if let field = fieldPendingDeletion {
-                Button("Delete \"\(field)\"", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     onDeleteField(field)
                     fieldPendingDeletion = nil
                 }
@@ -146,10 +146,10 @@ struct HashDetailView: View {
         ) {
             if let field = fieldPendingDeletion {
                 ProductionConfirmView(
-                    title: "Delete Field?",
+                    title: "Delete Field",
                     message: "This permanently deletes field \"\(field)\" from \"\(key)\".",
                     confirmText: "DELETE",
-                    confirmButtonTitle: "Delete \"\(field)\"",
+                    confirmButtonTitle: "Delete",
                     input: $productionConfirmText,
                     onConfirm: {
                         onDeleteField(field)

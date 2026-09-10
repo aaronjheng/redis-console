@@ -181,7 +181,7 @@ struct BrowserView: View {
             )
         }
         .confirmationDialog(
-            "Delete Key?",
+            "Delete Key",
             isPresented: Binding(
                 get: { keyPendingDeletion != nil && !isProduction },
                 set: { isPresented in
@@ -191,7 +191,7 @@ struct BrowserView: View {
             titleVisibility: .visible
         ) {
             if let key = keyPendingDeletion {
-                Button("Delete \"\(key.key)\"", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     Task { await tab.deleteKey(key) }
                     keyPendingDeletion = nil
                     deleteFeedbackTrigger.toggle()
@@ -216,10 +216,10 @@ struct BrowserView: View {
         ) {
             if let key = keyPendingDeletion {
                 ProductionConfirmView(
-                    title: "Delete Key?",
+                    title: "Delete Key",
                     message: "This permanently deletes \(key.key).",
                     confirmText: "DELETE",
-                    confirmButtonTitle: "Delete \"\(key.key)\"",
+                    confirmButtonTitle: "Delete",
                     input: $productionConfirmText,
                     onConfirm: {
                         Task { await tab.deleteKey(key) }

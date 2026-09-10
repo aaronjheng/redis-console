@@ -137,7 +137,7 @@ struct ZSetDetailView: View {
             pendingSearchText = newValue
         }
         .confirmationDialog(
-            "Delete Member?",
+            "Delete Member",
             isPresented: Binding(
                 get: { memberPendingDeletion != nil && !isProduction },
                 set: { if !$0 { memberPendingDeletion = nil } }
@@ -145,7 +145,7 @@ struct ZSetDetailView: View {
             titleVisibility: .visible
         ) {
             if let member = memberPendingDeletion {
-                Button("Delete \"\(member)\"", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     onDeleteMember(member)
                     memberPendingDeletion = nil
                 }
@@ -169,10 +169,10 @@ struct ZSetDetailView: View {
         ) {
             if let member = memberPendingDeletion {
                 ProductionConfirmView(
-                    title: "Delete Member?",
+                    title: "Delete Member",
                     message: "This permanently deletes member \"\(member)\" from \"\(key)\".",
                     confirmText: "DELETE",
-                    confirmButtonTitle: "Delete \"\(member)\"",
+                    confirmButtonTitle: "Delete",
                     input: $productionConfirmText,
                     onConfirm: {
                         onDeleteMember(member)

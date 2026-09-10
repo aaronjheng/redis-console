@@ -50,7 +50,7 @@ struct FunctionsView: View {
             LuaEditorView(mode: .create)
         }
         .confirmationDialog(
-            "Delete library \"\(libraryPendingDeletion?.name ?? "")\"?",
+            "Delete library \"\(libraryPendingDeletion?.name ?? "")\"",
             isPresented: Binding(
                 get: { libraryPendingDeletion != nil && !isProduction },
                 set: { isPresented in
@@ -60,7 +60,7 @@ struct FunctionsView: View {
             titleVisibility: .visible
         ) {
             if let library = libraryPendingDeletion {
-                Button("Delete \"\(library.name)\"", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     Task {
                         do {
                             try await tab.deleteFunctionLibrary(name: library.name)
@@ -94,13 +94,13 @@ struct FunctionsView: View {
         ) {
             if let library = libraryPendingDeletion {
                 ProductionConfirmView(
-                    title: "Delete library \"\(library.name)\"?",
+                    title: "Delete library \"\(library.name)\"",
                     message: (library.nodes ?? []).isEmpty
                         ? "This will permanently delete the library. This action cannot be undone."
                         : "This will permanently delete the library from \((library.nodes ?? []).count)"
                             + "primary node(s). This action cannot be undone.",
                     confirmText: "DELETE",
-                    confirmButtonTitle: "Delete \"\(library.name)\"",
+                    confirmButtonTitle: "Delete",
                     input: $productionConfirmText,
                     onConfirm: {
                         Task {

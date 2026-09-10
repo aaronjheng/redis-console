@@ -125,7 +125,7 @@ struct ListDetailView: View {
             }
         }
         .confirmationDialog(
-            "Delete Element?",
+            "Delete Element",
             isPresented: Binding(
                 get: { elementPendingDeletion != nil && !isProduction },
                 set: { if !$0 { elementPendingDeletion = nil } }
@@ -133,7 +133,7 @@ struct ListDetailView: View {
             titleVisibility: .visible
         ) {
             if let row = elementPendingDeletion {
-                Button("Delete Element \(row.index)", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     onDeleteElement(row.index, row.value)
                     elementPendingDeletion = nil
                 }
@@ -157,10 +157,10 @@ struct ListDetailView: View {
         ) {
             if let row = elementPendingDeletion {
                 ProductionConfirmView(
-                    title: "Delete Element?",
+                    title: "Delete Element",
                     message: "This permanently deletes element at index \(row.index) from \"\(key)\".",
                     confirmText: "DELETE",
-                    confirmButtonTitle: "Delete Element \(row.index)",
+                    confirmButtonTitle: "Delete",
                     input: $productionConfirmText,
                     onConfirm: {
                         onDeleteElement(row.index, row.value)

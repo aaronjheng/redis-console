@@ -117,7 +117,7 @@ struct ConnectionHubSidebarView: View {
             .flatSidebarBackground()
         }
         .confirmationDialog(
-            "Delete Connection?",
+            "Delete Connection",
             isPresented: Binding(
                 get: { connectionPendingDeletion != nil },
                 set: { if !$0 { connectionPendingDeletion = nil } }
@@ -125,7 +125,7 @@ struct ConnectionHubSidebarView: View {
             titleVisibility: .visible
         ) {
             if let config = connectionPendingDeletion {
-                Button("Delete \"\(config.name)\"", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     store.deleteConnection(config)
                     if tab.selectedConnection?.id == config.id {
                         tab.selectedConnection = nil
