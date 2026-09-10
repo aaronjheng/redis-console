@@ -120,7 +120,7 @@ struct ServerInfoView: View {
                     firstHelp: "List view",
                     secondHelp: "Topology view",
                     firstLabel: { Image(systemName: "list.bullet") },
-                    secondLabel: { Image(systemName: "circle.hexagongrid") }
+                    secondLabel: { Image(systemName: "square.grid.2x2") }
                 )
                 .frame(width: 64)
             }

@@ -79,6 +79,8 @@ private struct ToggleButton<Label: View>: View {
     var body: some View {
         Button(action: action) {
             label
+                .font(.system(size: 13, weight: .medium))
+                .imageScale(.medium)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
         }

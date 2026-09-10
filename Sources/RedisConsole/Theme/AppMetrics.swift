@@ -34,9 +34,9 @@ enum AppSize {
     /// Unified minimum height for panel toolbars/headers (Browser, Shell, Profiler, Slow Log, Analysis, Server Info).
     /// Applied as a `minHeight` so headers stay consistent while still growing to fit taller content.
     static let toolbarHeight: CGFloat = 44
-    static let refreshControlHeight: CGFloat = 22
-    static let refreshButtonWidth: CGFloat = 26
-    static let refreshSeparatorHeight: CGFloat = 14
+    static let refreshControlHeight: CGFloat = 28
+    static let refreshButtonWidth: CGFloat = 32
+    static let refreshSeparatorHeight: CGFloat = 16
     /// Unified width for the small type/engine badge in key and library rows.
     static let typeBadgeWidth: CGFloat = 64
     /// Horizontal inset of the native sidebar selection rect, mirrored by

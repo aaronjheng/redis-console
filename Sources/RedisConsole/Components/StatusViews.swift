@@ -180,7 +180,9 @@ struct RefreshControl: View {
         } label: {
             Label("Refresh", systemImage: "arrow.clockwise")
                 .labelStyle(.iconOnly)
-                .font(.caption)
+                .font(.system(size: 13, weight: .medium))
+                .imageScale(.medium)
+                .foregroundStyle(.primary)
                 .frame(width: AppSize.refreshButtonWidth, height: AppSize.refreshControlHeight)
                 .contentShape(Rectangle())
                 .background(
@@ -232,12 +234,13 @@ struct RefreshControl: View {
             HStack(spacing: AppSpacing.xxSmall) {
                 if isAutoRefreshEnabled {
                     Text(Self.intervalTitle(autoRefreshInterval))
-                        .font(.caption2)
+                        .font(.system(size: 11, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(.tint)
                 }
                 Image(systemName: "chevron.down")
-                    .font(.caption2)
+                    .font(.system(size: 11, weight: .semibold))
+                    .imageScale(.medium)
                     .foregroundStyle(isMenuHovering && !isLoading ? .primary : .secondary)
             }
             .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
