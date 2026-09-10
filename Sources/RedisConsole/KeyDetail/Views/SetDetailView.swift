@@ -47,7 +47,8 @@ struct SetDetailView: View {
                 TableColumn("Actions") { row in
                     DeleteIconButton(
                         action: { memberPendingDeletion = row.member },
-                        helpText: "Delete member"
+                        helpText: "Delete member",
+                        size: .row
                     )
                 }
                 .width(60)
@@ -60,7 +61,6 @@ struct SetDetailView: View {
                     onAddMember()
                 }
                 .labelStyle(.iconOnly)
-                .font(.body)
                 .buttonStyle(IconButtonStyle())
                 .help("Add member")
 

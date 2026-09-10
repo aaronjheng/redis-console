@@ -66,12 +66,13 @@ struct HashDetailView: View {
                             editValue = row.value
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(IconButtonStyle())
+                        .buttonStyle(IconButtonStyle(size: .row))
                         .help("Edit field")
 
                         DeleteIconButton(
                             action: { fieldPendingDeletion = row.field },
-                            helpText: "Delete field"
+                            helpText: "Delete field",
+                            size: .row
                         )
                     }
                 }
@@ -85,8 +86,11 @@ struct HashDetailView: View {
                     onAddField()
                 }
                 .labelStyle(.iconOnly)
-                .font(.body)
-                .buttonStyle(IconButtonStyle())
+                .font(.system(size: 13, weight: .medium))
+                .imageScale(.medium)
+                .buttonStyle(.borderless)
+                .padding(AppSpacing.xxSmall)
+                .hoverBackground()
                 .help("Add field")
 
                 if hasMoreRows {

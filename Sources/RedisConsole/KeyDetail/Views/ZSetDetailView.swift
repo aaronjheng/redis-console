@@ -93,12 +93,13 @@ struct ZSetDetailView: View {
                             editScore = row.score
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(IconButtonStyle())
+                        .buttonStyle(IconButtonStyle(size: .row))
                         .help("Edit score")
 
                         DeleteIconButton(
                             action: { memberPendingDeletion = row.member },
-                            helpText: "Delete member"
+                            helpText: "Delete member",
+                            size: .row
                         )
                     }
                 }
@@ -112,7 +113,6 @@ struct ZSetDetailView: View {
                     onAddMember()
                 }
                 .labelStyle(.iconOnly)
-                .font(.body)
                 .buttonStyle(IconButtonStyle())
                 .help("Add member")
 

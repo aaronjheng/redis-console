@@ -116,10 +116,12 @@ struct Card<Content: View>: View {
 struct DeleteIconButton: View {
     let action: () -> Void
     var helpText: String?
+    var size: IconButtonSize = .regular
 
-    init(action: @escaping () -> Void, helpText: String? = nil) {
+    init(action: @escaping () -> Void, helpText: String? = nil, size: IconButtonSize = .regular) {
         self.action = action
         self.helpText = helpText
+        self.size = size
     }
 
     var body: some View {
@@ -127,7 +129,7 @@ struct DeleteIconButton: View {
             action()
         }
         .labelStyle(.iconOnly)
-        .buttonStyle(IconButtonStyle(isDestructive: true))
+        .buttonStyle(IconButtonStyle(isDestructive: true, size: size))
         // Custom ButtonStyles can't see the button role, so the red must
         // be explicit — otherwise the icon renders in primary.
         .foregroundStyle(.red)

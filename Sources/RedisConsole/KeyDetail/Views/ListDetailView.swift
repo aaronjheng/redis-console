@@ -87,12 +87,13 @@ struct ListDetailView: View {
                             editValue = row.value
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(IconButtonStyle())
+                        .buttonStyle(IconButtonStyle(size: .row))
                         .help("Edit element")
 
                         DeleteIconButton(
                             action: { elementPendingDeletion = row },
-                            helpText: "Delete element"
+                            helpText: "Delete element",
+                            size: .row
                         )
                     }
                 }
@@ -106,7 +107,6 @@ struct ListDetailView: View {
                     onAddElement()
                 }
                 .labelStyle(.iconOnly)
-                .font(.body)
                 .buttonStyle(IconButtonStyle())
                 .help("Add element")
 

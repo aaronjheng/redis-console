@@ -93,19 +93,46 @@ struct ToolbarButtonStyle: ButtonStyle {
 /// Icon-only button with explicit hover + press feedback.
 /// Use in place of `.buttonStyle(.borderless)` for toolbar icons, row actions,
 /// and dismiss buttons so hit areas are discoverable on hover.
+/// Sizing for `IconButtonStyle`: total height is frame + padding so each
+/// variant pairs with its neighbors — regular (28pt) matches
+/// `RefreshControl`, row is glyph-sized so `Table` rows keep text height
+/// instead of being stretched by their action buttons.
+enum IconButtonSize: Sendable {
+    case regular
+    case row
+
+    /// Fixed inner frame; nil sizes to the glyph.
+    var minSide: CGFloat? {
+        switch self {
+        case .regular: return 20
+        case .row: return nil
+        }
+    }
+
+    var padding: CGFloat {
+        switch self {
+        case .regular: return AppSpacing.xSmall
+        case .row: return AppSpacing.xxSmall
+        }
+    }
+}
+
 struct IconButtonStyle: ButtonStyle {
     var isDestructive = false
+    var size: IconButtonSize = .regular
     @State private var isHovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .labelStyle(.iconOnly)
-            .padding(AppSpacing.xxSmall)
+            .font(.system(size: 13, weight: .medium))
+            .imageScale(.medium)
+            .frame(minWidth: size.minSide ?? 0, minHeight: size.minSide ?? 0)
+            .padding(size.padding)
             .background(
-                hoverBackground(isPressed: configuration.isPressed)
+                hoverBackground(isPressed: configuration.isPressed),
+                in: RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
             )
-            .clipShape(RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous))
-            .contentShape(Rectangle())
             .brightness(configuration.isPressed ? -0.06 : 0)
             .scaleEffect(configuration.isPressed ? 0.95 : 1)
             .onHover { isHovering = $0 }
