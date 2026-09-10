@@ -276,3 +276,43 @@ struct RefreshControl: View {
         Text(checked ? "\(text)  \u{2713}" : text)
     }
 }
+
+/// Standalone refresh button using the same styling as `RefreshControl`'s
+/// button, for places that only need a manual refresh (no auto-refresh menu).
+struct RefreshButton: View {
+    let isLoading: Bool
+    let onRefresh: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: onRefresh) {
+            Label("Refresh", systemImage: "arrow.clockwise")
+                .labelStyle(.iconOnly)
+                .font(.system(size: 13, weight: .medium))
+                .imageScale(.medium)
+                .foregroundStyle(.primary)
+                .frame(width: AppSize.refreshButtonWidth, height: AppSize.refreshControlHeight)
+                .contentShape(Rectangle())
+                .background(
+                    isHovering && !isLoading
+                        ? Color.primary.opacity(0.08)
+                        : Color.clear
+                )
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+        .onHover { isHovering = $0 }
+        .help("Refresh")
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                .fill(.background.secondary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                .strokeBorder(.separator, lineWidth: 0.5)
+        )
+        .opacity(isLoading ? 0.5 : 1)
+    }
+}

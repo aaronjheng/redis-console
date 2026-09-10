@@ -131,19 +131,6 @@ struct FunctionsView: View {
             FilterField("Filter libraries", text: $searchText)
                 .frame(maxWidth: .infinity)
 
-            if tab.isLoadingFunctions {
-                ProgressView()
-                    .controlSize(.small)
-            }
-
-            Button {
-                Task { await tab.fetchFunctionLibraries() }
-            } label: {
-                Label("Refresh", systemImage: "arrow.clockwise")
-            }
-            .buttonStyle(SecondaryButtonStyle())
-            .disabled(tab.isLoadingFunctions || !tab.supportsFunctions)
-
             Button {
                 showingLoadSheet = true
             } label: {
@@ -204,6 +191,23 @@ struct FunctionsView: View {
 
     private var libraryList: some View {
         VStack(spacing: 0) {
+            HStack(spacing: AppSpacing.small) {
+                Spacer()
+
+                if tab.isLoadingFunctions {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+
+                RefreshButton(isLoading: tab.isLoadingFunctions) {
+                    Task { await tab.fetchFunctionLibraries() }
+                }
+            }
+            .padding(.horizontal, AppSpacing.small)
+            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+
+            Divider()
+
             Group {
                 if filteredLibraries.isEmpty {
                     Spacer()
