@@ -60,7 +60,7 @@ class TabState {
     /// True when the displayed string value was truncated via GETRANGE because
     /// it exceeded `stringDetailTruncationLimit` bytes.
     var keyDetailTruncated = false
-    var keyDetailZSetOrder: KeyDetailZSetOrder = .ascending
+    var keyDetailOrder: KeyDetailOrder = .ascending
     var isLoadingKeys = false
     var isLoadingDetail = false
     var scanCursor: String = "0"

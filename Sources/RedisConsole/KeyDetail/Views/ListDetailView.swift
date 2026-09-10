@@ -40,9 +40,11 @@ struct ListDetailView: View {
     let key: String
     let rows: [(String, String)]
     let totalCount: Int?
+    let order: KeyDetailOrder
     let hasMoreRows: Bool
     var isProduction: Bool = false
     let onLoadMore: () -> Void
+    let onOrderChange: (KeyDetailOrder) -> Void
     let onAddElement: () -> Void
     let onSaveElement: (Int, String) -> Void
     let onDeleteElement: (Int, String) -> Void
@@ -98,6 +100,15 @@ struct ListDetailView: View {
                     }
                 }
                 .width(80)
+            }
+            .overlay(alignment: .topLeading) {
+                HeaderSortControl(
+                    ascending: order == .ascending,
+                    headerWidth: 85,
+                    helpText: "Sort by index"
+                ) {
+                    onOrderChange(order == .ascending ? .descending : .ascending)
+                }
             }
 
             Divider()

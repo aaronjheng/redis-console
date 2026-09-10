@@ -262,3 +262,44 @@ struct OptionsPicker<Option: Hashable & Sendable>: View {
         .help(title)
     }
 }
+
+/// Clickable sort control for a key-detail table column header, styled after
+/// Sequel Ace: it draws the standard AppKit sort indicator and handles the
+/// click itself. The underlying column is intentionally left non-sortable
+/// because macOS 26 draws an extra separator in front of the active sort
+/// column; this overlay reproduces the indicator without that artifact.
+struct HeaderSortControl: View {
+    let ascending: Bool
+    /// Total width of the column's header cell (leading inset + column width
+    /// + intercell gap), matching `NSTableHeaderView` metrics.
+    let headerWidth: CGFloat
+    var disabled: Bool = false
+    var helpText = "Sort"
+    let onToggle: () -> Void
+
+    private static let headerHeight: CGFloat = 28
+    private static let indicatorTrailingInset: CGFloat = 8
+
+    var body: some View {
+        Button(action: onToggle) {
+            Color.clear
+                .frame(width: headerWidth, height: Self.headerHeight)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .trailing) {
+            Image(nsImage: Self.sortIndicatorImage(ascending: ascending))
+                .foregroundStyle(.secondary)
+                .opacity(disabled ? 0.35 : 1)
+                .padding(.trailing, Self.indicatorTrailingInset)
+        }
+        .disabled(disabled)
+        .help(helpText)
+        .accessibilityLabel(helpText)
+    }
+
+    private static func sortIndicatorImage(ascending: Bool) -> NSImage {
+        let name: NSImage.Name = ascending ? "NSAscendingSortIndicator" : "NSDescendingSortIndicator"
+        return NSImage(named: name) ?? NSImage(size: NSSize(width: 8, height: 8))
+    }
+}

@@ -97,10 +97,14 @@ extension KeyDetailView {
                 key: key.key,
                 rows: tab.keyDetailRows,
                 totalCount: tab.keyDetailTotalCount ?? key.length,
+                order: tab.keyDetailOrder,
                 hasMoreRows: tab.keyDetailHasMoreRows,
                 isProduction: isProduction,
                 onLoadMore: {
                     Task { await tab.loadMoreSelectedKeyDetailRows() }
+                },
+                onOrderChange: { order in
+                    Task { await tab.updateSelectedKeyOrder(order) }
                 },
                 onAddElement: { showingAddListElement = true },
                 onSaveElement: { index, value in
@@ -200,14 +204,14 @@ extension KeyDetailView {
                 rows: tab.keyDetailRows,
                 totalCount: tab.keyDetailTotalCount ?? key.length,
                 searchText: tab.keyDetailSearchText,
-                order: tab.keyDetailZSetOrder,
+                order: tab.keyDetailOrder,
                 hasMoreRows: tab.keyDetailHasMoreRows,
                 isProduction: isProduction,
                 onSearch: { text in
                     Task { await tab.searchSelectedKeyDetail(text) }
                 },
                 onOrderChange: { order in
-                    Task { await tab.updateSelectedZSetOrder(order) }
+                    Task { await tab.updateSelectedKeyOrder(order) }
                 },
                 onLoadMore: {
                     Task { await tab.loadMoreSelectedKeyDetailRows() }

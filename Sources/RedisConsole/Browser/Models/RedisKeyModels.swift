@@ -68,7 +68,7 @@ func redisKeyTypeTitle(_ type: String) -> String {
     }
 }
 
-enum KeyDetailZSetOrder: String, CaseIterable, Identifiable {
+enum KeyDetailOrder: String, CaseIterable, Identifiable {
     case ascending
     case descending
 

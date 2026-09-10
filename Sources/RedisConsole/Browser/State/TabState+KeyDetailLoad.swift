@@ -20,7 +20,7 @@ extension TabState {
     func selectKey(_ entry: RedisKeyEntry) async {
         selectedKey = entry
         keyDetailSearchText = ""
-        keyDetailZSetOrder = .ascending
+        keyDetailOrder = .ascending
         resetKeyDetailPaging(clearRows: true)
         keyDetailGeneration += 1
         await loadSelectedKeyDetail(append: false)
@@ -38,9 +38,9 @@ extension TabState {
         await loadSelectedKeyDetail(append: false)
     }
 
-    func updateSelectedZSetOrder(_ order: KeyDetailZSetOrder) async {
-        guard keyDetailZSetOrder != order else { return }
-        keyDetailZSetOrder = order
+    func updateSelectedKeyOrder(_ order: KeyDetailOrder) async {
+        guard keyDetailOrder != order else { return }
+        keyDetailOrder = order
         resetKeyDetailPaging(clearRows: true)
         keyDetailGeneration += 1
         await loadSelectedKeyDetail(append: false)
@@ -179,6 +179,11 @@ extension TabState {
     }
 
     private func loadListDetail(key: String, append: Bool, using client: any RedisSession, token: Int) async throws {
+        if keyDetailOrder == .descending, let keyDetailTotalCount {
+            try await loadReversedListDetail(key: key, totalCount: keyDetailTotalCount, append: append, using: client, token: token)
+            return
+        }
+
         let start = append ? keyDetailOffset : 0
         let stop = start + keyDetailPageSize - 1
         let value = try await client.send("LRANGE", key, "\(start)", "\(stop)")
@@ -199,6 +204,40 @@ extension TabState {
         } else {
             keyDetailHasMoreRows = rows.count == keyDetailPageSize
         }
+    }
+
+    /// Loads a list window from the tail upward so the Index column can be
+    /// shown in descending order. Redis has no reversed range command, so the
+    /// window is fetched ascending with `LRANGE` and reversed locally while
+    /// keeping the real indices.
+    private func loadReversedListDetail(
+        key: String,
+        totalCount: Int,
+        append: Bool,
+        using client: any RedisSession,
+        token: Int
+    ) async throws {
+        let loadedCount = append ? keyDetailOffset : 0
+        let high = totalCount - 1 - loadedCount
+        let low = max(high - keyDetailPageSize + 1, 0)
+        guard low <= high else {
+            keyDetailHasMoreRows = false
+            return
+        }
+        let value = try await client.send("LRANGE", key, "\(low)", "\(high)")
+        try throwIfRedisError(value)
+        guard token == keyDetailGeneration else { return }
+        let rows = value.arrayValues.enumerated().compactMap { offset, value -> (String, String)? in
+            guard let value else { return nil }
+            return ("\(high - offset)", value.string ?? value.displayString)
+        }
+        if append {
+            keyDetailRows.append(contentsOf: rows)
+        } else {
+            keyDetailRows = rows
+        }
+        keyDetailOffset = loadedCount + rows.count
+        keyDetailHasMoreRows = keyDetailOffset < totalCount
     }
 
     private func loadHashDetail(key: String, append: Bool, using client: any RedisSession, token: Int) async throws {
@@ -253,7 +292,7 @@ extension TabState {
 
         let start = append ? keyDetailOffset : 0
         let stop = start + keyDetailPageSize - 1
-        let command = keyDetailZSetOrder == .descending ? "ZREVRANGE" : "ZRANGE"
+        let command = keyDetailOrder == .descending ? "ZREVRANGE" : "ZRANGE"
         let value = try await client.send(command, key, "\(start)", "\(stop)", "WITHSCORES")
         try throwIfRedisError(value)
         guard token == keyDetailGeneration else { return }
