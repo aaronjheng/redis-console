@@ -88,12 +88,12 @@ struct ZSetDetailView: View {
 
                 TableColumn("Actions") { row in
                     HStack(spacing: AppSpacing.small) {
-                        Button("Edit Score", systemImage: "pencil") {
+                        Button("Edit Score", systemImage: "square.and.pencil") {
                             editingMember = row.member
                             editScore = row.score
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(IconButtonStyle(size: .row))
+                        .buttonStyle(IconButtonStyle(size: .row, weight: .semibold))
                         .help("Edit score")
 
                         DeleteIconButton(

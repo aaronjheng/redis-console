@@ -82,12 +82,12 @@ struct ListDetailView: View {
 
                 TableColumn("Actions") { row in
                     HStack(spacing: AppSpacing.small) {
-                        Button("Edit Element", systemImage: "pencil") {
+                        Button("Edit Element", systemImage: "square.and.pencil") {
                             editingIndex = row.index
                             editValue = row.value
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(IconButtonStyle(size: .row))
+                        .buttonStyle(IconButtonStyle(size: .row, weight: .semibold))
                         .help("Edit element")
 
                         DeleteIconButton(

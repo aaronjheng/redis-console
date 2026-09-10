@@ -203,12 +203,12 @@ struct StringDetailView: View {
                         }
                     }
                     .overlay(alignment: .topTrailing) {
-                        Button("Edit Value", systemImage: "pencil") {
+                        Button("Edit Value", systemImage: "square.and.pencil") {
                             editValue = value
                             isEditing = true
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(IconButtonStyle())
+                        .buttonStyle(IconButtonStyle(weight: .semibold))
                         .help("Edit value")
                         .padding(AppSpacing.large)
                     }

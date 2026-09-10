@@ -61,12 +61,12 @@ struct HashDetailView: View {
 
                 TableColumn("Actions") { row in
                     HStack(spacing: AppSpacing.small) {
-                        Button("Edit Field", systemImage: "pencil") {
+                        Button("Edit Field", systemImage: "square.and.pencil") {
                             editingField = row.field
                             editValue = row.value
                         }
                         .labelStyle(.iconOnly)
-                        .buttonStyle(IconButtonStyle(size: .row))
+                        .buttonStyle(IconButtonStyle(size: .row, weight: .semibold))
                         .help("Edit field")
 
                         DeleteIconButton(

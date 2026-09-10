@@ -120,12 +120,13 @@ enum IconButtonSize: Sendable {
 struct IconButtonStyle: ButtonStyle {
     var isDestructive = false
     var size: IconButtonSize = .regular
+    var weight: Font.Weight = .medium
     @State private var isHovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .labelStyle(.iconOnly)
-            .font(.system(size: 13, weight: .medium))
+            .font(.system(size: 13, weight: weight))
             .imageScale(.medium)
             .frame(minWidth: size.minSide ?? 0, minHeight: size.minSide ?? 0)
             .padding(size.padding)

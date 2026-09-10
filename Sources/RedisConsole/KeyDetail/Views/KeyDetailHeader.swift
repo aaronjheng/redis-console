@@ -47,8 +47,8 @@ extension KeyDetailView {
                         HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "clock")
                             Text("TTL: \(key.ttlText)")
-                            Image(systemName: "pencil")
-                                .imageScale(.small)
+                            Image(systemName: "square.and.pencil")
+                                .fontWeight(.semibold)
                         }
                         .padding(.horizontal, AppSpacing.xSmall)
                         .padding(.vertical, AppSpacing.xxSmall)
