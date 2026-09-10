@@ -1,3 +1,5 @@
+set dotenv-load := true
+
 derived_data := ".build/xcode-derived"
 build_configuration := "Release"
 app_bundle := derived_data / "Build/Products" / build_configuration / "RedisConsole.app"
@@ -19,7 +21,11 @@ build:
         -scheme RedisConsole \
         -configuration '{{ build_configuration }}' \
         -derivedDataPath '{{ derived_data }}' \
-        CODE_SIGN_IDENTITY='-' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES build
+        -allowProvisioningUpdates \
+        "CODE_SIGN_STYLE=${CODE_SIGN_STYLE:-Automatic}" \
+        "CODE_SIGN_IDENTITY=${CODE_SIGN_IDENTITY:--}" \
+        "DEVELOPMENT_TEAM=${DEVELOPMENT_TEAM:-}" \
+        ONLY_ACTIVE_ARCH=YES build
 
 clean:
     rm -rf .build
