@@ -235,10 +235,8 @@ struct FunctionsView: View {
                                     .contentShape(Rectangle())
                                     .onTapGesture { tab.selectedFunctionLibrary = library }
                                     .contextMenu {
-                                        Button(role: .destructive) {
+                                        Button("Delete", role: .destructive) {
                                             libraryPendingDeletion = library
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
                                         }
                                     }
                             }
