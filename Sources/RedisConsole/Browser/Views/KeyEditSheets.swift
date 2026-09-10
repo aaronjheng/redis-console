@@ -464,17 +464,19 @@ struct AddKeySheet: View {
             Button(action: action) {
                 Label(addLabel, systemImage: "plus")
             }
-            .buttonStyle(IconButtonStyle())
+            .buttonStyle(.plain)
             .font(.caption)
+            .foregroundStyle(.tint)
+            .hoverBackground()
             .help(addLabel)
         }
     }
 
     private func removeButton(disabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: "minus.circle.fill")
+            Image(systemName: "minus.circle")
         }
-        .buttonStyle(IconButtonStyle())
+        .buttonStyle(IconButtonStyle(size: .row))
         .foregroundStyle(.secondary)
         .disabled(disabled)
         .help("Remove row")

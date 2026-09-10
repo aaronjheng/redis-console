@@ -186,8 +186,10 @@ struct FunctionCallView: View {
                 } label: {
                     Label("Add Key", systemImage: "plus")
                 }
-                .buttonStyle(IconButtonStyle())
+                .buttonStyle(.plain)
                 .font(.caption)
+                .foregroundStyle(.tint)
+                .hoverBackground()
                 .help("Add key row")
             }
             ForEach(keys.indices, id: \.self) { index in
@@ -204,9 +206,9 @@ struct FunctionCallView: View {
                     Button {
                         removeLine(at: index, from: &keys)
                     } label: {
-                        Image(systemName: "minus.circle.fill")
+                        Image(systemName: "minus.circle")
                     }
-                    .buttonStyle(IconButtonStyle())
+                    .buttonStyle(IconButtonStyle(size: .row))
                     .foregroundStyle(.secondary)
                     .disabled(keys.count <= 1)
                     .help("Remove row")
@@ -226,8 +228,10 @@ struct FunctionCallView: View {
                 } label: {
                     Label("Add Arg", systemImage: "plus")
                 }
-                .buttonStyle(IconButtonStyle())
+                .buttonStyle(.plain)
                 .font(.caption)
+                .foregroundStyle(.tint)
+                .hoverBackground()
                 .help("Add arg row")
             }
             ForEach(args.indices, id: \.self) { index in
@@ -244,9 +248,9 @@ struct FunctionCallView: View {
                     Button {
                         removeLine(at: index, from: &args)
                     } label: {
-                        Image(systemName: "minus.circle.fill")
+                        Image(systemName: "minus.circle")
                     }
-                    .buttonStyle(IconButtonStyle())
+                    .buttonStyle(IconButtonStyle(size: .row))
                     .foregroundStyle(.secondary)
                     .disabled(args.count <= 1)
                     .help("Remove row")
