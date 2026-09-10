@@ -63,7 +63,7 @@ func redisKeyTypeTitle(_ type: String) -> String {
     case "list": "List"
     case "hash": "Hash"
     case "set": "Set"
-    case "zset": "Sorted Set"
+    case "zset": "ZSet"
     default: type
     }
 }

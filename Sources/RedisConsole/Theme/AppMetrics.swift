@@ -38,7 +38,9 @@ enum AppSize {
     static let refreshButtonWidth: CGFloat = 32
     static let refreshSeparatorHeight: CGFloat = 16
     /// Unified width for the small type/engine badge in key and library rows.
-    static let typeBadgeWidth: CGFloat = 64
+    /// Sized to fit the longest key type ("String"); "ZSet" replaced "Sorted Set"
+    /// so 64pt is no longer needed.
+    static let typeBadgeWidth: CGFloat = 44
     /// Horizontal inset of the native sidebar selection rect, mirrored by
     /// `sidebarHoverWash` so hover matches selection geometry.
     static let sidebarSelectionInset: CGFloat = 10
