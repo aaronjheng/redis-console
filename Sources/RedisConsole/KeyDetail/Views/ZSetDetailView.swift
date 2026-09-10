@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 // MARK: - ZSet Detail View
@@ -33,26 +34,47 @@ struct ZSetDetailView: View {
         rows.map { ZSetEntry(score: $0.0, member: $0.1) }
     }
 
+    /// Header metrics of the fixed Score column, matching NSTableView's
+    /// default macOS layout: 10pt leading inset before the first column, a
+    /// 100pt column plus its intercell gap (the next column starts at 125pt),
+    /// and a 28pt header.
+    private static let scoreHeaderExtent: CGFloat = 125
+    private static let headerHeight: CGFloat = 28
+    private static let indicatorTrailingInset: CGFloat = 8
+
+    private static func sortIndicatorImage(for order: KeyDetailZSetOrder) -> NSImage {
+        let name: NSImage.Name = order == .ascending ? "NSAscendingSortIndicator" : "NSDescendingSortIndicator"
+        return NSImage(named: name) ?? NSImage(size: NSSize(width: 8, height: 8))
+    }
+
+    /// Sequel Ace-style header sort control. The Score column is deliberately
+    /// left non-sortable because macOS 26 draws an extra separator in front of
+    /// the active sort column, so the standard indicator and the click handling
+    /// live in this overlay instead.
+    private var scoreHeaderSortControl: some View {
+        Button {
+            onOrderChange(order == .ascending ? .descending : .ascending)
+        } label: {
+            Color.clear
+                .frame(width: Self.scoreHeaderExtent, height: Self.headerHeight)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .trailing) {
+            Image(nsImage: Self.sortIndicatorImage(for: order))
+                .foregroundStyle(.secondary)
+                .opacity(pendingSearchText.isEmpty ? 1 : 0.35)
+                .padding(.trailing, Self.indicatorTrailingInset)
+        }
+        .disabled(!pendingSearchText.isEmpty)
+        .help(pendingSearchText.isEmpty ? "Sort by score" : "Sort order unavailable while filtering")
+        .accessibilityLabel("Sort by score")
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: AppSpacing.small) {
-                FilterField("Member filter", text: $pendingSearchText) {
-                    onSearch(pendingSearchText)
-                }
-
-                BinaryTogglePicker(
-                    selection: Binding(
-                        get: { order },
-                        set: { onOrderChange($0) }
-                    ),
-                    first: .ascending,
-                    second: .descending,
-                    firstLabel: { Text(KeyDetailZSetOrder.ascending.title) },
-                    secondLabel: { Text(KeyDetailZSetOrder.descending.title) }
-                )
-                .frame(width: 180)
-                .disabled(!pendingSearchText.isEmpty)
-                .help(pendingSearchText.isEmpty ? "Sort order" : "Sort order unavailable while filtering")
+            FilterField("Member filter", text: $pendingSearchText) {
+                onSearch(pendingSearchText)
             }
             .padding(AppSpacing.small)
 
@@ -104,6 +126,9 @@ struct ZSetDetailView: View {
                     }
                 }
                 .width(80)
+            }
+            .overlay(alignment: .topLeading) {
+                scoreHeaderSortControl
             }
 
             Divider()

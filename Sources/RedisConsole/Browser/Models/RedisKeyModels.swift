@@ -73,13 +73,6 @@ enum KeyDetailZSetOrder: String, CaseIterable, Identifiable {
     case descending
 
     var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .ascending: return "Ascending"
-        case .descending: return "Descending"
-        }
-    }
 }
 
 enum StringValueFormat: String, CaseIterable, Identifiable, Codable {
