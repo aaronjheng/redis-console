@@ -69,7 +69,6 @@ struct WorkspaceSidebarView: View {
                 } label: {
                     Label("Disconnect", systemImage: "power")
                         .labelStyle(.iconOnly)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, AppSpacing.xSmall)
                         .padding(.vertical, AppSpacing.xxSmall)
                         .contentShape(Rectangle())
@@ -80,6 +79,7 @@ struct WorkspaceSidebarView: View {
                 .onHover { isDisconnectHovering = $0 }
                 .animation(AppAnimation.quick, value: isDisconnectHovering)
                 .help("Disconnect")
+                Spacer()
             }
         }
     }
