@@ -111,13 +111,17 @@ extension KeyDetailView {
                 .labelStyle(.iconOnly)
                 .foregroundStyle(didCopyKey ? AppColor.success : .primary)
                 .buttonStyle(IconButtonStyle())
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                        .fill(.background.secondary)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                        .strokeBorder(.separator, lineWidth: 0.5)
+                )
+                .opacity(tab.isLoadingDetail ? 0.5 : 1)
                 .disabled(tab.isLoadingDetail)
                 .help("Copy key")
-                // Optical compensation: the refresh pill ends in a hard
-                // background edge while the icon buttons carry transparent
-                // padding on both sides, so without this the copy-to-trash
-                // gap reads wider than the refresh-to-copy gap.
-                .padding(.leading, AppSpacing.xSmall)
 
                 Button("Delete Key", systemImage: "trash", role: .destructive) {
                     keyPendingDeletion = key
@@ -125,6 +129,15 @@ extension KeyDetailView {
                 .labelStyle(.iconOnly)
                 .buttonStyle(IconButtonStyle(isDestructive: true))
                 .foregroundStyle(.red)
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                        .fill(.background.secondary)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                        .strokeBorder(.separator, lineWidth: 0.5)
+                )
+                .opacity(tab.isLoadingDetail ? 0.5 : 1)
                 .disabled(tab.isLoadingDetail)
                 .help("Delete key")
             }

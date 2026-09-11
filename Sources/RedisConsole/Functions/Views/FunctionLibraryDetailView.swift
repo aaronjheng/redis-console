@@ -42,6 +42,14 @@ struct FunctionLibraryDetailView: View {
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(IconButtonStyle())
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                        .fill(.background.secondary)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                        .strokeBorder(.separator, lineWidth: 0.5)
+                )
                 .help("Edit library source (or double-click code)")
                 .padding(AppSpacing.small)
             }
@@ -175,6 +183,14 @@ struct FunctionLibraryDetailView: View {
                 .disabled(library.functions.isEmpty)
                 .help("Run a function (FCALL)")
                 DeleteIconButton(action: { showingDeleteConfirm = true }, helpText: "Delete library")
+                    .background(
+                        RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                            .fill(.background.secondary)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                            .strokeBorder(.separator, lineWidth: 0.5)
+                    )
             }
         }
         .padding(AppSpacing.small)
