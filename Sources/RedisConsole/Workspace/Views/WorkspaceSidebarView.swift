@@ -68,6 +68,7 @@ struct WorkspaceSidebarView: View {
                     tab.disconnect()
                 } label: {
                     Label("Disconnect", systemImage: "power")
+                        .labelStyle(.iconOnly)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, AppSpacing.xSmall)
                         .padding(.vertical, AppSpacing.xxSmall)
