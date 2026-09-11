@@ -37,7 +37,7 @@ struct ConnectionHubSidebarView: View {
                 .buttonStyle(IconButtonStyle())
                 .help("New Connection")
             }
-            .padding(AppSpacing.large)
+            .panelToolbar(horizontalPadding: AppSpacing.small)
 
             Divider()
 

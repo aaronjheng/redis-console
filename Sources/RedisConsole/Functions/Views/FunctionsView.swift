@@ -131,7 +131,7 @@ struct FunctionsView: View {
 
     private var header: some View {
         @Bindable var tab = tab
-        return HStack(spacing: AppSpacing.medium) {
+        return HStack(spacing: AppSpacing.small) {
             FilterField("Filter libraries", text: $searchText)
                 .frame(maxWidth: .infinity)
 
@@ -216,7 +216,7 @@ struct FunctionsView: View {
                 }
             }
             .padding(.horizontal, AppSpacing.small)
-            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+            .padding(.vertical, AppSpacing.mini)
 
             Divider()
 
@@ -238,6 +238,7 @@ struct FunctionsView: View {
                         Button("Clear Filter") {
                             searchText = ""
                         }
+                        .buttonStyle(SecondaryButtonStyle())
                         .padding(.top, AppSpacing.small)
                     }
                     Spacer()
@@ -264,7 +265,7 @@ struct FunctionsView: View {
             Divider()
 
             PanelFooterBar {
-                StatusFooterView(countText: footerText)
+                StatusFooterView(countText: footerCountText, sizeText: footerSizeText)
                 Spacer()
             }
         }
@@ -272,19 +273,20 @@ struct FunctionsView: View {
 
     // MARK: Helpers
 
-    private var footerText: String {
+    private var footerCountText: String {
         let total = tab.functionLibraries.count
         let filtered = filteredLibraries.count
-        if isClusterMode {
-            let primaryCount = tab.clusterNodes.filter { $0.role == .primary }.count
-            if primaryCount > 0 {
-                return "\(total) libraries \u{00B7} \(primaryCount) primaries"
-            }
+        if (searchText.isEmpty && typeFilter.isEmpty) || filtered == total {
+            return pluralizedCount(total, singular: "library", plural: "libraries")
         }
-        if searchText.isEmpty || filtered == total {
-            return "\(total) libraries"
-        }
-        return "\(filtered) of \(total) libraries"
+        return "Showing \(filtered) of " + pluralizedCount(total, singular: "library", plural: "libraries")
+    }
+
+    private var footerSizeText: String? {
+        guard isClusterMode else { return nil }
+        let primaryCount = tab.clusterNodes.filter { $0.role == .primary }.count
+        guard primaryCount > 0 else { return nil }
+        return pluralizedCount(primaryCount, singular: "primary", plural: "primaries")
     }
 
     private func typeFilterTitle(_ filter: String) -> String {
@@ -327,6 +329,8 @@ private struct FunctionLibraryRow: View {
         }
         .padding(.vertical, AppSpacing.medium)
         .padding(.leading, AppSpacing.small)
+        .padding(.trailing, AppSpacing.small)
         .help(library.name)
+        .accessibilityLabel(library.name)
     }
 }

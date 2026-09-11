@@ -29,7 +29,8 @@ struct ClusterTopologyView: View {
                     }
                     .buttonStyle(TopologyNodeButtonStyle())
                     .position(item.position)
-                    .accessibilityLabel(nodeAccessibilityLabel(item.node))
+                    .accessibilityLabel(nodeAccessibilityLabel(item.node) + (selectedEndpoint == item.node.endpoint ? ", selected" : ""))
+                    .accessibilityAddTraits(selectedEndpoint == item.node.endpoint ? .isSelected : [])
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -43,10 +44,15 @@ struct ClusterTopologyView: View {
             ZStack {
                 Circle()
                     .fill(item.color)
-                    .frame(width: 44, height: 44)
+                    .frame(width: AppSize.topologyNodeDiameter, height: AppSize.topologyNodeDiameter)
                     .overlay(
                         Circle()
                             .stroke(isSelected ? Color.white : Color.clear, lineWidth: 3)
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(isSelected ? Color.primary : Color.clear, lineWidth: 1)
+                            .padding(3)
                     )
                     .shadow(color: item.color.opacity(0.4), radius: isSelected ? AppSpacing.small : AppSpacing.xSmall)
 
@@ -153,8 +159,8 @@ private struct TopologyNodeButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.93 : isHovering ? 1.06 : 1)
             .brightness(configuration.isPressed ? -0.06 : 0)
             .onHover { isHovering = $0 }
-            .animation(.easeOut(duration: 0.12), value: isHovering)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(AppAnimation.quick, value: isHovering)
+            .animation(AppAnimation.quick, value: configuration.isPressed)
     }
 }
 

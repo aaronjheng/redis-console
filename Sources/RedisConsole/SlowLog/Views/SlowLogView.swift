@@ -5,6 +5,7 @@ import SwiftUI
 struct SlowLogView: View {
     @Environment(TabState.self) private var tab
     @State private var filterText = ""
+    @State private var selection = Set<Int>()
 
     private var filteredEntries: [SlowLogEntry] {
         let query = filterText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -21,7 +22,7 @@ struct SlowLogView: View {
 
         VStack(spacing: 0) {
             // Header
-            HStack(spacing: AppSpacing.medium) {
+            HStack(spacing: AppSpacing.small) {
                 FilterField("Filter command, client, or name", text: $filterText)
                     .frame(maxWidth: .infinity)
 
@@ -57,6 +58,7 @@ struct SlowLogView: View {
                     Button("Refresh") {
                         Task { await tab.fetchSlowLog() }
                     }
+                    .buttonStyle(PrimaryButtonStyle())
                     .padding(.top, AppSpacing.small)
                 } else {
                     ContentUnavailableView(
@@ -67,14 +69,15 @@ struct SlowLogView: View {
                     Button("Clear Filter") {
                         filterText = ""
                     }
+                    .buttonStyle(SecondaryButtonStyle())
                     .padding(.top, AppSpacing.small)
                 }
                 Spacer()
             } else {
-                Table(filteredEntries) {
+                Table(filteredEntries, selection: $selection) {
                     TableColumn("ID") { entry in
                         Text("#\(entry.id)")
-                            .font(.subheadline)
+                            .font(AppFont.monoSubheadline)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
@@ -84,6 +87,7 @@ struct SlowLogView: View {
                         Text(entry.durationText)
                             .font(AppFont.monoSubheadline)
                             .foregroundStyle(durationColor(entry.duration))
+                            .help("Red at 1s or more, orange at 10ms or more")
                     }
                     .width(90)
 
@@ -99,7 +103,9 @@ struct SlowLogView: View {
                         Text(entry.commandText)
                             .font(AppFont.monoSubheadline)
                             .lineLimit(1)
+                            .truncationMode(.middle)
                             .textSelection(.enabled)
+                            .help(entry.commandText)
                     }
 
                     TableColumn("Client") { entry in
@@ -110,6 +116,39 @@ struct SlowLogView: View {
                     .width(130)
                 }
                 .tableStyle(.inset)
+                .contextMenu(forSelectionType: Int.self) { ids in
+                    if ids.count == 1, let id = ids.first {
+                        if let entry = filteredEntries.first(where: { $0.id == id }) {
+                            Button("Copy Command") {
+                                copyToPasteboard(entry.commandText)
+                            }
+                            Button("Copy Client") {
+                                copyToPasteboard(entry.clientIP)
+                            }
+                            Button("Copy Row") {
+                                copyToPasteboard("#\(entry.id)\t\(entry.commandText)\t\(entry.clientIP)")
+                            }
+                        }
+                    }
+                }
+                .overlay(alignment: .top) {
+                    if tab.isLoadingSlowLog, !filteredEntries.isEmpty {
+                        HStack(spacing: AppSpacing.xSmall) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Refreshing…")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, AppSpacing.small)
+                        .padding(.vertical, AppSpacing.xSmall)
+                        .background(
+                            .ultraThinMaterial,
+                            in: RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                        )
+                        .padding(.top, AppSpacing.small)
+                    }
+                }
             }
 
             Divider()
@@ -150,9 +189,9 @@ struct SlowLogView: View {
         let total = tab.slowLogEntries.count
         let filtered = filteredEntries.count
         if filterText.isEmpty || filtered == total {
-            return "\(total) entries"
+            return pluralizedCount(total, singular: "entry")
         }
-        return "Showing \(filtered) of \(total) entries"
+        return "Showing \(filtered) of " + pluralizedCount(total, singular: "entry")
     }
 
     private func durationColor(_ duration: Int) -> Color {

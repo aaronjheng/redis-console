@@ -61,11 +61,8 @@ struct SlowLogConfig: Equatable {
     /// with polling off.
     var autoRefreshInterval: TimeInterval = 0  // 0 = disabled
 
-    static let autoRefreshOptions: [(title: String, value: TimeInterval)] = [
-        ("Off", 0),
-        ("5s", 5),
-        ("10s", 10),
-        ("30s", 30),
-        ("60s", 60),
-    ]
+    static let autoRefreshOptions: [(title: String, value: TimeInterval)] =
+        [
+            ("Off", 0)
+        ] + AutoRefreshInterval.options.map { (AutoRefreshInterval.title($0), $0) }
 }

@@ -161,7 +161,7 @@ private struct FullWidthListRowModifier: ViewModifier {
                     .opacity(selected ? 0 : 1)
             }
             .onHover { isHovering = $0 }
-            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .animation(AppAnimation.quick, value: isHovering)
     }
 }
 

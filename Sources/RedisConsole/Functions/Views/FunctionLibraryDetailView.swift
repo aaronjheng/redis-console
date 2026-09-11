@@ -27,11 +27,11 @@ struct FunctionLibraryDetailView: View {
             ScrollView {
                 SelectableText(
                     text: library.code,
-                    font: .monospacedSystemFont(ofSize: 13, weight: .regular),
+                    font: AppFont.dataCellNSFont,
                     tokenizer: TreeSitterLuaHighlighter.shared
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(AppSpacing.small)
+                .padding(AppSpacing.large)
             }
             .onTapGesture(count: 2) {
                 showingEditSheet = true
@@ -139,18 +139,18 @@ struct FunctionLibraryDetailView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
+                HStack(spacing: AppSpacing.compact) {
                     HStack(spacing: AppSpacing.xxSmall) {
                         Image(systemName: "number")
                         Text("\(library.functionCount) function\(library.functionCount == 1 ? "" : "s")")
                     }
                     .foregroundStyle(.secondary)
                     if library.isReadOnly {
-                        HStack(spacing: AppSpacing.xxSmall) {
-                            Image(systemName: "lock.fill")
-                            Text("Read-only")
-                        }
-                        .foregroundStyle(AppColor.success)
+                        Badge(
+                            text: "Read-only",
+                            foregroundColor: AppColor.success,
+                            backgroundColor: AppColor.badgeBackground(AppColor.success)
+                        )
                     }
                     if let nodes = library.nodes, !nodes.isEmpty {
                         HStack(spacing: AppSpacing.xSmall) {
@@ -158,6 +158,7 @@ struct FunctionLibraryDetailView: View {
                             Text(nodes.map(\.address).joined(separator: ", "))
                                 .lineLimit(1)
                                 .truncationMode(.middle)
+                                .help(nodes.map(\.address).joined(separator: ", "))
                         }
                         .foregroundStyle(.secondary)
                     }
@@ -175,14 +176,7 @@ struct FunctionLibraryDetailView: View {
                 .disabled(library.functions.isEmpty)
                 .help("Run a function (FCALL)")
                 DeleteIconButton(action: { showingDeleteConfirm = true }, helpText: "Delete library")
-                    .background(
-                        RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                            .fill(.background.secondary)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                            .strokeBorder(.separator, lineWidth: 0.5)
-                    )
+                    .toolbarCapsule()
             }
         }
         .padding(AppSpacing.small)
@@ -269,5 +263,15 @@ struct FunctionLibraryDetailView: View {
             Spacer(minLength: 0)
         }
         .padding(AppSpacing.small)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button("Copy Function Name") {
+                copyToPasteboard(function.name)
+            }
+            Button("Copy FCALL Command") {
+                copyToPasteboard("FCALL \(function.name) 0")
+            }
+        }
+        .help(function.name)
     }
 }

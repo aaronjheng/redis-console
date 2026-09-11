@@ -57,7 +57,7 @@ struct DatabaseAnalysisView: View {
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(tab.analysis == nil)
             }
-            .panelToolbar()
+            .panelToolbar(horizontalPadding: AppSpacing.small)
 
             Divider()
 
@@ -86,6 +86,7 @@ struct DatabaseAnalysisView: View {
                         Task { await tab.runDatabaseAnalysis() }
                     }
                 }
+                .buttonStyle(PrimaryButtonStyle())
                 .padding(.top, AppSpacing.small)
                 Spacer()
             }
@@ -160,7 +161,9 @@ struct DatabaseAnalysisView: View {
                 }
             }
 
-            Divider().frame(height: 30)
+            Rectangle()
+                .fill(.separator)
+                .frame(width: 1)
 
             AnalysisStatView(label: "Total Keys", value: "\(analysis.totalKeys)")
             AnalysisStatView(label: "Total Memory", value: analysis.serverMetrics.usedMemoryHuman)
@@ -259,7 +262,7 @@ struct DatabaseAnalysisView: View {
                     .foregroundStyle(.secondary)
             } else {
                 let maxCount = analysis.expirationSummary.map(\.keyCount).max() ?? 1
-                VStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
+                VStack(spacing: AppSpacing.mini) {
                     ForEach(analysis.expirationSummary) { bucket in
                         HStack(spacing: AppSpacing.small) {
                             Text(bucket.label)
@@ -269,15 +272,21 @@ struct DatabaseAnalysisView: View {
 
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: AppRadius.small)
-                                        .fill(.quaternary)
-                                        .frame(height: 16)
-                                    RoundedRectangle(cornerRadius: AppRadius.small)
+                                    RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
+                                        .fill(AppColor.trackBackground)
+                                        .frame(height: AppSize.barHeight)
+                                    RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
                                         .fill(expirationColor(bucket.label))
-                                        .frame(width: max(4, geo.size.width * CGFloat(bucket.keyCount) / CGFloat(maxCount)), height: 16)
+                                        .frame(
+                                            width: max(
+                                                AppSize.barMinWidth,
+                                                geo.size.width * CGFloat(bucket.keyCount) / CGFloat(maxCount)
+                                            ),
+                                            height: AppSize.barHeight
+                                        )
                                 }
                             }
-                            .frame(height: 16)
+                            .frame(height: AppSize.barHeight)
 
                             Text("\(bucket.keyCount)")
                                 .font(AppFont.dataCell)
@@ -407,7 +416,7 @@ struct AnalysisStatView: View {
         VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
             Text(label)
                 .font(.body)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
             Text(value)
                 .font(AppFont.dataCell)
                 .foregroundStyle(.primary)

@@ -14,7 +14,7 @@ struct Badge: View {
         if isLoading {
             ProgressView()
                 .controlSize(.small)
-                .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
+                .padding(.horizontal, AppSpacing.mini)
                 .padding(.vertical, AppSpacing.xxSmall)
                 .frame(minWidth: 42)
         } else {
@@ -27,7 +27,7 @@ struct Badge: View {
             .font(.caption2.weight(.medium))
             .lineLimit(1)
             .foregroundStyle(foregroundColor)
-            .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
+            .padding(.horizontal, AppSpacing.mini)
             .padding(.vertical, AppSpacing.xxSmall)
             .background(backgroundColor)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous))
@@ -48,7 +48,7 @@ struct ErrorBanner: View {
             case .warning: AppColor.warning
             }
         }
-        var background: Color { AppColor.subtleBackground }
+        var background: Color { color.opacity(0.12) }
     }
 
     let message: String
@@ -63,6 +63,8 @@ struct ErrorBanner: View {
                 .font(.subheadline)
                 .foregroundStyle(.primary)
                 .lineLimit(2)
+                .textSelection(.enabled)
+                .help(message)
             Spacer()
             if let dismissAction {
                 Button("Dismiss", systemImage: "xmark") {
@@ -74,7 +76,7 @@ struct ErrorBanner: View {
             }
         }
         .padding(.horizontal, AppSpacing.small)
-        .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+        .padding(.vertical, AppSpacing.mini)
         .background(severity.background)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
     }
@@ -132,8 +134,23 @@ struct DeleteIconButton: View {
         .buttonStyle(IconButtonStyle(isDestructive: true, size: size))
         // Custom ButtonStyles can't see the button role, so the red must
         // be explicit — otherwise the icon renders in primary.
-        .foregroundStyle(.red)
+        .foregroundStyle(AppColor.error)
         .help(helpText ?? "Delete")
+    }
+}
+
+/// Shared auto-refresh interval options (seconds) for `RefreshControl`.
+/// SlowLog's config menu is built from the same list so every panel
+/// offers identical choices. Pure Foundation — safe to use from Models.
+enum AutoRefreshInterval {
+    static let options: [TimeInterval] = [5, 10, 15, 30, 60]
+
+    static func title(_ seconds: TimeInterval) -> String {
+        let totalSeconds = Int(seconds)
+        if totalSeconds.isMultiple(of: 60) {
+            return "\(totalSeconds / 60)m"
+        }
+        return "\(totalSeconds)s"
     }
 }
 
@@ -147,14 +164,6 @@ struct RefreshControl: View {
         autoRefreshInterval > 0
     }
 
-    private static func intervalTitle(_ seconds: TimeInterval) -> String {
-        let totalSeconds = Int(seconds)
-        if totalSeconds.isMultiple(of: 60) {
-            return "\(totalSeconds / 60)m"
-        }
-        return "\(totalSeconds)s"
-    }
-
     @State private var isRefreshHovering = false
     @State private var isMenuHovering = false
 
@@ -165,14 +174,7 @@ struct RefreshControl: View {
             intervalMenu
         }
         .frame(height: AppSize.refreshControlHeight)
-        .background(
-            RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                .fill(.background.secondary)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                .strokeBorder(.separator, lineWidth: 0.5)
-        )
+        .toolbarCapsule()
         .opacity(isLoading ? 0.5 : 1)
     }
 
@@ -227,7 +229,7 @@ struct RefreshControl: View {
                     autoRefreshInterval = interval
                 } label: {
                     menuItemLabel(
-                        text: Self.intervalTitle(interval),
+                        text: AutoRefreshInterval.title(interval),
                         checked: isAutoRefreshEnabled && autoRefreshInterval == interval
                     )
                 }
@@ -235,7 +237,7 @@ struct RefreshControl: View {
         } label: {
             HStack(spacing: AppSpacing.xxSmall) {
                 if isAutoRefreshEnabled {
-                    Text(Self.intervalTitle(autoRefreshInterval))
+                    Text(AutoRefreshInterval.title(autoRefreshInterval))
                         .font(.system(size: 11, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(.tint)
@@ -245,7 +247,7 @@ struct RefreshControl: View {
                     .imageScale(.medium)
                     .foregroundStyle(isMenuHovering && !isLoading ? .primary : .secondary)
             }
-            .padding(.horizontal, AppSpacing.small - AppSpacing.xxSmall)
+            .padding(.horizontal, AppSpacing.mini)
             .frame(height: AppSize.refreshControlHeight)
             .contentShape(Rectangle())
             .background(
@@ -262,14 +264,14 @@ struct RefreshControl: View {
                     style: .continuous
                 )
             )
-            .animation(.easeOut(duration: 0.12), value: isMenuHovering)
+            .animation(AppAnimation.quick, value: isMenuHovering)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
         .disabled(isLoading)
         .onHover { isMenuHovering = $0 }
-        .help(isAutoRefreshEnabled ? "Auto refresh every \(Self.intervalTitle(autoRefreshInterval))" : "Auto refresh off")
+        .help(isAutoRefreshEnabled ? "Auto refresh every \(AutoRefreshInterval.title(autoRefreshInterval))" : "Auto refresh off")
     }
 
     private func menuItemLabel(text: String, checked: Bool) -> some View {
@@ -305,14 +307,7 @@ struct RefreshButton: View {
         .disabled(isLoading)
         .onHover { isHovering = $0 }
         .help("Refresh")
-        .background(
-            RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                .fill(.background.secondary)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                .strokeBorder(.separator, lineWidth: 0.5)
-        )
+        .toolbarCapsule()
         .opacity(isLoading ? 0.5 : 1)
     }
 }

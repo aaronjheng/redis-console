@@ -12,6 +12,7 @@ struct ShellView: View {
     @State private var productionConfirmText = ""
     @State private var pendingCommand = ""
     @State private var isSendHovering = false
+    @State private var autoScroll = true
     @FocusState private var inputFocused: Bool
 
     /// Commands that require confirmation only in production environments.
@@ -47,6 +48,9 @@ struct ShellView: View {
             // Toolbar
             VStack(spacing: 0) {
                 HStack(spacing: AppSpacing.medium) {
+                    Toggle("Auto-scroll", isOn: $autoScroll)
+                        .toggleStyle(.switch)
+                        .help("Keep the newest commands visible")
                     Spacer()
                     Button(
                         action: { tab.clearShellHistory() },
@@ -57,7 +61,7 @@ struct ShellView: View {
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(tab.shellHistory.isEmpty)
                 }
-                .panelToolbar()
+                .panelToolbar(horizontalPadding: AppSpacing.small)
 
                 Divider()
             }
@@ -92,12 +96,19 @@ struct ShellView: View {
                                     }
                             }
                         }
+                        .onScrollGeometryChange(for: CGFloat.self) { geo in
+                            geo.contentSize.height - geo.contentOffset.y - geo.containerSize.height
+                        } action: { _, distanceFromBottom in
+                            // Auto-disable auto-scroll when the user scrolls away from the bottom.
+                            if autoScroll && distanceFromBottom > 60 {
+                                autoScroll = false
+                            }
+                        }
                     }
                     .onChange(of: tab.shellHistory.count) { _, _ in
-                        if let last = tab.shellHistory.last {
-                            withAnimation {
-                                proxy.scrollTo(last.id, anchor: .bottom)
-                            }
+                        guard autoScroll, let last = tab.shellHistory.last else { return }
+                        withAnimation(.easeOut(duration: 0.12)) {
+                            proxy.scrollTo(last.id, anchor: .bottom)
                         }
                     }
                 }
@@ -118,7 +129,7 @@ struct ShellView: View {
                                         .padding(.horizontal, AppSpacing.small)
                                         .padding(.vertical, AppSpacing.xxSmall)
                                         .background(AppColor.subtleBackground)
-                                        .clipShape(Capsule())
+                                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.pill, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
                                 .hoverBackground(cornerRadius: AppRadius.pill)
@@ -185,7 +196,7 @@ struct ShellView: View {
                         Image(systemName: "arrow.up")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(input.isEmpty ? .secondary : Color(.controlBackgroundColor))
-                            .frame(width: 30, height: 30)
+                            .frame(width: AppSize.sendButtonDiameter, height: AppSize.sendButtonDiameter)
                             .background(input.isEmpty ? Color.secondary.opacity(0.18) : Color.primary)
                             .clipShape(Circle())
                     }
@@ -193,8 +204,9 @@ struct ShellView: View {
                     .scaleEffect(isSendHovering && !input.isEmpty ? 1.06 : 1)
                     .brightness(isSendHovering && !input.isEmpty ? 0.08 : 0)
                     .onHover { isSendHovering = $0 }
-                    .animation(.easeOut(duration: 0.12), value: isSendHovering)
+                    .animation(AppAnimation.quick, value: isSendHovering)
                     .disabled(input.isEmpty)
+                    .accessibilityLabel("Send command")
                     .help(input.isEmpty ? "Type a command to send" : "Send command (Return)")
                 }
                 .padding(.horizontal, AppSpacing.medium)
@@ -313,7 +325,7 @@ struct ShellHistoryRow: View, Equatable {
                 Text("›")
                     .font(AppFont.dataCell)
                     .fontWeight(.bold)
-                    .foregroundStyle(AppColor.shellPrompt.opacity(0.65))
+                    .foregroundStyle(AppColor.shellPrompt)
 
                 Text(TreeSitterBashHighlighter.shared.highlight(entry.command))
                     .font(AppFont.dataCell)
@@ -337,7 +349,7 @@ struct ShellHistoryRow: View, Equatable {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(AppSpacing.small)
                 .background(AppColor.shellOutputBackground)
-                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
         }
         .padding(.horizontal, AppSpacing.large)
         .padding(.vertical, AppSpacing.small)

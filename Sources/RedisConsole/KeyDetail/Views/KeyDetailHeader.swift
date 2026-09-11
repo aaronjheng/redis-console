@@ -10,7 +10,7 @@ extension KeyDetailView {
         HStack(spacing: AppSpacing.small) {
             VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                 HStack(alignment: .firstTextBaseline, spacing: AppSpacing.small) {
-                    Badge(text: key.type, isLoading: key.type.isEmpty)
+                    Badge(text: redisKeyTypeTitle(key.type), isLoading: key.type.isEmpty)
                     Text(key.key)
                         .font(.title3)
                         .lineLimit(1)
@@ -18,7 +18,7 @@ extension KeyDetailView {
                     Spacer(minLength: 0)
                 }
 
-                HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
+                HStack(spacing: AppSpacing.compact) {
                     if let totalCount = tab.keyDetailTotalCount ?? key.length {
                         HStack(spacing: AppSpacing.xxSmall) {
                             Image(systemName: "number")
@@ -57,6 +57,7 @@ extension KeyDetailView {
                     .buttonStyle(.plain)
                     .foregroundStyle(key.hasExpiry ? AppColor.warning : .secondary)
                     .hoverBackground()
+                    .opacity(tab.isLoadingDetail ? 0.5 : 1)
                     .disabled(tab.isLoadingDetail)
                     .accessibilityLabel("Edit TTL, \(key.ttlText)")
                     .help("Edit TTL")
@@ -95,7 +96,7 @@ extension KeyDetailView {
                 RefreshControl(
                     autoRefreshInterval: $autoRefreshInterval,
                     isLoading: tab.isLoadingDetail,
-                    intervals: [5, 10, 15, 30, 60]
+                    intervals: AutoRefreshInterval.options
                 ) {
                     Task { await tab.refreshSelectedKey() }
                 }
@@ -111,15 +112,7 @@ extension KeyDetailView {
                 .labelStyle(.iconOnly)
                 .foregroundStyle(didCopyKey ? AppColor.success : .primary)
                 .buttonStyle(IconButtonStyle())
-                .background(
-                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                        .fill(.background.secondary)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                        .strokeBorder(.separator, lineWidth: 0.5)
-                )
-                .opacity(tab.isLoadingDetail ? 0.5 : 1)
+                .toolbarCapsule()
                 .disabled(tab.isLoadingDetail)
                 .help("Copy key")
 
@@ -128,16 +121,8 @@ extension KeyDetailView {
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(IconButtonStyle(isDestructive: true))
-                .foregroundStyle(.red)
-                .background(
-                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                        .fill(.background.secondary)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                        .strokeBorder(.separator, lineWidth: 0.5)
-                )
-                .opacity(tab.isLoadingDetail ? 0.5 : 1)
+                .foregroundStyle(AppColor.error)
+                .toolbarCapsule()
                 .disabled(tab.isLoadingDetail)
                 .help("Delete key")
             }
@@ -223,7 +208,7 @@ extension KeyDetailView {
                         Text(row.0)
                             .font(AppFont.monoSubheadline)
                             .foregroundStyle(.secondary)
-                            .frame(width: 100, alignment: .leading)
+                            .frame(width: AppSize.detailKeyColumnWidth, alignment: .leading)
                             .copyableCell(row.0, row: "\(row.0)\t\(row.1)")
                         Text(row.1)
                             .font(AppFont.dataCell)
@@ -234,7 +219,7 @@ extension KeyDetailView {
             } header: {
                 HStack {
                     Text(genericKeyHeader)
-                        .frame(width: 100, alignment: .leading)
+                        .frame(width: AppSize.detailKeyColumnWidth, alignment: .leading)
                     Text("Value")
                     Spacer()
                 }

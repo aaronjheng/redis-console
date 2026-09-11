@@ -32,7 +32,7 @@ struct ServerInfoView: View {
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(tab.isLoadingServerInfo)
             }
-            .panelToolbar()
+            .panelToolbar(horizontalPadding: AppSpacing.small)
 
             Divider()
 
@@ -122,7 +122,7 @@ struct ServerInfoView: View {
                     firstLabel: { Image(systemName: "list.bullet") },
                     secondLabel: { Image(systemName: "square.grid.2x2") }
                 )
-                .frame(width: 64)
+                .frame(width: AppSize.binaryToggleWidth)
             }
         }
         .padding(.horizontal, AppSpacing.large)
@@ -177,7 +177,7 @@ struct ServerInfoView: View {
             Spacer()
         }
         .padding(.horizontal, AppSpacing.large)
-        .padding(.vertical, AppSpacing.medium - AppSpacing.xxSmall)
+        .padding(.vertical, AppSpacing.compact)
     }
 
     private var serverInfoList: some View {
@@ -304,7 +304,7 @@ struct ServerInfoView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, AppSpacing.small)
-        .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+        .padding(.vertical, AppSpacing.mini)
         .background(isSelected ? AppColor.selectionBackground : Color.clear)
         .hoverBackground()
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))

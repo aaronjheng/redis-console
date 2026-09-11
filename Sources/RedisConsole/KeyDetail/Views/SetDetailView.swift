@@ -22,6 +22,7 @@ struct SetDetailView: View {
     @State private var pendingSearchText = ""
     @State private var memberPendingDeletion: String?
     @State private var productionConfirmText = ""
+    @State private var selection = Set<String>()
 
     private var setEntries: [SetEntry] {
         rows.map { SetEntry(member: $0.1) }
@@ -36,7 +37,7 @@ struct SetDetailView: View {
 
             Divider()
 
-            Table(setEntries) {
+            Table(setEntries, selection: $selection) {
                 TableColumn("Member") { row in
                     Text(row.member)
                         .font(AppFont.dataCell)
@@ -51,12 +52,54 @@ struct SetDetailView: View {
                         size: .row
                     )
                 }
-                .width(60)
+                .width(AppSize.tableActionsWidthSingle)
+            }
+            .contextMenu(forSelectionType: String.self) { ids in
+                if ids.count == 1, let member = ids.first {
+                    Button("Copy Member") {
+                        copyToPasteboard(member)
+                    }
+                    Button("Copy Row") {
+                        copyToPasteboard(member)
+                    }
+                    Divider()
+                    Button("Delete Member", role: .destructive) {
+                        memberPendingDeletion = member
+                    }
+                }
+            }
+            .overlay {
+                if setEntries.isEmpty {
+                    VStack {
+                        Spacer()
+                        ContentUnavailableView(
+                            searchText.isEmpty ? "No members" : "No matching members",
+                            systemImage: searchText.isEmpty ? "circle.grid.cross" : "magnifyingglass",
+                            description: Text(
+                                searchText.isEmpty ? "This set holds no members" : "Try a different filter")
+                        )
+                        if !searchText.isEmpty {
+                            Button("Clear Filter") {
+                                pendingSearchText = ""
+                                onSearch("")
+                            }
+                            .buttonStyle(SecondaryButtonStyle())
+                            .padding(.top, AppSpacing.small)
+                        }
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.background)
+                }
             }
 
             Divider()
 
             PanelFooterBar {
+                StatusFooterView(
+                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "members")
+                )
+
                 Button("Add Member", systemImage: "plus") {
                     onAddMember()
                 }
@@ -72,10 +115,6 @@ struct SetDetailView: View {
                 }
 
                 Spacer()
-
-                StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "members")
-                )
             }
         }
         .onAppear {

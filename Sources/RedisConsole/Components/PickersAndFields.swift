@@ -93,9 +93,10 @@ private struct ToggleButton<Label: View>: View {
             in: backgroundShape
         )
         .onHover { isHovering = $0 }
-        .animation(.easeOut(duration: 0.12), value: isHovering)
-        .help(helpText ?? "")
-        .accessibilityLabel(helpText ?? "")
+        .animation(AppAnimation.quick, value: isHovering)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .optionalHelp(helpText)
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
     }
 }
 
@@ -198,7 +199,7 @@ private struct FilterFieldIconButton: View {
                 in: RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
             )
             .onHover { isHovering = $0 }
-            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .animation(AppAnimation.quick, value: isHovering)
             .help(helpText)
     }
 }
@@ -246,7 +247,7 @@ struct OptionsPicker<Option: Hashable & Sendable>: View {
                     .font(.caption)
             }
             .padding(.horizontal, AppSpacing.small)
-            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+            .padding(.vertical, AppSpacing.mini)
             .foregroundStyle(.primary)
             .background(.background.secondary)
             .background(
@@ -255,11 +256,27 @@ struct OptionsPicker<Option: Hashable & Sendable>: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
             .contentShape(Rectangle())
+            .frame(height: AppSize.refreshControlHeight)
             .onHover { isHovering = $0 }
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
+        .accessibilityLabel(title)
+        .accessibilityValue(label(selection))
         .help(title)
+    }
+}
+
+extension View {
+    /// Applies `help` + `accessibilityLabel` only when text is present, so a
+    /// `nil` help never blanks out the VoiceOver name with an empty string.
+    @ViewBuilder
+    func optionalHelp(_ text: String?) -> some View {
+        if let text {
+            self.help(text).accessibilityLabel(text)
+        } else {
+            self
+        }
     }
 }
 
@@ -277,8 +294,9 @@ struct HeaderSortControl: View {
     var helpText = "Sort"
     let onToggle: () -> Void
 
-    private static let headerHeight: CGFloat = 28
-    private static let indicatorTrailingInset: CGFloat = 8
+    private static let headerHeight: CGFloat = AppSize.tableHeaderHeight
+    private static let indicatorTrailingInset: CGFloat = AppSpacing.small
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         Button(action: onToggle) {
@@ -287,6 +305,11 @@ struct HeaderSortControl: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focused($isFocused)
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
+                .strokeBorder(Color.accentColor, lineWidth: isFocused ? 1.5 : 0)
+        )
         .overlay(alignment: .trailing) {
             Image(nsImage: Self.sortIndicatorImage(ascending: ascending))
                 .foregroundStyle(.secondary)

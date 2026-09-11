@@ -29,6 +29,7 @@ struct AddHashFieldSheet: View {
 
             HStack {
                 Button("Cancel") { onCancel() }
+                    .buttonStyle(SecondaryButtonStyle())
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 if field.isEmpty {
@@ -37,6 +38,7 @@ struct AddHashFieldSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 Button("Add") { onSave(field, value) }
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(field.isEmpty)
                     .keyboardShortcut(.defaultAction)
                     .help(field.isEmpty ? "Enter a field name to enable" : "Add field")
@@ -73,6 +75,7 @@ struct AddListElementSheet: View {
 
             HStack {
                 Button("Cancel") { onCancel() }
+                    .buttonStyle(SecondaryButtonStyle())
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 if value.isEmpty {
@@ -81,6 +84,7 @@ struct AddListElementSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 Button("Add") { onSave(value, position) }
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(value.isEmpty)
                     .keyboardShortcut(.defaultAction)
                     .help(value.isEmpty ? "Enter a value to enable" : "Add element")
@@ -112,6 +116,7 @@ struct AddSetMemberSheet: View {
 
             HStack {
                 Button("Cancel") { onCancel() }
+                    .buttonStyle(SecondaryButtonStyle())
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 if member.isEmpty {
@@ -120,6 +125,7 @@ struct AddSetMemberSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 Button("Add") { onSave(member) }
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(member.isEmpty)
                     .keyboardShortcut(.defaultAction)
                     .help(member.isEmpty ? "Enter a member to enable" : "Add member")
@@ -152,6 +158,7 @@ struct AddZSetMemberSheet: View {
 
             HStack {
                 Button("Cancel") { onCancel() }
+                    .buttonStyle(SecondaryButtonStyle())
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 if member.isEmpty || score.isEmpty {
@@ -160,6 +167,7 @@ struct AddZSetMemberSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 Button("Add") { onSave(member, score) }
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(member.isEmpty || score.isEmpty)
                     .keyboardShortcut(.defaultAction)
                     .help(member.isEmpty || score.isEmpty ? "Enter a score and member to enable" : "Add member")
@@ -236,7 +244,7 @@ struct AddKeySheet: View {
             Divider()
             formSection
         }
-        .frame(width: 560)
+        .frame(width: AppSize.addKeySheetWidth)
         .onAppear { keyNameFocused = true }
     }
 
@@ -318,7 +326,7 @@ struct AddKeySheet: View {
                 options: Self.typeOptions,
                 label: { redisKeyTypeTitle($0) }
             )
-            .frame(maxWidth: 260, alignment: .leading)
+            .frame(maxWidth: AppSize.addKeyTypePickerWidth, alignment: .leading)
             Spacer()
         }
     }

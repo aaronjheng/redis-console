@@ -167,11 +167,13 @@ struct StringDetailView: View {
                             isEditing = false
                         }
                         .buttonStyle(.borderless)
+                        .keyboardShortcut(.cancelAction)
                         Button("Save") {
                             onSave(editValue)
                             isEditing = false
                         }
                         .buttonStyle(PrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
                     }
                 }
                 .padding(AppSpacing.large)
@@ -181,7 +183,7 @@ struct StringDetailView: View {
                         if format == .json && isJson {
                             SelectableText(
                                 text: beautifiedValue,
-                                font: .monospacedSystemFont(ofSize: 13, weight: .regular),
+                                font: AppFont.dataCellNSFont,
                                 tokenizer: TreeSitterJsonHighlighter.shared
                             )
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -216,33 +218,12 @@ struct StringDetailView: View {
                     Divider()
 
                     PanelFooterBar {
-                        Menu {
-                            ForEach(StringValueFormat.allCases, id: \.self) { option in
-                                Button {
-                                    format = option
-                                } label: {
-                                    if option == format {
-                                        Label(option.title, systemImage: "checkmark")
-                                    } else {
-                                        Text(option.title)
-                                    }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: AppSpacing.xxSmall) {
-                                Text(format.title)
-                                    .font(.caption)
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 8))
-                            }
-                            .foregroundStyle(.primary)
-                            .contentShape(Rectangle())
-                            .hoverBackground()
-                        }
-                        .menuStyle(.borderlessButton)
-                        .menuIndicator(.hidden)
-                        .frame(width: 110, alignment: .leading)
-                        .help("Value format")
+                        OptionsPicker(
+                            "Value format",
+                            selection: $format,
+                            options: StringValueFormat.allCases,
+                            label: \.title
+                        )
 
                         Spacer()
                     }

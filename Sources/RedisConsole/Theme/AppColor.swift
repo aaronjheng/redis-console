@@ -23,6 +23,9 @@ enum AppColor {
         color.opacity(0.12)
     }
 
+    /// Track background for distribution bars and similar meters.
+    static let trackBackground: Color = Color.primary.opacity(0.12)
+
     /// Highlight background for selected rows/items in lists and tables.
     /// Subtle variant for dense data rows (Profiler, cluster nodes) where the
     /// emphasized system selection would overwhelm the content.

@@ -26,6 +26,7 @@ struct HashDetailView: View {
     @State private var pendingSearchText = ""
     @State private var fieldPendingDeletion: String?
     @State private var productionConfirmText = ""
+    @State private var selection = Set<String>()
 
     private var hashEntries: [HashEntry] {
         rows.map { HashEntry(field: $0.0, value: $0.1) }
@@ -40,7 +41,7 @@ struct HashDetailView: View {
 
             Divider()
 
-            Table(hashEntries) {
+            Table(hashEntries, selection: $selection) {
                 TableColumn("Field") { row in
                     Text(row.field)
                         .font(AppFont.dataCell)
@@ -76,22 +77,66 @@ struct HashDetailView: View {
                         )
                     }
                 }
-                .width(80)
+                .width(AppSize.tableActionsWidthDouble)
+            }
+            .contextMenu(forSelectionType: String.self) { ids in
+                if ids.count == 1, let field = ids.first {
+                    if let value = hashEntries.first(where: { $0.field == field })?.value {
+                        Button("Copy Field") {
+                            copyToPasteboard(field)
+                        }
+                        Button("Copy Row") {
+                            copyToPasteboard("\(field)\t\(value)")
+                        }
+                        Divider()
+                        Button("Edit Field") {
+                            editingField = field
+                            editValue = value
+                        }
+                        Button("Delete Field", role: .destructive) {
+                            fieldPendingDeletion = field
+                        }
+                    }
+                }
+            }
+            .overlay {
+                if hashEntries.isEmpty {
+                    VStack {
+                        Spacer()
+                        ContentUnavailableView(
+                            searchText.isEmpty ? "No fields" : "No matching fields",
+                            systemImage: searchText.isEmpty ? "tablecells" : "magnifyingglass",
+                            description: Text(
+                                searchText.isEmpty ? "This hash holds no fields" : "Try a different filter")
+                        )
+                        if !searchText.isEmpty {
+                            Button("Clear Filter") {
+                                pendingSearchText = ""
+                                onSearch("")
+                            }
+                            .buttonStyle(SecondaryButtonStyle())
+                            .padding(.top, AppSpacing.small)
+                        }
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.background)
+                }
             }
 
             Divider()
 
             PanelFooterBar {
+                StatusFooterView(
+                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "fields")
+                )
+
                 Button("Add Field", systemImage: "plus") {
                     onAddField()
                 }
                 .labelStyle(.iconOnly)
-                .font(.system(size: 13, weight: .medium))
-                .imageScale(.medium)
-                .buttonStyle(.borderless)
-                .padding(AppSpacing.xxSmall)
-                .hoverBackground()
-                .help("Add field")
+                .buttonStyle(IconButtonStyle())
+                .help("Add Field")
 
                 if hasMoreRows {
                     Button("Load More") {
@@ -101,10 +146,6 @@ struct HashDetailView: View {
                 }
 
                 Spacer()
-
-                StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "fields")
-                )
             }
         }
         .onAppear {

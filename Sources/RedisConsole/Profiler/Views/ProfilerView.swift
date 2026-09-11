@@ -177,9 +177,13 @@ private struct ProfilerEmptyStateView: View {
             Spacer()
             if isStarting {
                 ContentUnavailableView(
-                    "Starting Profiler…",
-                    systemImage: "circle.dotted"
+                    "Starting profiler",
+                    systemImage: "circle.dotted",
+                    description: Text("Connecting to MONITOR…")
                 )
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.top, AppSpacing.small)
             } else if isRunning {
                 ContentUnavailableView(
                     "Waiting for Redis commands",
@@ -191,7 +195,7 @@ private struct ProfilerEmptyStateView: View {
                 )
             } else {
                 ContentUnavailableView(
-                    "Profiler Stopped",
+                    "Profiler stopped",
                     systemImage: "waveform.path.ecg"
                 )
                 Button("Start Profiler", action: onStart)
@@ -223,7 +227,7 @@ private struct ProfilerToolbarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: AppSpacing.medium) {
+            HStack(spacing: AppSpacing.small) {
                 FilterField("Filter command, node, source, database, or raw text", text: $filterText)
 
                 Toggle("Auto-scroll", isOn: $autoScroll)
@@ -234,11 +238,10 @@ private struct ProfilerToolbarView: View {
                     .toggleStyle(.switch)
                     .help("Hide PING and other polling commands")
 
-                if canShowLibraryColumn {
-                    Toggle("Library", isOn: $libraryColumnEnabled)
-                        .toggleStyle(.switch)
-                        .help("Show the owning library for FCALL commands")
-                }
+                Toggle("Library", isOn: $libraryColumnEnabled)
+                    .toggleStyle(.switch)
+                    .disabled(!canShowLibraryColumn)
+                    .help("Show the owning library for FCALL commands")
 
                 Button(action: onToggleCapture) {
                     Label(captureButtonTitle, systemImage: captureButtonIcon)
@@ -259,7 +262,7 @@ private struct ProfilerToolbarView: View {
     }
 
     private var captureButtonTitle: String {
-        if isStarting { return "Starting…" }
+        if isStarting { return "Starting" }
         return isRunning ? "Stop" : "Start"
     }
 
@@ -340,7 +343,7 @@ private struct ProfilerHeaderRow: View {
     let showLibraryColumn: Bool
 
     var body: some View {
-        HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
+        HStack(spacing: AppSpacing.compact) {
             Text("Time")
                 .frame(width: 100, alignment: .leading)
             Text("DB")
@@ -361,7 +364,7 @@ private struct ProfilerHeaderRow: View {
         .font(.subheadline)
         .foregroundStyle(.secondary)
         .padding(.horizontal, AppSpacing.large)
-        .padding(.vertical, 7)
+        .padding(.vertical, AppSpacing.mini)
         .background(AppColor.controlBackground)
     }
 }
@@ -381,7 +384,7 @@ private struct ProfilerEntryRow: View {
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: AppSpacing.medium - AppSpacing.xxSmall) {
+            HStack(spacing: AppSpacing.compact) {
                 Text(entry.timeText)
                     .frame(width: 100, alignment: .leading)
                     .foregroundStyle(.secondary)
@@ -412,7 +415,7 @@ private struct ProfilerEntryRow: View {
             .font(AppFont.monoSubheadline)
             .lineLimit(1)
             .padding(.horizontal, AppSpacing.large)
-            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+            .padding(.vertical, AppSpacing.mini)
             .contentShape(Rectangle())
             .background(
                 isSelected
@@ -423,6 +426,7 @@ private struct ProfilerEntryRow: View {
             .onHover { isHovering = $0 }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Profiler entry: \(entry.commandText)")
         .help("Select to preview raw line")
         .contextMenu {
             Button("Copy Raw Line") {
@@ -466,7 +470,7 @@ private struct ProfilerFooterView: View {
             PanelFooterBar {
                 ProfilerStatusIndicator(isStarting: isStarting, isRunning: isRunning)
                 StatusFooterView(
-                    countText: "Showing \(filteredCount) of \(retainedCount)",
+                    countText: "Showing \(filteredCount) of \(retainedCount) commands",
                     sizeText: "Captured \(capturedCount)"
                 )
                 Spacer()

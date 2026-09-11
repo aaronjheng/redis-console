@@ -41,7 +41,7 @@ struct ConnectionRow: View {
         .padding(.vertical, AppSpacing.xSmall)
         .contentShape(Rectangle())
         .sidebarHoverWash(active: isHovering && !isSelected)
-        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .animation(AppAnimation.quick, value: isHovering)
         .help("Single-click to edit — double-click to connect")
         .accessibilityLabel("\(config.name), \(config.address)")
     }

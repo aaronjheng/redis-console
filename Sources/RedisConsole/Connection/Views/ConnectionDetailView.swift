@@ -136,6 +136,7 @@ struct ConnectionDetailView: View {
                             Text("Port")
                             Spacer()
                             TextField("", text: $portText)
+                                .accessibilityLabel("Redis port")
                                 .frame(width: AppSize.formFieldWidth)
                                 .onChange(of: portText) { _, newValue in
                                     portError = nil
@@ -186,6 +187,7 @@ struct ConnectionDetailView: View {
                                 Text("Port")
                                 Spacer()
                                 TextField("", text: $sshPortText)
+                                    .accessibilityLabel("SSH port")
                                     .frame(width: AppSize.formFieldWidth)
                                     .onChange(of: sshPortText) { _, newValue in
                                         sshPortError = nil

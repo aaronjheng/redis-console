@@ -127,6 +127,16 @@ struct LuaEditorView: View {
             Text(mode.title)
                 .font(.headline)
             Spacer()
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+            }
+            .buttonStyle(IconButtonStyle())
+            .foregroundStyle(.secondary)
+            .keyboardShortcut(.cancelAction)
+            .accessibilityLabel("Close")
+            .help("Close (Esc)")
         }
         .padding(AppSpacing.large)
     }
@@ -180,7 +190,7 @@ struct LuaEditorView: View {
             dryRunIndicator
         }
         .padding(.horizontal, AppSpacing.large)
-        .frame(minHeight: 28)
+        .frame(minHeight: AppSize.refreshControlHeight)
         .background(.bar)
     }
 
@@ -208,6 +218,7 @@ struct LuaEditorView: View {
                 .foregroundStyle(AppColor.error)
                 .lineLimit(1)
                 .truncationMode(.middle)
+                .help(message)
         }
     }
 
@@ -229,6 +240,7 @@ struct LuaEditorView: View {
                 ProgressView().controlSize(.small)
             }
             Button("Cancel", role: .cancel) { dismiss() }
+                .keyboardShortcut(.cancelAction)
                 .disabled(isWorking)
             Button {
                 showingSaveConfirm = true
@@ -236,6 +248,7 @@ struct LuaEditorView: View {
                 Label(mode.isEdit ? "Save" : "Load", systemImage: mode.isEdit ? "checkmark" : "arrow.down.doc")
             }
             .buttonStyle(PrimaryButtonStyle())
+            .keyboardShortcut(.defaultAction)
             .disabled(isWorking || trimmedCode.isEmpty)
         }
         .padding(AppSpacing.large)

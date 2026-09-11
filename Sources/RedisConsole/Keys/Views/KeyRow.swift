@@ -24,6 +24,7 @@ struct KeyRow: View {
         }
         .padding(.vertical, AppSpacing.medium)
         .padding(.leading, AppSpacing.small)
+        .padding(.trailing, AppSpacing.small)
         .contentShape(Rectangle())
         .help(entry.key)
         .accessibilityLabel(entry.key)

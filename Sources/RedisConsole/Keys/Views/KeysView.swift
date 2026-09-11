@@ -13,6 +13,7 @@ struct KeysView: View {
     @State private var productionConfirmText = ""
     @State private var autoRefreshInterval: TimeInterval = 0
     @State private var deleteFeedbackTrigger = false
+    @State private var copyFeedbackTrigger = false
 
     let listScanCount = 500
     let treeScanCount = 10_000
@@ -56,7 +57,7 @@ struct KeysView: View {
             ) {
                 // MARK: Left Panel
                 VStack(spacing: 0) {
-                    HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
+                    HStack(spacing: AppSpacing.mini) {
                         OptionsPicker(
                             "Filter by key type",
                             selection: $tab.keyTypeFilter,
@@ -85,19 +86,19 @@ struct KeysView: View {
                             firstLabel: { Image(systemName: "list.bullet") },
                             secondLabel: { Image(systemName: "folder") }
                         )
-                        .frame(width: 64)
+                        .frame(width: AppSize.binaryToggleWidth)
 
                         RefreshControl(
                             autoRefreshInterval: $autoRefreshInterval,
                             isLoading: tab.isLoadingKeys,
-                            intervals: [5, 10, 15, 30, 60]
+                            intervals: AutoRefreshInterval.options
                         ) {
                             tab.keyScanCount = currentScanCount
                             Task { await tab.scanKeys(reset: true) }
                         }
                     }
                     .padding(.horizontal, AppSpacing.small)
-                    .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+                    .padding(.vertical, AppSpacing.mini)
 
                     Divider()
 
@@ -110,9 +111,9 @@ struct KeysView: View {
                     } else if tab.keys.isEmpty {
                         Spacer()
                         ContentUnavailableView(
-                            searchText.isEmpty ? "No keys found" : "No matching keys",
-                            systemImage: "key.slash",
-                            description: Text(searchText.isEmpty ? "This database has no keys" : "Try a different filter pattern")
+                            isFiltering ? "No matching keys" : "No keys found",
+                            systemImage: isFiltering ? "magnifyingglass" : "key.slash",
+                            description: Text(isFiltering ? filterHint : "This database has no keys")
                         )
                         loadMoreOrScanningView
                         Spacer()
@@ -120,8 +121,8 @@ struct KeysView: View {
                         Spacer()
                         ContentUnavailableView(
                             "No matching keys",
-                            systemImage: "key.slash",
-                            description: Text("Try a different filter pattern")
+                            systemImage: "magnifyingglass",
+                            description: Text(filterHint)
                         )
                         loadMoreOrScanningView
                         Spacer()
@@ -241,6 +242,7 @@ struct KeysView: View {
             searchText = tab.keyFilter == "*" ? "" : tab.keyFilter
         }
         .sensoryFeedback(.success, trigger: deleteFeedbackTrigger)
+        .sensoryFeedback(.success, trigger: copyFeedbackTrigger)
         .task(id: autoRefreshTaskID) {
             guard autoRefreshInterval > 0 else { return }
             while !Task.isCancelled {
@@ -258,7 +260,7 @@ struct KeysView: View {
     var loadMoreOrScanningView: some View {
         if tab.hasMoreKeys {
             if tab.isLoadingKeys {
-                HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
+                HStack(spacing: AppSpacing.mini) {
                     ProgressView()
                         .controlSize(.small)
                     Text("Scanning…")
@@ -283,6 +285,14 @@ struct KeysView: View {
         tab.keys.filter { tab.keyTypeFilter.isEmpty || $0.type.isEmpty || $0.type == tab.keyTypeFilter }
     }
 
+    var isFiltering: Bool {
+        !searchText.isEmpty || !tab.keyTypeFilter.isEmpty
+    }
+
+    var filterHint: String {
+        searchText.isEmpty ? "Try a different type filter" : "Try a different filter pattern"
+    }
+
     func typeFilterTitle(_ filter: String) -> String {
         filter.isEmpty ? "All" : redisKeyTypeTitle(filter)
     }
@@ -301,6 +311,7 @@ struct KeysView: View {
 
     func copyKeyToPasteboard(_ entry: RedisKeyEntry) {
         copyToPasteboard(entry.key)
+        copyFeedbackTrigger.toggle()
     }
 
     func expandNamespaces(containing key: String) {
@@ -314,12 +325,11 @@ struct KeysView: View {
     func keysFooterText(displayedCount: Int) -> String {
         let totalText = tab.keyTotalCount.map(String.init) ?? "unknown"
         let limitText = tab.keyScanLimitReached ? " · threshold reached" : ""
-        let loadedText = "\(tab.keys.count) of \(totalText) loaded\(limitText)"
         let showsScanProgress = tab.keyFilter != "*" || !tab.keyTypeFilter.isEmpty || tab.isNamespaceGroupingEnabled
 
         if showsScanProgress {
-            return "Showing \(displayedCount) · scanned \(tab.keyScannedCount) of \(totalText) · \(loadedText)"
+            return "Showing \(displayedCount) of \(totalText) · scanned \(tab.keyScannedCount)\(limitText)"
         }
-        return loadedText
+        return "\(tab.keys.count) of \(totalText) loaded\(limitText)"
     }
 }

@@ -96,7 +96,6 @@ extension KeysView {
             }
         } catch {
             tab.connectionError = error.localizedDescription
-            tab.keyDetailError = error.localizedDescription
         }
     }
 }

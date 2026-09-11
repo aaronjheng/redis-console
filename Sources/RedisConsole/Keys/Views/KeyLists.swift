@@ -201,7 +201,7 @@ struct KeyNamespaceRow: View {
         HStack(spacing: AppSpacing.small) {
             Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                 .foregroundStyle(.secondary)
-                .frame(width: 12, alignment: .leading)
+                .frame(width: AppSize.namespaceChevronWidth, alignment: .leading)
             Image(systemName: "folder")
                 .foregroundStyle(.tint)
             Text(namespace.name)

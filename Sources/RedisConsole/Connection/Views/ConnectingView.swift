@@ -34,5 +34,6 @@ struct ConnectingView: View {
                 .padding(.top, AppSpacing.small)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityLabel(tab.pendingConnection.map { "Connecting to \($0.name)" } ?? "Connecting")
     }
 }

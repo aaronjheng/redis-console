@@ -28,6 +28,7 @@ struct ZSetDetailView: View {
     @State private var pendingSearchText = ""
     @State private var memberPendingDeletion: String?
     @State private var productionConfirmText = ""
+    @State private var selection = Set<String>()
 
     private var zsetEntries: [ZSetEntry] {
         rows.map { ZSetEntry(score: $0.0, member: $0.1) }
@@ -64,7 +65,7 @@ struct ZSetDetailView: View {
 
             Divider()
 
-            Table(zsetEntries) {
+            Table(zsetEntries, selection: $selection) {
                 TableColumn("Score") { row in
                     EditableZSetCell(
                         row: row,
@@ -100,7 +101,52 @@ struct ZSetDetailView: View {
                         )
                     }
                 }
-                .width(80)
+                .width(AppSize.tableActionsWidthDouble)
+            }
+            .contextMenu(forSelectionType: String.self) { ids in
+                if ids.count == 1, let member = ids.first {
+                    if let score = zsetEntries.first(where: { $0.member == member })?.score {
+                        Button("Copy Member") {
+                            copyToPasteboard(member)
+                        }
+                        Button("Copy Row") {
+                            copyToPasteboard("\(score)\t\(member)")
+                        }
+                        Divider()
+                        Button("Edit Score") {
+                            editingMember = member
+                            editScore = score
+                        }
+                        Button("Delete Member", role: .destructive) {
+                            memberPendingDeletion = member
+                        }
+                    }
+                }
+            }
+            .overlay {
+                if zsetEntries.isEmpty {
+                    VStack {
+                        Spacer()
+                        ContentUnavailableView(
+                            searchText.isEmpty ? "No members" : "No matching members",
+                            systemImage: searchText.isEmpty
+                                ? "arrow.up.arrow.down.circle" : "magnifyingglass",
+                            description: Text(
+                                searchText.isEmpty ? "This sorted set holds no members" : "Try a different filter")
+                        )
+                        if !searchText.isEmpty {
+                            Button("Clear Filter") {
+                                pendingSearchText = ""
+                                onSearch("")
+                            }
+                            .buttonStyle(SecondaryButtonStyle())
+                            .padding(.top, AppSpacing.small)
+                        }
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.background)
+                }
             }
             .overlay(alignment: .topLeading) {
                 scoreHeaderSortControl
@@ -109,6 +155,10 @@ struct ZSetDetailView: View {
             Divider()
 
             PanelFooterBar {
+                StatusFooterView(
+                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "members")
+                )
+
                 Button("Add Member", systemImage: "plus") {
                     onAddMember()
                 }
@@ -124,10 +174,6 @@ struct ZSetDetailView: View {
                 }
 
                 Spacer()
-
-                StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "members")
-                )
             }
         }
         .onAppear {

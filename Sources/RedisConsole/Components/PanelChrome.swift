@@ -56,6 +56,11 @@ extension View {
     }
 }
 
+/// "1 library" vs "3 libraries" without hand-rolled ternaries at call sites.
+func pluralizedCount(_ count: Int, singular: String, plural: String? = nil) -> String {
+    "\(count) \(count == 1 ? singular : (plural ?? singular + "s"))"
+}
+
 struct StatusFooterView: View {
     let countText: String
     var sizeText: String?

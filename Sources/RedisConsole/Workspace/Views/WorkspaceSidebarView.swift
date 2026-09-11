@@ -15,7 +15,7 @@ struct WorkspaceSidebarView: View {
                     VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                         HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xSmall) {
                             Text(selectedConnection.name)
-                                .font(.title3)
+                                .font(.headline)
                                 .fontWeight(.bold)
                                 .lineLimit(1)
                             Spacer(minLength: AppSpacing.small)
@@ -76,8 +76,9 @@ struct WorkspaceSidebarView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(isDisconnectHovering ? .red : .secondary)
+                .hoverBackground()
                 .onHover { isDisconnectHovering = $0 }
-                .animation(.easeOut(duration: 0.12), value: isDisconnectHovering)
+                .animation(AppAnimation.quick, value: isDisconnectHovering)
                 .help("Disconnect")
             }
         }
@@ -101,6 +102,8 @@ private struct WorkspaceNavRow: View {
         .contentShape(Rectangle())
         .sidebarHoverWash(active: isHovering && !isSelected)
         .onHover { isHovering = $0 }
-        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .animation(AppAnimation.quick, value: isHovering)
+        .help(title)
+        .accessibilityLabel(title)
     }
 }

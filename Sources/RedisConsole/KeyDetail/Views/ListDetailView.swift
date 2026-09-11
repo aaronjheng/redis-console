@@ -53,6 +53,7 @@ struct ListDetailView: View {
     @State private var editValue = ""
     @State private var elementPendingDeletion: ListEntry?
     @State private var productionConfirmText = ""
+    @State private var selection = Set<Int>()
 
     private var listEntries: [ListEntry] {
         rows.compactMap { row in
@@ -63,7 +64,7 @@ struct ListDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Table(listEntries) {
+            Table(listEntries, selection: $selection) {
                 TableColumn("Index") { row in
                     Text("\(row.index)")
                         .font(AppFont.monoSubheadline)
@@ -99,9 +100,46 @@ struct ListDetailView: View {
                         )
                     }
                 }
-                .width(80)
+                .width(AppSize.tableActionsWidthDouble)
+            }
+            .contextMenu(forSelectionType: Int.self) { ids in
+                if ids.count == 1, let index = ids.first {
+                    if let row = listEntries.first(where: { $0.index == index }) {
+                        Button("Copy Value") {
+                            copyToPasteboard(row.value)
+                        }
+                        Button("Copy Row") {
+                            copyToPasteboard("\(row.index)\t\(row.value)")
+                        }
+                        Divider()
+                        Button("Edit Element") {
+                            editingIndex = row.index
+                            editValue = row.value
+                        }
+                        Button("Delete Element", role: .destructive) {
+                            elementPendingDeletion = row
+                        }
+                    }
+                }
+            }
+            .overlay {
+                if listEntries.isEmpty {
+                    VStack {
+                        Spacer()
+                        ContentUnavailableView(
+                            "No elements",
+                            systemImage: "list.bullet",
+                            description: Text("This list holds no elements")
+                        )
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.background)
+                }
             }
             .overlay(alignment: .topLeading) {
+                // 85pt = 60pt Index column + 25pt intercell gap, mirroring the
+                // score sort control in `ZSetDetailView`.
                 HeaderSortControl(
                     ascending: order == .ascending,
                     headerWidth: 85,
@@ -114,6 +152,10 @@ struct ListDetailView: View {
             Divider()
 
             PanelFooterBar {
+                StatusFooterView(
+                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "elements")
+                )
+
                 Button("Add Element", systemImage: "plus") {
                     onAddElement()
                 }
@@ -129,10 +171,6 @@ struct ListDetailView: View {
                 }
 
                 Spacer()
-
-                StatusFooterView(
-                    countText: detailCountText(loaded: rows.count, total: totalCount, noun: "elements")
-                )
             }
         }
         .confirmationDialog(

@@ -77,6 +77,8 @@ struct FunctionCallView: View {
             }
             .buttonStyle(IconButtonStyle())
             .foregroundStyle(.secondary)
+            .keyboardShortcut(.cancelAction)
+            .accessibilityLabel("Close")
             .help("Close (Esc)")
         }
         .padding(AppSpacing.large)
@@ -98,6 +100,8 @@ struct FunctionCallView: View {
                         .font(.caption)
                         .foregroundStyle(AppColor.error)
                         .lineLimit(1)
+                        .textSelection(.enabled)
+                        .help(error)
                 }
                 Spacer()
                 Button {
@@ -284,11 +288,12 @@ struct FunctionCallView: View {
 
             Group {
                 if tab.functionCallHistory.isEmpty {
-                    Text("Run a function to see its result.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .padding(AppSpacing.large)
+                    ContentUnavailableView(
+                        "No results",
+                        systemImage: "play",
+                        description: Text("Run a function to see its result.")
+                    )
+                    .frame(maxHeight: .infinity)
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
@@ -333,6 +338,15 @@ struct FunctionCallView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(AppSpacing.large)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button("Copy Command") {
+                copyToPasteboard(commandText(for: result))
+            }
+            Button("Copy Result") {
+                copyToPasteboard(result.error ?? result.response.description)
+            }
+        }
     }
 
     private func commandText(for result: RedisFunctionCallResult) -> String {

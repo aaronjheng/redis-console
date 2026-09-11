@@ -220,7 +220,7 @@ struct KeyTTLEditorPopover: View {
                     .font(.headline)
                 TextField("No limit", text: $ttlInput)
                     .textFieldStyle(.roundedBorder)
-                    .frame(width: 140)
+                    .frame(width: AppSize.ttlInputWidth)
                     .focused($inputFocused)
                     .onSubmit(onSave)
                 Text("s")

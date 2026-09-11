@@ -8,24 +8,28 @@ import SwiftUI
 /// Hover and press feedback are driven by transient state that is idle during
 /// off-screen renders, so captured output stays in the stable rest appearance.
 struct PrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding(.horizontal, AppSpacing.medium)
-            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+            .padding(.vertical, AppSpacing.mini)
             .font(.system(.body, design: .default))
             .foregroundStyle(.white)
             .background(.tint)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
             .brightness(pressedBrightness(configuration))
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .scaleEffect(configuration.isPressed && isEnabled && !reduceMotion ? 0.97 : 1)
+            .opacity(isEnabled ? 1 : 0.5)
             .onHover { isHovering = $0 }
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .animation(AppAnimation.quick, value: configuration.isPressed)
+            .animation(AppAnimation.quick, value: isHovering)
     }
 
     private func pressedBrightness(_ configuration: Configuration) -> Double {
+        guard isEnabled else { return 0 }
         if configuration.isPressed { return -0.08 }
         return isHovering ? 0.12 : 0
     }
@@ -36,12 +40,14 @@ struct PrimaryButtonStyle: ButtonStyle {
 /// Hover and press feedback are driven by transient state that is idle during
 /// off-screen renders, so captured output stays in the stable rest appearance.
 struct SecondaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding(.horizontal, AppSpacing.medium)
-            .padding(.vertical, AppSpacing.small - AppSpacing.xxSmall)
+            .padding(.vertical, AppSpacing.mini)
             .font(.system(.body, design: .default))
             .foregroundStyle(.primary)
             .background {
@@ -50,23 +56,25 @@ struct SecondaryButtonStyle: ButtonStyle {
             }
             .background {
                 RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                    .fill(Color.primary.opacity(isHovering && !configuration.isPressed ? 0.06 : 0))
+                    .fill(Color.primary.opacity(isHovering && isEnabled && !configuration.isPressed ? 0.06 : 0))
             }
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(isHovering ? 0.14 : 0), lineWidth: 1)
+                    .strokeBorder(Color.primary.opacity(isHovering && isEnabled ? 0.14 : 0), lineWidth: 1)
             )
-            .brightness(configuration.isPressed ? -0.06 : 0)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .brightness(configuration.isPressed && isEnabled ? -0.06 : 0)
+            .scaleEffect(configuration.isPressed && isEnabled && !reduceMotion ? 0.97 : 1)
+            .opacity(isEnabled ? 1 : 0.5)
             .onHover { isHovering = $0 }
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .animation(AppAnimation.quick, value: configuration.isPressed)
+            .animation(AppAnimation.quick, value: isHovering)
     }
 }
 
 /// A toolbar icon-only button style that renders reliably in off-screen captures.
 struct ToolbarButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
     @State private var isHovering = false
 
     func makeBody(configuration: Configuration) -> some View {
@@ -74,17 +82,18 @@ struct ToolbarButtonStyle: ButtonStyle {
             .labelStyle(.iconOnly)
             .font(.body)
             .foregroundStyle(.primary)
-            .padding(AppSpacing.small - AppSpacing.xxSmall)
+            .padding(AppSpacing.mini)
             .background(
-                configuration.isPressed
+                configuration.isPressed && isEnabled
                     ? Color.primary.opacity(0.12)
-                    : isHovering ? Color.primary.opacity(0.08) : Color.clear
+                    : isHovering && isEnabled ? Color.primary.opacity(0.08) : Color.clear
             )
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous))
             .contentShape(Rectangle())
+            .opacity(isEnabled ? 1 : 0.5)
             .onHover { isHovering = $0 }
-            .animation(.easeOut(duration: 0.12), value: isHovering)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(AppAnimation.quick, value: isHovering)
+            .animation(AppAnimation.quick, value: configuration.isPressed)
     }
 }
 
@@ -121,6 +130,8 @@ struct IconButtonStyle: ButtonStyle {
     var isDestructive = false
     var size: IconButtonSize = .regular
     var weight: Font.Weight = .medium
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovering = false
 
     func makeBody(configuration: Configuration) -> some View {
@@ -134,14 +145,16 @@ struct IconButtonStyle: ButtonStyle {
                 hoverBackground(isPressed: configuration.isPressed),
                 in: RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
             )
-            .brightness(configuration.isPressed ? -0.06 : 0)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .brightness(configuration.isPressed && isEnabled ? -0.06 : 0)
+            .scaleEffect(configuration.isPressed && isEnabled && !reduceMotion ? 0.95 : 1)
+            .opacity(isEnabled ? 1 : 0.5)
             .onHover { isHovering = $0 }
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .animation(AppAnimation.quick, value: configuration.isPressed)
+            .animation(AppAnimation.quick, value: isHovering)
     }
 
     private func hoverBackground(isPressed: Bool) -> Color {
+        guard isEnabled else { return Color.clear }
         if isPressed {
             return isDestructive ? Color.red.opacity(0.16) : Color.primary.opacity(0.12)
         }
@@ -149,6 +162,25 @@ struct IconButtonStyle: ButtonStyle {
             return isDestructive ? Color.red.opacity(0.1) : AppColor.iconHoverBackground
         }
         return Color.clear
+    }
+}
+
+// MARK: - Toolbar capsule chrome
+
+extension View {
+    /// Persistent toolbar pill chrome (the `RefreshControl` look): secondary
+    /// fill + hairline separator border. Hover/press wash comes from the
+    /// control's own style layered on top of this.
+    func toolbarCapsule() -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                    .fill(.background.secondary)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                    .strokeBorder(.separator, lineWidth: 0.5)
+            )
     }
 }
 
@@ -165,7 +197,7 @@ private struct HoverBackgroundModifier: ViewModifier {
                 in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             )
             .onHover { isHovering = $0 }
-            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .animation(AppAnimation.quick, value: isHovering)
     }
 }
 
