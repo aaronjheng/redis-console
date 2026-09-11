@@ -33,7 +33,7 @@ struct SlowLogView: View {
                     Task { await tab.fetchSlowLog() }
                 }
             }
-            .panelToolbar()
+            .panelToolbar(horizontalPadding: AppSpacing.small)
 
             Divider()
 

@@ -23,13 +23,6 @@ struct KeysView: View {
         VStack(spacing: 0) {
             // MARK: Header Bar
             HStack(spacing: AppSpacing.small) {
-                OptionsPicker(
-                    "Filter by key type",
-                    selection: $tab.keyTypeFilter,
-                    options: ["", "string", "list", "hash", "set", "zset"],
-                    label: { typeFilterTitle($0) }
-                )
-
                 FilterField("Filter by key pattern (e.g. user:*)", text: $searchText) {
                     tab.keyFilter = searchText.isEmpty ? "*" : searchText
                     tab.keyScanCount = currentScanCount
@@ -64,6 +57,16 @@ struct KeysView: View {
                 // MARK: Left Panel
                 VStack(spacing: 0) {
                     HStack(spacing: AppSpacing.small - AppSpacing.xxSmall) {
+                        OptionsPicker(
+                            "Filter by key type",
+                            selection: $tab.keyTypeFilter,
+                            options: ["", "string", "list", "hash", "set", "zset"],
+                            label: { typeFilterTitle($0) }
+                        )
+                        .frame(height: AppSize.refreshControlHeight)
+
+                        Spacer()
+
                         BinaryTogglePicker(
                             selection: Binding(
                                 get: { tab.isNamespaceGroupingEnabled },
@@ -83,8 +86,6 @@ struct KeysView: View {
                             secondLabel: { Image(systemName: "folder") }
                         )
                         .frame(width: 64)
-
-                        Spacer()
 
                         RefreshControl(
                             autoRefreshInterval: $autoRefreshInterval,

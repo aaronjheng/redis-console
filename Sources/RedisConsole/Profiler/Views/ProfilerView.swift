@@ -252,7 +252,7 @@ private struct ProfilerToolbarView: View {
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(!hasEntries)
             }
-            .panelToolbar()
+            .panelToolbar(horizontalPadding: AppSpacing.small)
 
             Divider()
         }
