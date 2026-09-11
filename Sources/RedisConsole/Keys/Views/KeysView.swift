@@ -284,7 +284,7 @@ struct KeysView: View {
     }
 
     func typeFilterTitle(_ filter: String) -> String {
-        filter.isEmpty ? "All Types" : redisKeyTypeTitle(filter)
+        filter.isEmpty ? "All" : redisKeyTypeTitle(filter)
     }
 
     var currentScanCount: Int {

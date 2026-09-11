@@ -5,6 +5,7 @@ import SwiftUI
 struct FunctionsView: View {
     @Environment(TabState.self) private var tab
     @State private var searchText = ""
+    @State private var typeFilter = ""
     @State private var showingLoadSheet = false
     @State private var libraryPendingDeletion: RedisFunctionLibrary?
     @State private var productionConfirmText = ""
@@ -18,8 +19,11 @@ struct FunctionsView: View {
 
     private var filteredLibraries: [RedisFunctionLibrary] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return tab.functionLibraries }
-        return tab.functionLibraries.filter { $0.name.lowercased().contains(query) }
+        return tab.functionLibraries.filter { library in
+            let matchesQuery = query.isEmpty || library.name.lowercased().contains(query)
+            let matchesType = typeFilter.isEmpty || (typeFilter == "readonly") == library.isReadOnly
+            return matchesQuery && matchesType
+        }
     }
 
     /// The currently selected library, freshly resolved against the latest fetch
@@ -192,6 +196,14 @@ struct FunctionsView: View {
     private var libraryList: some View {
         VStack(spacing: 0) {
             HStack(spacing: AppSpacing.small) {
+                OptionsPicker(
+                    "Filter by library type",
+                    selection: $typeFilter,
+                    options: ["", "readonly", "readwrite"],
+                    label: { typeFilterTitle($0) }
+                )
+                .frame(height: AppSize.refreshControlHeight)
+
                 Spacer()
 
                 if tab.isLoadingFunctions {
@@ -273,6 +285,14 @@ struct FunctionsView: View {
             return "\(total) libraries"
         }
         return "\(filtered) of \(total) libraries"
+    }
+
+    private func typeFilterTitle(_ filter: String) -> String {
+        switch filter {
+        case "readonly": return "Read-only"
+        case "readwrite": return "Read-write"
+        default: return "All"
+        }
     }
 
     private func emptyState(_ title: String, _ description: String) -> some View {
