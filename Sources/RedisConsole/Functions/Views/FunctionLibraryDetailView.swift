@@ -37,21 +37,13 @@ struct FunctionLibraryDetailView: View {
                 showingEditSheet = true
             }
             .overlay(alignment: .topTrailing) {
-                Button("Edit Source", systemImage: "pencil") {
+                Button("Edit Source", systemImage: "square.and.pencil") {
                     showingEditSheet = true
                 }
                 .labelStyle(.iconOnly)
-                .buttonStyle(IconButtonStyle())
-                .background(
-                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                        .fill(.background.secondary)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                        .strokeBorder(.separator, lineWidth: 0.5)
-                )
+                .buttonStyle(IconButtonStyle(weight: .semibold))
                 .help("Edit library source (or double-click code)")
-                .padding(AppSpacing.small)
+                .padding(AppSpacing.large)
             }
 
             Divider()
