@@ -5,10 +5,10 @@ import os
 ///
 /// Logs are viewable in Console.app or via:
 /// ```sh
-/// log stream --predicate 'subsystem == "redis.console"'
+/// log stream --predicate 'subsystem == "app.redis.console"'
 /// ```
 enum AppLogger {
-    private static let subsystem = "redis.console"
+    private static let subsystem = "app.redis.console"
 
     private static func logger(for category: String) -> Logger {
         Logger(subsystem: subsystem, category: category)

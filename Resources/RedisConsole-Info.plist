@@ -9,7 +9,7 @@
 	<key>CFBundleIconName</key>
 	<string>RedisConsole</string>
 	<key>CFBundleIdentifier</key>
-	<string>redis.console</string>
+	<string>app.redis.console</string>
 	<key>CFBundleName</key>
 	<string>Redis Console</string>
 	<key>CFBundlePackageType</key>

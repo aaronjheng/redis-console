@@ -7931,7 +7931,7 @@
 				<key>ONLY_ACTIVE_ARCH</key>
 				<string>YES</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
-				<string>redis.console</string>
+				<string>app.redis.console</string>
 				<key>PRODUCT_NAME</key>
 				<string>$(TARGET_NAME)</string>
 				<key>SDKROOT</key>
@@ -8879,7 +8879,7 @@
 				<key>MTL_FAST_MATH</key>
 				<string>YES</string>
 				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
-				<string>redis.console</string>
+				<string>app.redis.console</string>
 				<key>PRODUCT_NAME</key>
 				<string>$(TARGET_NAME)</string>
 				<key>SDKROOT</key>
