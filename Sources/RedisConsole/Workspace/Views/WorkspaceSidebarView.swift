@@ -4,7 +4,6 @@ import SwiftUI
 
 struct WorkspaceSidebarView: View {
     @Environment(TabState.self) private var tab
-    @State private var isDisconnectHovering = false
 
     var body: some View {
         @Bindable var tab = tab
@@ -64,20 +63,10 @@ struct WorkspaceSidebarView: View {
             Divider()
 
             PanelFooterBar {
-                Button(role: .destructive) {
+                Button("Disconnect", systemImage: "power") {
                     tab.disconnect()
-                } label: {
-                    Label("Disconnect", systemImage: "power")
-                        .labelStyle(.iconOnly)
-                        .padding(.horizontal, AppSpacing.xSmall)
-                        .padding(.vertical, AppSpacing.xxSmall)
-                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(isDisconnectHovering ? .red : .secondary)
-                .hoverBackground()
-                .onHover { isDisconnectHovering = $0 }
-                .animation(AppAnimation.quick, value: isDisconnectHovering)
+                .buttonStyle(IconButtonStyle())
                 .help("Disconnect")
                 Spacer()
             }
