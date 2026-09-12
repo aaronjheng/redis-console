@@ -52,6 +52,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if SettingsStore.shared.settings.confirmBeforeQuit, !confirmQuit() {
+            return .terminateCancel
+        }
         // Flush async state (SSH socket dir in /tmp) before quitting. The wait
         // is capped so logout/shutdown can never hang on a stuck tunnel; crash
         // or `kill -9` exits skip this and rely on the next launch's sweep.
@@ -62,6 +65,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             sender.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
+    }
+
+    /// Modal quit confirmation. Returns true when the user chose to quit.
+    /// Opt-out lives only in Settings → Application, so the alert keeps the
+    /// system layout (a suppression checkbox forces the legacy style).
+    private func confirmQuit() -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "Quit Redis Console"
+        alert.informativeText = "Open connections will be closed."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     @objc func openNewTab() {

@@ -28,8 +28,29 @@ struct SettingsView: View {
 
     var body: some View {
         switch navigation.pane {
+        case .application: applicationPane
         case .appearance: appearancePane
         }
+    }
+
+    // MARK: - Application
+
+    private var applicationPane: some View {
+        Form {
+            Section {
+                Toggle(
+                    "Confirm before quitting",
+                    isOn: Binding(
+                        get: { store.settings.confirmBeforeQuit },
+                        set: {
+                            store.settings.confirmBeforeQuit = $0
+                            store.save()
+                        }
+                    )
+                )
+            }
+        }
+        .formStyle(.grouped)
     }
 
     // MARK: - Appearance

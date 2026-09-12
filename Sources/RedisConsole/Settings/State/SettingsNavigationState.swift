@@ -7,7 +7,7 @@ import Observation
 @MainActor
 @Observable
 final class SettingsNavigationState {
-    private var history: [SettingsPane] = [.appearance]
+    private var history: [SettingsPane] = [.application]
     private var historyIndex = 0
 
     /// Refreshed by every navigation so the AppKit toolbar can sync its title
