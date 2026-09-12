@@ -7,11 +7,11 @@ struct ShellView: View {
     @State private var historyIndex = -1
     @State private var historyDraft = ""
     @State private var showCompletions = false
+    @State private var completionIndex: Int?
     @State private var showDangerousCommandAlert = false
     @State private var showProductionConfirm = false
     @State private var productionConfirmText = ""
     @State private var pendingCommand = ""
-    @State private var isSendHovering = false
     @State private var autoScroll = true
     @FocusState private var inputFocused: Bool
 
@@ -28,12 +28,6 @@ struct ShellView: View {
         "DEL", "UNLINK",
     ]
 
-    /// Accent border only while focused in an active window; dims with the
-    /// rest of the UI on window blur like a native focus ring.
-    private var pillBorderColor: Color {
-        inputFocused && controlActiveState != .inactive ? Color.accentColor : Color.secondary.opacity(0.18)
-    }
-
     var filteredCompletions: [String] {
         guard !input.isEmpty else { return [] }
         let parts = input.split(separator: " ")
@@ -43,48 +37,42 @@ struct ShellView: View {
         return []
     }
 
-    /// Fixed height of the floating completion bar (a single row of chips).
-    private static let completionsBarHeight: CGFloat = 30
+    private var completionsVisible: Bool {
+        showCompletions && !filteredCompletions.isEmpty
+    }
 
-    /// Floating command suggestions rendered as an overlay attached to the
-    /// top edge of the input pill: same width, continued corner radius, no
-    /// shadow, so the two read as one control. Living outside the layout keeps
+    /// Height of one suggestion row and how many rows the panel shows before
+    /// it scrolls.
+    private static let completionRowHeight: CGFloat = 26
+    private static let maxVisibleCompletions = 6
+
+    private var completionsBarHeight: CGFloat {
+        CGFloat(min(filteredCompletions.count, Self.maxVisibleCompletions)) * Self.completionRowHeight
+    }
+
+    /// Floating command suggestions rendered as an overlay above the input
+    /// strip: same width, top corners rounded, bottom edge flush with the
+    /// strip so the two read as one surface. Living outside the layout keeps
     /// the history area and footer at a constant size while suggestions appear
     /// and disappear.
     private var completionsBar: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: AppSpacing.xSmall) {
-                ForEach(filteredCompletions.prefix(12), id: \.self) { cmd in
-                    Button {
-                        input = cmd + " "
-                        showCompletions = false
-                    } label: {
-                        Text(cmd)
-                            .font(AppFont.monoSubheadline)
-                            .padding(.horizontal, AppSpacing.small)
-                            .padding(.vertical, AppSpacing.xxSmall)
-                            .background(AppColor.subtleBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.pill, style: .continuous))
+        ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                VStack(spacing: 0) {
+                    ForEach(filteredCompletions, id: \.self) { cmd in
+                        completionRow(cmd)
                     }
-                    .buttonStyle(.plain)
-                    .hoverBackground(cornerRadius: AppRadius.pill)
-                    .help("Complete with \(cmd)")
                 }
             }
-            .padding(.horizontal, AppSpacing.small)
+            .scrollIndicators(.hidden)
+            .frame(height: completionsBarHeight)
+            .onChange(of: completionIndex) { _, index in
+                guard let index else { return }
+                proxy.scrollTo(filteredCompletions[index], anchor: .center)
+            }
         }
-        .scrollIndicators(.hidden)
-        .frame(height: Self.completionsBarHeight)
-        .background(
-            UnevenRoundedRectangle(
-                topLeadingRadius: AppRadius.large,
-                bottomLeadingRadius: 0,
-                bottomTrailingRadius: 0,
-                topTrailingRadius: AppRadius.large,
-                style: .continuous
-            )
-            .fill(.background)
-        )
+        .background(.bar)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous))
         .overlay(
             UnevenRoundedRectangle(
                 topLeadingRadius: AppRadius.large,
@@ -95,6 +83,49 @@ struct ShellView: View {
             )
             .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
         )
+    }
+
+    /// One selectable suggestion row. `cmd` doubles as the scroll anchor id.
+    /// Hovering moves the shared selection (menus style); the highlight is
+    /// full-bleed and gets clipped by the panel's rounded silhouette.
+    private func completionRow(_ cmd: String) -> some View {
+        let index = filteredCompletions.firstIndex(of: cmd)
+        return Button {
+            acceptCompletion(at: index)
+        } label: {
+            Text(cmd)
+                .font(AppFont.monoSubheadline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, AppSpacing.small)
+                .frame(minHeight: Self.completionRowHeight)
+                .background(completionIndex == index ? Color.accentColor.opacity(0.15) : Color.clear)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            guard hovering else { return }
+            completionIndex = index
+        }
+        .help("Complete with \(cmd)")
+    }
+
+    /// Accepts the highlighted (or given) suggestion into the input.
+    private func acceptCompletion(at index: Int? = nil) {
+        let completions = filteredCompletions
+        let resolved = index ?? completionIndex ?? 0
+        guard completions.indices.contains(resolved) else { return }
+        input = completions[resolved] + " "
+        showCompletions = false
+        completionIndex = nil
+    }
+
+    /// Moves the suggestion selection with wrap-around; arrow keys start at
+    /// the first (↓) or last (↑) row when nothing is selected yet.
+    private func moveCompletionSelection(_ delta: Int) {
+        let count = filteredCompletions.count
+        guard count > 0 else { return }
+        let current = completionIndex ?? (delta > 0 ? -1 : 0)
+        completionIndex = (current + delta + count) % count
     }
 
     var body: some View {
@@ -168,14 +199,20 @@ struct ShellView: View {
                 }
             }
 
-            // Input area — Grok-style pill composer. Completions float above
-            // the pill as an overlay, so showing them never shifts the layout.
+            // Input strip — flat terminal-style prompt pinned above the
+            // footer. Suggestions float above it as an overlay, so showing
+            // them never shifts the layout.
+            Divider()
+
             VStack(spacing: AppSpacing.xSmall) {
                 HStack(spacing: AppSpacing.small) {
                     Text("›")
                         .font(AppFont.dataCell)
                         .fontWeight(.bold)
-                        .foregroundStyle(AppColor.shellPrompt)
+                        .foregroundStyle(
+                            inputFocused && controlActiveState != .inactive
+                                ? Color.accentColor : AppColor.shellPrompt
+                        )
 
                     TextField("Send a Redis command", text: $input, axis: .vertical)
                         .font(AppFont.monoBody)
@@ -185,11 +222,11 @@ struct ShellView: View {
                         .onSubmit { executeCommand() }
                         .onChange(of: input) { _, newValue in
                             showCompletions = !newValue.isEmpty
+                            completionIndex = filteredCompletions.isEmpty ? nil : 0
                         }
                         .onKeyPress(.tab) {
-                            if let firstCompletion = filteredCompletions.first {
-                                input = firstCompletion + " "
-                                showCompletions = false
+                            if completionsVisible {
+                                acceptCompletion()
                                 return .handled
                             }
                             return .ignored
@@ -197,11 +234,16 @@ struct ShellView: View {
                         .onKeyPress(.escape) {
                             if showCompletions {
                                 showCompletions = false
+                                completionIndex = nil
                                 return .handled
                             }
                             return .ignored
                         }
                         .onKeyPress(.upArrow) {
+                            if completionsVisible {
+                                moveCompletionSelection(-1)
+                                return .handled
+                            }
                             if !tab.shellHistory.isEmpty {
                                 if historyIndex == -1 {
                                     historyDraft = input
@@ -212,6 +254,10 @@ struct ShellView: View {
                             return .handled
                         }
                         .onKeyPress(.downArrow) {
+                            if completionsVisible {
+                                moveCompletionSelection(1)
+                                return .handled
+                            }
                             if historyIndex > 0 {
                                 historyIndex -= 1
                                 input = tab.shellHistory[tab.shellHistory.count - 1 - historyIndex].command
@@ -222,44 +268,21 @@ struct ShellView: View {
                             return .handled
                         }
 
-                    Button(action: executeCommand) {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(input.isEmpty ? .secondary : Color(.controlBackgroundColor))
-                            .frame(width: AppSize.sendButtonDiameter, height: AppSize.sendButtonDiameter)
-                            .background(input.isEmpty ? Color.secondary.opacity(0.18) : Color.primary)
-                            .clipShape(Circle())
+                    Button("Send command", systemImage: "arrow.up") {
+                        executeCommand()
                     }
-                    .buttonStyle(.plain)
-                    .scaleEffect(isSendHovering && !input.isEmpty ? 1.06 : 1)
-                    .brightness(isSendHovering && !input.isEmpty ? 0.08 : 0)
-                    .onHover { isSendHovering = $0 }
-                    .animation(AppAnimation.quick, value: isSendHovering)
+                    .buttonStyle(IconButtonStyle())
                     .disabled(input.isEmpty)
-                    .accessibilityLabel("Send command")
                     .help(input.isEmpty ? "Type a command to send" : "Send command (Return)")
-                }
-                .padding(.horizontal, AppSpacing.medium)
-                .padding(.vertical, AppSpacing.small)
-                .background(
-                    RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous)
-                        .fill(.background)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous)
-                                .stroke(
-                                    pillBorderColor,
-                                    lineWidth: inputFocused && controlActiveState != .inactive ? 1.5 : 1
-                                )
-                        )
-                )
-                .overlay(alignment: .top) {
-                    if showCompletions && !filteredCompletions.isEmpty {
-                        completionsBar
-                            .offset(y: -Self.completionsBarHeight)
-                    }
                 }
                 .padding(.horizontal, AppSpacing.large)
                 .padding(.vertical, AppSpacing.small)
+                .overlay(alignment: .top) {
+                    if completionsVisible {
+                        completionsBar
+                            .offset(y: -completionsBarHeight)
+                    }
+                }
             }
             .background(.bar)
 
@@ -319,6 +342,7 @@ struct ShellView: View {
         historyIndex = -1
         historyDraft = ""
         showCompletions = false
+        completionIndex = nil
 
         let cmdUpper = cmd.uppercased().trimmingCharacters(in: .whitespaces)
         let isProduction = tab.selectedConnection?.environment == .production

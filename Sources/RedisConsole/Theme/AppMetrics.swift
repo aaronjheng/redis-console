@@ -84,8 +84,6 @@ enum AppSize {
     static let tableHeaderHeight: CGFloat = 28
     /// Diameter of a cluster topology node hit area.
     static let topologyNodeDiameter: CGFloat = 44
-    /// Diameter of the Shell composer send button.
-    static let sendButtonDiameter: CGFloat = 30
     /// Height of distribution bars in the analysis charts.
     static let barHeight: CGFloat = 16
     /// Minimum visible width of a distribution bar segment.
