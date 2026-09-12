@@ -21,11 +21,10 @@ class SettingsStore {
     private let fileURL: URL
 
     private init() {
-        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+        guard let dir = AppSupportDirectory.current else {
             fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("settings.json")
             return
         }
-        let dir = appSupport.appendingPathComponent("redis.console", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         fileURL = dir.appendingPathComponent("settings.json")
         load()

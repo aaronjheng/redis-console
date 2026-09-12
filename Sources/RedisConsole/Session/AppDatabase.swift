@@ -42,12 +42,7 @@ final class AppDatabase: Sendable {
         }
     }
 
-    private static let directoryURL: URL? = {
-        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            return nil
-        }
-        return appSupport.appendingPathComponent("redis.console", isDirectory: true)
-    }()
+    private static let directoryURL = AppSupportDirectory.current
 
     private static func createSchema(in db: OpaquePointer) {
         let schema = """
