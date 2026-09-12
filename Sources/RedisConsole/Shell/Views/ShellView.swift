@@ -43,6 +43,60 @@ struct ShellView: View {
         return []
     }
 
+    /// Fixed height of the floating completion bar (a single row of chips).
+    private static let completionsBarHeight: CGFloat = 30
+
+    /// Floating command suggestions rendered as an overlay attached to the
+    /// top edge of the input pill: same width, continued corner radius, no
+    /// shadow, so the two read as one control. Living outside the layout keeps
+    /// the history area and footer at a constant size while suggestions appear
+    /// and disappear.
+    private var completionsBar: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: AppSpacing.xSmall) {
+                ForEach(filteredCompletions.prefix(12), id: \.self) { cmd in
+                    Button {
+                        input = cmd + " "
+                        showCompletions = false
+                    } label: {
+                        Text(cmd)
+                            .font(AppFont.monoSubheadline)
+                            .padding(.horizontal, AppSpacing.small)
+                            .padding(.vertical, AppSpacing.xxSmall)
+                            .background(AppColor.subtleBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.pill, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .hoverBackground(cornerRadius: AppRadius.pill)
+                    .help("Complete with \(cmd)")
+                }
+            }
+            .padding(.horizontal, AppSpacing.small)
+        }
+        .scrollIndicators(.hidden)
+        .frame(height: Self.completionsBarHeight)
+        .background(
+            UnevenRoundedRectangle(
+                topLeadingRadius: AppRadius.large,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: AppRadius.large,
+                style: .continuous
+            )
+            .fill(.background)
+        )
+        .overlay(
+            UnevenRoundedRectangle(
+                topLeadingRadius: AppRadius.large,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: AppRadius.large,
+                style: .continuous
+            )
+            .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Toolbar
@@ -114,33 +168,9 @@ struct ShellView: View {
                 }
             }
 
-            // Input area — Grok-style pill composer
+            // Input area — Grok-style pill composer. Completions float above
+            // the pill as an overlay, so showing them never shifts the layout.
             VStack(spacing: AppSpacing.xSmall) {
-                if showCompletions && !filteredCompletions.isEmpty {
-                    ScrollView(.horizontal) {
-                        HStack(spacing: AppSpacing.xSmall) {
-                            ForEach(filteredCompletions.prefix(12), id: \.self) { cmd in
-                                Button {
-                                    input = cmd + " "
-                                    showCompletions = false
-                                } label: {
-                                    Text(cmd)
-                                        .font(.subheadline)
-                                        .padding(.horizontal, AppSpacing.small)
-                                        .padding(.vertical, AppSpacing.xxSmall)
-                                        .background(AppColor.subtleBackground)
-                                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.pill, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                                .hoverBackground(cornerRadius: AppRadius.pill)
-                                .help("Complete with \(cmd)")
-                            }
-                        }
-                        .padding(.horizontal, AppSpacing.large)
-                    }
-                    .scrollIndicators(.hidden)
-                }
-
                 HStack(spacing: AppSpacing.small) {
                     Text("›")
                         .font(AppFont.dataCell)
@@ -222,6 +252,12 @@ struct ShellView: View {
                                 )
                         )
                 )
+                .overlay(alignment: .top) {
+                    if showCompletions && !filteredCompletions.isEmpty {
+                        completionsBar
+                            .offset(y: -Self.completionsBarHeight)
+                    }
+                }
                 .padding(.horizontal, AppSpacing.large)
                 .padding(.vertical, AppSpacing.small)
             }
