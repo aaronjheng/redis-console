@@ -156,13 +156,6 @@ struct ListDetailView: View {
                     countText: detailCountText(loaded: rows.count, total: totalCount, noun: "elements")
                 )
 
-                Button("Add Element", systemImage: "plus") {
-                    onAddElement()
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(IconButtonStyle())
-                .help("Add element")
-
                 if hasMoreRows {
                     Button("Load More") {
                         onLoadMore()
@@ -171,6 +164,13 @@ struct ListDetailView: View {
                 }
 
                 Spacer()
+
+                Button("Add Element", systemImage: "plus") {
+                    onAddElement()
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(IconButtonStyle())
+                .help("Add element")
             }
         }
         .confirmationDialog(

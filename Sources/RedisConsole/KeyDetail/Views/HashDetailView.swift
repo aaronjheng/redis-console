@@ -131,13 +131,6 @@ struct HashDetailView: View {
                     countText: detailCountText(loaded: rows.count, total: totalCount, noun: "fields")
                 )
 
-                Button("Add Field", systemImage: "plus") {
-                    onAddField()
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(IconButtonStyle())
-                .help("Add Field")
-
                 if hasMoreRows {
                     Button("Load More") {
                         onLoadMore()
@@ -146,6 +139,13 @@ struct HashDetailView: View {
                 }
 
                 Spacer()
+
+                Button("Add Field", systemImage: "plus") {
+                    onAddField()
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(IconButtonStyle())
+                .help("Add Field")
             }
         }
         .onAppear {

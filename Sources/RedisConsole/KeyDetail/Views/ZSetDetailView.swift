@@ -159,13 +159,6 @@ struct ZSetDetailView: View {
                     countText: detailCountText(loaded: rows.count, total: totalCount, noun: "members")
                 )
 
-                Button("Add Member", systemImage: "plus") {
-                    onAddMember()
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(IconButtonStyle())
-                .help("Add member")
-
                 if hasMoreRows {
                     Button("Load More") {
                         onLoadMore()
@@ -174,6 +167,13 @@ struct ZSetDetailView: View {
                 }
 
                 Spacer()
+
+                Button("Add Member", systemImage: "plus") {
+                    onAddMember()
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(IconButtonStyle())
+                .help("Add member")
             }
         }
         .onAppear {
