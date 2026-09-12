@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct ShellView: View {
@@ -8,6 +9,10 @@ struct ShellView: View {
     @State private var historyDraft = ""
     @State private var showCompletions = false
     @State private var completionIndex: Int?
+    /// Pointer position recorded when the suggestion panel opens, so the
+    /// hover event fired by the panel appearing under a stationary cursor can
+    /// be told apart from real pointer movement.
+    @State private var hoverAnchorLocation: CGPoint?
     @State private var showDangerousCommandAlert = false
     @State private var showProductionConfirm = false
     @State private var productionConfirmText = ""
@@ -30,6 +35,9 @@ struct ShellView: View {
 
     var filteredCompletions: [String] {
         guard !input.isEmpty else { return [] }
+        // A trailing space means the command word is finished: first-word
+        // suggestions no longer apply (the catalog has no second-word data).
+        guard !input.hasSuffix(" ") else { return [] }
         let parts = input.split(separator: " ")
         if parts.count <= 1 {
             return RedisCommandCatalog.completions(for: String(parts.first ?? ""))
@@ -104,7 +112,12 @@ struct ShellView: View {
         .buttonStyle(.plain)
         .onHover { hovering in
             guard hovering else { return }
-            completionIndex = index
+            // Only a pointer that has actually moved since the panel opened
+            // may steal the selection; a stationary cursor sitting where the
+            // panel happens to expand must not.
+            if let hoverAnchorLocation, NSEvent.mouseLocation != hoverAnchorLocation {
+                completionIndex = index
+            }
         }
         .help("Complete with \(cmd)")
     }
@@ -285,6 +298,9 @@ struct ShellView: View {
                 }
             }
             .background(.bar)
+            .onChange(of: completionsVisible) { _, visible in
+                hoverAnchorLocation = visible ? NSEvent.mouseLocation : nil
+            }
 
             Divider()
             PanelFooterBar {
