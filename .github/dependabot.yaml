@@ -13,8 +13,6 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    commit-message:
-      prefix: deps
     open-pull-requests-limit: 5
     ignore:
       # Pinned to PR #81 commit (scanner.c fix). Remove after upstream releases a new tag.
